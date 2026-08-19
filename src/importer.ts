@@ -8,9 +8,13 @@
  */
 
 function importCurrentState(): void {
-  const labels = importLabels();
+  // 3 つのステップで 1 つの予算を分け合う。ステップごとに数え直すと 6 分を超える。
+  const startedAt = Date.now();
+
+  const labels = importLabels(startedAt);
   const rules = importFilters();
-  refreshSenders();
+  refreshSenders(startedAt);
+
   activeBook().toast(
     `ラベル ${labels} 件 / ルール ${rules} 件を取り込みました。rules は全て無効の状態です。`,
     'gmail-organizer',
@@ -19,16 +23,24 @@ function importCurrentState(): void {
 }
 
 /** Gmail のユーザーラベルを labels シートへ投入する。 */
-function importLabels(): number {
+function importLabels(startedAt: number): number {
   const listed = Gmail.Users!.Labels!.list('me');
   const all = listed.labels || [];
   const known = existingKeys(SHEET_NAMES.LABELS, 'fullPath');
   const now = new Date();
 
   const rows: Row[] = [];
+  let skipped = 0;
+
   for (const label of all) {
     if (label.type !== 'user' || !label.name || !label.id) continue;
     if (known[label.name]) continue;
+
+    // 1 ラベルにつき Labels.get を 1 回呼ぶ。予算を超えたら残りは次の実行に回す。
+    if (outOfTime(startedAt)) {
+      skipped += 1;
+      continue;
+    }
 
     // messagesTotal は list では返らないので個別に読む。ラベル数は数十なので許容範囲。
     const detail = Gmail.Users!.Labels!.get('me', label.id);
@@ -50,6 +62,9 @@ function importLabels(): number {
   }
 
   appendRows(SHEET_NAMES.LABELS, rows);
+  if (skipped > 0) {
+    console.warn(`importLabels: 時間切れで ${skipped} 件を残しました。もう一度実行してください`);
+  }
   return rows.length;
 }
 

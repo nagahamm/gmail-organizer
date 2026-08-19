@@ -27,10 +27,12 @@ interface SenderObservation {
  * 既存の行は上書きせず、観測した値だけを更新する。
  * `運営元` / `サービス` / `備考` など人が育てた列には触れない。
  */
-function refreshSenders(): void {
-  const startedAt = Date.now();
+function refreshSenders(startedAt?: number): void {
+  // 呼び出し元が別のステップと予算を分け合う場合は、その開始時刻を受け取る。
+  // メニューから直接呼ばれる場合は引数が無い。数値でなければ自前で起点を取る。
+  const since = typeof startedAt === 'number' ? startedAt : Date.now();
   const window = readConfig('SENDER_SCAN_WINDOW', CONFIG.SENDER_SCAN_WINDOW);
-  const scan = scanSenders(window, startedAt);
+  const scan = scanSenders(window, since);
   const observed = scan.observed;
 
   const rows = readRows(SHEET_NAMES.SENDERS);
@@ -83,15 +85,17 @@ function scanSenders(window: string, startedAt: number): SenderScan {
   let start = 0;
 
   for (;;) {
-    if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) {
-      console.warn('scanSenders: 時間切れで打ち切りました');
-      return { observed, complete: false };
-    }
-
     const threads = GmailApp.search(window, start, SENDER_PAGE_SIZE);
     if (threads.length === 0) break;
 
     for (const thread of threads) {
+      // 1 スレッドごとに getMessages() を呼ぶので 1 ページの処理時間が長い。
+      // ページ単位で見ていると 1 ページぶん予算を超過する。
+      if (outOfTime(startedAt)) {
+        console.warn('scanSenders: 時間切れで打ち切りました');
+        return { observed, complete: false };
+      }
+
       const head = thread.getMessages()[0];
       if (!head) continue;
 

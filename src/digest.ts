@@ -16,10 +16,13 @@ const LOG_RETENTION_DAYS = 180;
 const DEAD_RULE_DAYS = 90;
 
 function runWeeklyDigest(): void {
+  // importCurrentState() と同じく、続けて回すステップで 1 つの予算を分け合う。
+  const startedAt = Date.now();
+
   const unmatched = collectUnmatched();
   replaceRows(SHEET_NAMES.UNMATCHED, unmatched.rows);
 
-  refreshSenders();
+  refreshSenders(startedAt);
   proposeAppliedJobs();
   const deadRules = findDeadRules();
   const archived = archiveOldLogs();

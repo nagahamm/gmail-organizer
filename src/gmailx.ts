@@ -75,6 +75,17 @@ function splitLabelPath(name: string): { major: string; middle: string; minor: s
   };
 }
 
+/**
+ * 実行の予算を使い切ったか。
+ *
+ * 起点は「その関数が呼ばれた時刻」ではなく「実行が始まった時刻」。
+ * 複数のステップを続けて回す入口では 1 つの startedAt を全ステップへ渡す。
+ * 関数ごとに数え直すと、ステップ数だけ 6 分制限を超えられてしまう。
+ */
+function outOfTime(startedAt: number): boolean {
+  return Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS;
+}
+
 /** 割合を「12.3%」の形にする。母数 0 なら空文字。 */
 function percent(part: number, whole: number): string {
   if (whole === 0) return '';
