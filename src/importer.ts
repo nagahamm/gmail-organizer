@@ -10,6 +10,7 @@
 function importCurrentState(): void {
   const labels = importLabels();
   const rules = importFilters();
+  refreshSenders();
   activeBook().toast(
     `ラベル ${labels} 件 / ルール ${rules} 件を取り込みました。rules は全て無効の状態です。`,
     'gmail-organizer',

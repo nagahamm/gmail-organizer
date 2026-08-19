@@ -26,6 +26,12 @@ const CONFIG = {
   /** 遡及適用の対象期間。直近 1 年。 */
   RETRO_QUERY_WINDOW: 'newer_than:1y',
 
+  /** 送信元マスタを更新するときに走査する期間。 */
+  SENDER_SCAN_WINDOW: 'newer_than:90d',
+
+  /** この日数以上届いていない送信元は dormant にする。 */
+  SENDER_DORMANT_DAYS: 60,
+
   /** サンプリング時に 1 ラベルあたり読むスレッド数の上限。 */
   SAMPLE_LIMIT: 300,
 
@@ -46,6 +52,7 @@ const CONFIG = {
 const SHEET_NAMES = {
   LABELS: 'labels',
   RULES: 'rules',
+  SENDERS: 'senders',
   LOG: 'log',
   LOG_ARCHIVE: 'log_archive',
   UNMATCHED: 'unmatched',
@@ -58,6 +65,12 @@ const SHEET_NAMES = {
 /** `rules.種別` が取りうる値。 */
 const MATCH_KINDS = ['list_id', 'from', 'from_domain', 'subject', 'query'] as const;
 type MatchKind = (typeof MATCH_KINDS)[number];
+
+/** `senders.系統` が取りうる値。メールの性格を表す。 */
+const SENDER_KINDS = ['transactional', 'promotional', 'notification', 'support'] as const;
+
+/** `senders.状態` が取りうる値。 */
+const SENDER_STATES = ['active', 'dormant', 'unsubscribed'] as const;
 
 /** `proposals.承認` が取りうる値。 */
 const APPROVAL_STATES = ['未確認', '承認', '却下', '保留'] as const;

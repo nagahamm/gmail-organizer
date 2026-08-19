@@ -19,6 +19,7 @@ function runWeeklyDigest(): void {
   const unmatched = collectUnmatched();
   replaceRows(SHEET_NAMES.UNMATCHED, unmatched.rows);
 
+  refreshSenders();
   proposeAppliedJobs();
   const deadRules = findDeadRules();
   const archived = archiveOldLogs();
@@ -192,7 +193,17 @@ function sendDigestMail(unmatched: UnmatchedResult, deadRules: DeadRule[], archi
     lines.push('');
   }
 
-  lines.push('詳細は unmatched シートを参照。提案は proposals シートへ書き込まれます。');
+  const operators = summarizeByOperator();
+  const names = Object.keys(operators).sort((a, b) => operators[b].count - operators[a].count).slice(0, 10);
+  if (names.length > 0) {
+    lines.push('■ 運営元別の通数 (直近90日)');
+    for (const name of names) {
+      lines.push(`  ${name} — ${operators[name].services} サービス、${operators[name].count} 通`);
+    }
+    lines.push('');
+  }
+
+  lines.push('詳細は unmatched シートと senders シートを参照。提案は proposals シートへ書き込まれます。');
 
   GmailApp.sendEmail(to, `[gmail-organizer] 週次ダイジェスト 未分類 ${unmatched.rows.length} 件`, lines.join('\n'));
 }

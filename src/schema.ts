@@ -7,7 +7,14 @@
  */
 
 type ColumnType = 'text' | 'number' | 'date' | 'checkbox' | 'formula';
-type ValidationKind = 'labelPath' | 'matchKind' | 'approval' | 'labelState' | 'migrationOp';
+type ValidationKind =
+  | 'labelPath'
+  | 'matchKind'
+  | 'approval'
+  | 'labelState'
+  | 'migrationOp'
+  | 'senderKind'
+  | 'senderState';
 
 interface ColumnSpec {
   /** コード側から参照する識別子。 */
@@ -90,6 +97,36 @@ const SHEET_SPECS: SheetSpec[] = [
       { key: 'createdAt', header: '登録日', type: 'date', width: 110 },
       { key: 'lastMatchedAt', header: '最終マッチ日', type: 'date', width: 120 },
       { key: 'matchCount', header: '累計マッチ数', type: 'number', width: 110 },
+    ],
+  },
+  {
+    name: SHEET_NAMES.SENDERS,
+    note: '送信元マスタ。1 行 1 送信元。運営元とサービスを分けて持つことで、同じ会社の複数サービスをまとめて見られるようにする。',
+    columns: [
+      { key: 'address', header: '送信元', width: 260 },
+      {
+        key: 'operator',
+        header: '運営元',
+        width: 140,
+        note: '会社名。Amazon / リクルート / DMM / 楽天 など。1 社が複数サービスを持つ。',
+      },
+      {
+        key: 'service',
+        header: 'サービス',
+        width: 180,
+        note: 'ブランド名。じゃらん / ホットペッパービューティー / リクルートエージェントなど、同じ運営元でも行き先が変わる。',
+      },
+      { key: 'kind', header: '系統', validation: 'senderKind', width: 120 },
+      { key: 'label', header: 'ラベル', validation: 'labelPath', width: 200 },
+      { key: 'listId', header: 'list_id', width: 200 },
+      { key: 'location', header: '拠点', width: 70 },
+      { key: 'cadence', header: '配信頻度', width: 160, note: '観測した配信間隔や時刻。メルマガは時刻がほぼ固定される。' },
+      { key: 'recentCount', header: '直近90日', type: 'number', width: 90 },
+      { key: 'firstSeen', header: '初回受信', type: 'date', width: 120 },
+      { key: 'lastSeen', header: '最終受信', type: 'date', width: 120 },
+      { key: 'state', header: '状態', validation: 'senderState', width: 110 },
+      { key: 'unsubscribe', header: '購読解除', type: 'checkbox', width: 90, note: '解約候補の印。週次 AI が提案し、人が判断する。' },
+      { key: 'memo', header: '備考', width: 260 },
     ],
   },
   {

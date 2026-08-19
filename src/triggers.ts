@@ -40,6 +40,7 @@ function onOpen(): void {
     .addSeparator()
     .addItem('新着に適用する', 'applyToNewMail')
     .addItem('スター付き求人を昇格する', 'promoteStarredJobs')
+    .addItem('送信元マスタを更新する', 'refreshSenders')
     .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
     .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
     .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
