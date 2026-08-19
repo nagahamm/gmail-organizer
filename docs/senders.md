@@ -27,6 +27,7 @@ Gmail API で全ラベルを標本調査した結果。**メーリングリス�
 | `Schedules/DMM` | `eikaiwa.dmm.com` | 100% |
 | `プロモーション/Employment` | `kuraveil.jp` | 86% |
 | `ファイナンス/Accounts` | `coincheck.com` | 80% |
+| `ファイナンス/CreditCards` | `qa.jcb.co.jp` | 100% |
 
 ### 2. ラベル名と実体の乖離が頻発している
 
@@ -40,7 +41,25 @@ Gmail API で全ラベルを標本調査した結果。**メーリングリス�
 | `Schedules/DMM` | DMM の予定 | **DMM 英会話のレッスン予約確認** |
 | `Australia/Beauty` | 美容 | **マウスピース歯科矯正の広告** |
 
-### 3. 定期配信は時刻が一定
+### 3. 同じ会社が別ドメイン・別サブドメインを使う
+
+`from_domain` 単位のルールだけでは同じ会社を追い切れない。
+**運営元の列を持つ最大の理由。**
+
+| 運営元 | ドメイン数 |
+| --- | ---: |
+| 楽天 | 5 (`rakuten-card` / `rakuten-sec` / `pay.rakuten` / `checkout.rakuten` / `pointcard.rakuten`) |
+| DMM | 4 (`dmm.com` / `mail.dmm.com` / `eikaiwa.dmm.com` / `dmm.inc`) |
+| SHEIN | 4 |
+| Amazon | 3 (`amazon.co.jp` / `amazon.com.au` / `amazonmusic.com`) |
+| JCB | 2 (`cj.jcb.co.jp` / `qa.jcb.co.jp`) |
+| DiDi | 2 |
+| Google | 2 |
+
+JCB は 2 つのサブドメインのうち**片方だけラベルが付いていた**。
+`qa.jcb.co.jp` は `CreditCards` の 100%、`cj.jcb.co.jp` は未分類。
+
+### 4. 定期配信は時刻が一定
 
 メルマガは配信時刻がほぼ固定されている。判定の補助に使える。
 
@@ -52,7 +71,7 @@ Gmail API で全ラベルを標本調査した結果。**メーリングリス�
 | `smilepath.com.au` | 22:00〜22:01 |
 | `itreview.jp` | 00:03 / 00:33 |
 
-### 4. 取引メールほど読まれていない
+### 5. 取引メールほど読まれていない
 
 **読むべきものが読まれていない**という逆転が起きている。
 
@@ -64,14 +83,14 @@ Gmail API で全ラベルを標本調査した結果。**メーリングリス�
 
 販促を受信トレイから外していないので、取引メールが埋もれている。
 
-### 5. catch-all ラベルが 2 つある
+### 6. catch-all ラベルが 2 つある
 
 | ラベル | 通数 | 混入の実態 |
 | --- | ---: | --- |
 | `プロモーション/Cashback rewards` | 3,116 | 標本 50 のうち**ポイント還元は 3 件だけ**。44% が NTT ドコモ |
 | `プロモーション/Fashion` | 3,977 | **約半分が美容外科** |
 
-### 6. 拠点で送信元が総入れ替えになる
+### 7. 拠点で送信元が総入れ替えになる
 
 2026 年 2 月 (AU 滞在期) と 8 月 (日本) で未分類の顔ぶれが完全に違う。
 AU 期は Amazon AU・AliExpress・小売の買い物が中心、
@@ -98,13 +117,14 @@ AU 期は Amazon AU・AliExpress・小売の買い物が中心、
 | Amazon | デジタル購入 | `digital-no-reply@amazon.co.jp` | transactional | `Orders/Amazon` |
 | Amazon | ストアニュース | `store-news@amazon.co.jp` / `@amazon.com.au` | **promotional** | `Promotions/Stores` |
 | Amazon | Amazon Music | `no-reply@amazonmusic.com` | promotional | `Subscriptions` |
+| **楽天** | 楽天ポイントカード | `point-notice-w@pointcard.rakuten.co.jp` | promotional | `Promotions/Rewards` |
 | **リクルート** | リクルートエージェント | `noreply@r-agent.com` / `s-noda@r-agent.com` | promotional | `Promotions/Jobs/Agencies` |
 | リクルート | リクルートポイント | `addp@point.recruit.co.jp` | promotional | `Promotions/Rewards` |
 | リクルート | じゃらん | `point-j@jalan.net` / `otodoke-j@` / `member@` / `info15-j@email.jalan.net` | promotional | `Promotions/Travel` |
 | リクルート | ホットペッパービューティー | `mag@beauty.hotpepper.jp` | promotional | `Promotions/Beauty` |
 | **DMM** | DMM 英会話 (メルマガ) | `v-mail@dmm.com` | promotional | `Learning/English` |
 | DMM | DMM 英会話 (予約確認) | `noreply@eikaiwa.dmm.com` | **transactional** | `Learning/English` |
-| DMM | DMM アフィリエイト | `dmm-affiliate@mail.dmm.com` | promotional | `Promotions/Affiliate` |
+| DMM | DMM アフィリエイト | `dmm-affiliate@mail.dmm.com` / `dmm-affiliate@dmm.inc` | promotional | `Promotions/Affiliate` |
 | DMM | DMM クリニック | `noreply-dmmclinic@dmm.com` | **notification** | `Health/Clinics` |
 | **楽天** | 楽天カード | `info@mail.rakuten-card.co.jp` | transactional | `Finance/Cards/Rakuten` |
 | 楽天 | 楽天証券 | `service@rakuten-sec.co.jp` | transactional | `Finance/Investments/Rakuten` |
@@ -116,6 +136,12 @@ AU 期は Amazon AU・AliExpress・小売の買い物が中心、
 | SEEK | お知らせ | `noreply@email.seek.com.au` / `noreply@seek.com.au` | notification | `Promotions/Jobs/Alerts` |
 | **KDDI** | povo | `important@emails.povo.jp` / `infoc@emails.povo.jp` | notification | `Utilities/Mobile` |
 | KDDI | povo サポート | `povosupport@kdlsupport.zendesk.com` | **support** | `Utilities/Mobile` |
+| **JCB** | 利用通知 | `mail@qa.jcb.co.jp` | transactional | `Finance/Cards/Jcb` |
+| JCB | キャンペーン | `mail@cj.jcb.co.jp` | promotional | `Finance/Cards/Jcb` |
+| **Google** | AI Studio | `googleaistudio-noreply@google.com` | notification | `Subscriptions` |
+| Google | Gemini | `google-gemini-noreply@google.com` | notification | `Subscriptions` |
+| **DiDi** | 配車 | `didi@jp.didiglobal.com` | promotional | `Promotions/Transport` |
+| DiDi | マーケティング | `didi@mkt-jp.didiglobal.com` | promotional | `Promotions/Transport` |
 | **Insta360** | 製品ニュース | `hey@insta360-news.com` | promotional | `Promotions/Creative` |
 | Insta360 | サポート | `support@insta360jp.zendesk.com` | **support** | `Support` |
 | **Uber** | Uber | `uber.australia@uber.com` | transactional | `Orders` |
@@ -135,6 +161,7 @@ AU 期は Amazon AU・AliExpress・小売の買い物が中心、
 | 運営元 / サービス | 送信元 | 系統 | ラベル |
 | --- | --- | --- | --- |
 | Coincheck | `support@coincheck.com` | transactional | `Finance/Crypto/Coincheck` |
+| CareSuper (豪州年金) | `events@mail.caresuper.com.au` | notification | `Finance/Superannuation` |
 | 住信 SBI ネット銀行 | `prom@netbk.co.jp` | transactional | `Finance/Accounts/Sbi` |
 | ソニー銀行 | `banking@ma.sonybank.jp` | transactional | `Finance/Accounts/Sony` |
 | UP (AU) | `whats@up.com.au` | transactional | `Finance/Accounts/Up` |
@@ -199,6 +226,14 @@ AU 期は Amazon AU・AliExpress・小売の買い物が中心、
 | Repco | `members@r.repco.com.au` | promotional | `Promotions/Vehicles` |
 | ITreview | `info@itreview.jp` | promotional | `Promotions/Tech` |
 | Unsplash | `marketing@unsplash.com` | promotional | `Promotions/Creative` |
+| Artlist | `team@newsletter.artlist.io` | promotional | `Promotions/Creative` |
+| Color Grading Central | `denver@colorgradingcentral.com` | promotional | `Promotions/Creative` |
+| Blackmagic Design | `no-reply@cloud.blackmagicdesign.com` | notification | `Work/Creative` |
+| Trip.com | `jp_flt_noreply@trip.com` | transactional | `Orders` |
+| MyFitnessPal | `hello@e.blog.myfitnesspal.com` | promotional | `Promotions/Fitness` |
+| Lululemon | `hello-auz@e.lululemon.com` | promotional | `Promotions/Fashion` |
+| City Beach | `marketing@hello.citybeach.com.au` | promotional | `Promotions/Fashion` |
+| Westfield | `westfield@emailnews.westfield.com.au` | promotional | `Promotions/Stores` |
 | Audiostock | `staff@audiostock.jp` | promotional | `Promotions/Creative` |
 | IronBull Strength | `store+63532597474@m.shopifyemail.com` / `support@ironbullstrength.com` | promotional | `Promotions/Fitness` |
 | Rugby AU | `reply@e.rugby.com.au` | promotional | `Promotions/Events` |

@@ -53,6 +53,10 @@
 | TRUE | 10 | `from_domain` | `ma.sonybank.jp` | `Finance/Accounts/Sony` | FALSE | FALSE | 未分類で受信トレイに素通り |
 | TRUE | 11 | `from_domain` | `up.com.au` | `Finance/Accounts/Up` | FALSE | FALSE | 未分類。UP 銀行 (AU) |
 | TRUE | 12 | `from_domain` | `paidy.com` | `Finance/Payments` | FALSE | FALSE | 未分類。後払い決済 |
+| TRUE | 13 | `from_domain` | `jcb.co.jp` | `Finance/Cards/Jcb` | FALSE | FALSE | `CreditCards` の 100%。**2 サブドメインのうち片方は未分類だった** |
+| TRUE | 14 | `from_domain` | `coincheck.com` | `Finance/Crypto/Coincheck` | FALSE | FALSE | `Accounts` の 8 割 |
+| TRUE | 15 | `from_domain` | `netbk.co.jp` | `Finance/Accounts/Sbi` | FALSE | FALSE | 住信 SBI |
+| TRUE | 16 | `from_domain` | `mail.caresuper.com.au` | `Finance/Superannuation` | FALSE | FALSE | 豪州年金。**帰国後に還付請求できる**のに未分類・未読だった |
 
 ## Orders — Amazon の 2 系統を割る
 
@@ -74,6 +78,8 @@
 | TRUE | 32 | `from_domain` | `members.netflix.com` | `Subscriptions` | FALSE | FALSE | 現在 `Entertainments` |
 | TRUE | 33 | `from_domain` | `send.vidiq.com` | `Subscriptions` | FALSE | FALSE | 未分類 |
 | TRUE | 34 | `from_domain` | `anytimefitness.com.au` | `Subscriptions` | FALSE | FALSE | ジム会員 |
+| TRUE | 35 | `from` | `googleaistudio-noreply@google.com` | `Subscriptions` | FALSE | FALSE | Google AI Studio |
+| TRUE | 36 | `from` | `google-gemini-noreply@google.com` | `Subscriptions` | FALSE | FALSE | Gemini |
 
 ## Utilities — 通信
 
@@ -96,6 +102,13 @@
 | --- | ---: | --- | --- | --- | --- | --- | --- |
 | TRUE | 60 | `from_domain` | `will-agaclinic.com` | `Health/Clinics` | FALSE | FALSE | 未分類・`IMPORTANT` |
 | TRUE | 61 | `from` | `noreply-dmmclinic@dmm.com` | `Health/Clinics` | FALSE | FALSE | 未分類 |
+
+## Work/Creative — 制作活動
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TRUE | 65 | `from_domain` | `cloud.blackmagicdesign.com` | `Work/Creative` | FALSE | FALSE | **スター付き**で未分類 |
+| TRUE | 66 | `from_domain` | `tunecore.co.jp` | `Work/Creative` | FALSE | FALSE | 楽曲配信 |
 
 ## Support / Official
 

@@ -63,7 +63,7 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | `ファイナンス/Accounts` | 683 | `Finance/Accounts` | | 改名 |
 | `ファイナンス/Deposit` | 7 | `Finance/Accounts/Deposits` | | 改名 |
 | `ファイナンス/楽天カード` | 609 | `Finance/Cards/Rakuten` | | 改名 |
-| `ファイナンス/CreditCards` | 161 | `Finance/Cards/Credit` | | 改名 |
+| `ファイナンス/CreditCards` | 161 | `Finance/Cards/Jcb` | | 改名 ⚠️ 中身は 100% JCB |
 | `ファイナンス/DebitCards` | 22 | `Finance/Cards/Debit` | | 改名 |
 | `ファイナンス/楽天証券` | 60 | `Finance/Investments/Rakuten` | | 改名 |
 | `ファイナンス/Revenue` | 10 | `Finance/Income` | | 改名 |
@@ -72,6 +72,9 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | — | 新規 | `Finance/Accounts/Sony` | | ソニー銀行。未分類だった |
 | — | 新規 | `Finance/Accounts/Up` | `@AU` | UP 銀行。未分類だった |
 | — | 新規 | `Finance/Payments` | | Paidy などの後払い決済 |
+| — | 新規 | `Finance/Cards/Jcb` | | JCB。`CreditCards` の 100% |
+| — | 新規 | `Finance/Crypto/Coincheck` | | Coincheck。`Accounts` の 8 割 |
+| — | 新規 | `Finance/Superannuation` | `@AU` | 豪州の積立年金。**帰国後に還付請求できる** |
 
 ## Orders
 
