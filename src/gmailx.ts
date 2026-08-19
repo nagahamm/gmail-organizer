@@ -61,3 +61,9 @@ function splitLabelPath(name: string): { major: string; middle: string; minor: s
     minor: parts.length > 2 ? parts.slice(2).join('/') : '',
   };
 }
+
+/** 割合を「12.3%」の形にする。母数 0 なら空文字。 */
+function percent(part: number, whole: number): string {
+  if (whole === 0) return '';
+  return `${Math.round((part / whole) * 1000) / 10}%`;
+}

@@ -12,14 +12,15 @@ function everyQuarterHour(): void {
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */
 function installTriggers(): void {
-  const managed = ['everyQuarterHour'];
+  const managed = ['everyQuarterHour', 'runWeeklyDigest'];
 
   for (const trigger of ScriptApp.getProjectTriggers()) {
     if (managed.indexOf(trigger.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(trigger);
   }
 
   ScriptApp.newTrigger('everyQuarterHour').timeBased().everyMinutes(15).create();
-  console.log('トリガーを登録しました: everyQuarterHour (15 分間隔)');
+  ScriptApp.newTrigger('runWeeklyDigest').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(7).create();
+  console.log('トリガーを登録しました: everyQuarterHour (15 分間隔) / runWeeklyDigest (日曜 7 時)');
 }
 
 /** 登録済みトリガーを全て外す。運用を止めるとき用。 */
@@ -38,6 +39,7 @@ function onOpen(): void {
     .addSeparator()
     .addItem('新着に適用する', 'applyToNewMail')
     .addItem('スター付き求人を昇格する', 'promoteStarredJobs')
+    .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
     .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
     .addSeparator()

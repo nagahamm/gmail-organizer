@@ -163,8 +163,3 @@ function matchesAnyHint(subject: string, hints: string[]): boolean {
   const lowered = (subject || '').toLowerCase();
   return hints.some((hint) => lowered.indexOf(hint.toLowerCase()) >= 0);
 }
-
-function percent(part: number, whole: number): string {
-  if (whole === 0) return '';
-  return `${Math.round((part / whole) * 1000) / 10}%`;
-}

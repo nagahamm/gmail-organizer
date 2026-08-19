@@ -44,6 +44,7 @@ const SHEET_NAMES = {
   LABELS: 'labels',
   RULES: 'rules',
   LOG: 'log',
+  LOG_ARCHIVE: 'log_archive',
   UNMATCHED: 'unmatched',
   PROPOSALS: 'proposals',
   SAMPLING: 'sampling',

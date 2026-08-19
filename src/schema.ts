@@ -116,7 +116,7 @@ const SHEET_SPECS: SheetSpec[] = [
       { key: 'from', header: '送信元', width: 240 },
       { key: 'listId', header: 'list_id', width: 200 },
       { key: 'count7d', header: '直近7日件数', type: 'number', width: 110 },
-      { key: 'countTotal', header: '累計件数', type: 'number', width: 90 },
+      { key: 'countTotal', header: '累計件数', type: 'number', width: 90, note: '1 回の検索で取れる上限までしか数えないため、上限に達した場合は下限値。' },
       { key: 'unreadRate', header: '未読率', width: 80, note: '高いほど読む気がない = 受信トレイ除外の候補。' },
       { key: 'firstSeen', header: '初回受信日', type: 'date', width: 110 },
       { key: 'sampleSubject', header: '代表件名', width: 320 },
@@ -172,6 +172,21 @@ const CONFIG_DEFAULTS: string[][] = [
   ['SAMPLE_LIMIT', String(CONFIG.SAMPLE_LIMIT), 'サンプリングで 1 ラベルあたり読むスレッド数の上限'],
   ['NOTIFY_TO', '', '週次ダイジェストの送信先。空なら実行アカウント宛'],
 ];
+
+/**
+ * 退避先は log と同じ列にする。列定義を二度書かないよう複製して名前だけ変える。
+ */
+(function appendLogArchiveSpec(): void {
+  for (const spec of SHEET_SPECS) {
+    if (spec.name !== SHEET_NAMES.LOG) continue;
+    SHEET_SPECS.push({
+      name: SHEET_NAMES.LOG_ARCHIVE,
+      note: '6 か月より古い log 行の退避先。log シートが際限なく伸びるのを防ぐ。',
+      columns: spec.columns,
+    });
+    return;
+  }
+})();
 
 function findSheetSpec(name: string): SheetSpec {
   for (const spec of SHEET_SPECS) {
