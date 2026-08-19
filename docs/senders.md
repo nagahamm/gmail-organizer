@@ -79,143 +79,143 @@ AU 期は Amazon AU・AliExpress・小売の買い物が中心、
 
 ---
 
-## 送信元 → ラベル 対応表
+## 運営元 → サービス → 送信元
 
-### Finance
+`senders` シートへそのまま投入できる形。**1 社が複数のアドレスと複数のサービスを持つ**
+ので、運営元とサービスを分けて持たないと整理できない。
 
-| 送信元 | 実体 | ラベル | 現状 |
+系統: `transactional` = 取引 / `promotional` = 販促 / `notification` = 通知 / `support` = 問い合わせ
+
+### 複数サービスを持つ運営元
+
+同じ会社でも、サービスごとに行き先が変わる。ここが一番間違えやすい。
+
+| 運営元 | サービス | 送信元 | 系統 | ラベル |
+| --- | --- | --- | --- | --- |
+| **Amazon** | 注文確認 | `auto-confirm@amazon.co.jp` / `@amazon.com.au` | transactional | `Orders/Amazon` |
+| Amazon | 注文更新 | `order-update@amazon.co.jp` / `@amazon.com.au` | transactional | `Orders/Amazon` |
+| Amazon | 発送通知 | `shipment-tracking@amazon.co.jp` / `@amazon.com.au` | transactional | `Orders/Amazon` |
+| Amazon | デジタル購入 | `digital-no-reply@amazon.co.jp` | transactional | `Orders/Amazon` |
+| Amazon | ストアニュース | `store-news@amazon.co.jp` / `@amazon.com.au` | **promotional** | `Promotions/Stores` |
+| Amazon | Amazon Music | `no-reply@amazonmusic.com` | promotional | `Subscriptions` |
+| **リクルート** | リクルートエージェント | `noreply@r-agent.com` / `s-noda@r-agent.com` | promotional | `Promotions/Jobs/Agencies` |
+| リクルート | リクルートポイント | `addp@point.recruit.co.jp` | promotional | `Promotions/Rewards` |
+| リクルート | じゃらん | `point-j@jalan.net` / `otodoke-j@` / `member@` / `info15-j@email.jalan.net` | promotional | `Promotions/Travel` |
+| リクルート | ホットペッパービューティー | `mag@beauty.hotpepper.jp` | promotional | `Promotions/Beauty` |
+| **DMM** | DMM 英会話 (メルマガ) | `v-mail@dmm.com` | promotional | `Learning/English` |
+| DMM | DMM 英会話 (予約確認) | `noreply@eikaiwa.dmm.com` | **transactional** | `Learning/English` |
+| DMM | DMM アフィリエイト | `dmm-affiliate@mail.dmm.com` | promotional | `Promotions/Affiliate` |
+| DMM | DMM クリニック | `noreply-dmmclinic@dmm.com` | **notification** | `Health/Clinics` |
+| **楽天** | 楽天カード | `info@mail.rakuten-card.co.jp` | transactional | `Finance/Cards/Rakuten` |
+| 楽天 | 楽天証券 | `service@rakuten-sec.co.jp` | transactional | `Finance/Investments/Rakuten` |
+| 楽天 | 楽天ペイ | `no-reply@pay.rakuten.co.jp` | transactional | `Finance/Payments` |
+| 楽天 | 楽天市場 | `order@checkout.rakuten.co.jp` | transactional | `Orders` |
+| **パーソルキャリア** | doda スカウト | `cs@dm-doda.jp` | promotional | `Promotions/Jobs/Agencies` |
+| パーソルキャリア | doda メルマガ | `editor@lifework-doda.jp` | promotional | `Promotions/Jobs/Agencies` |
+| **SEEK** | 求人アラート | `noreply@s.seek.com.au` / `jobmail@s.seek.com.au` | promotional | `Promotions/Jobs/Alerts` |
+| SEEK | お知らせ | `noreply@email.seek.com.au` / `noreply@seek.com.au` | notification | `Promotions/Jobs/Alerts` |
+| **KDDI** | povo | `important@emails.povo.jp` / `infoc@emails.povo.jp` | notification | `Utilities/Mobile` |
+| KDDI | povo サポート | `povosupport@kdlsupport.zendesk.com` | **support** | `Utilities/Mobile` |
+| **Insta360** | 製品ニュース | `hey@insta360-news.com` | promotional | `Promotions/Creative` |
+| Insta360 | サポート | `support@insta360jp.zendesk.com` | **support** | `Support` |
+| **Uber** | Uber | `uber.australia@uber.com` | transactional | `Orders` |
+| Uber | Uber Carshare | `support@ubercarshare.com` | **support** | `Support` |
+| **AliExpress** | 取引通知 | `transaction@notice.aliexpress.com` / `account@notice.aliexpress.com` | transactional | `Orders/AliExpress` |
+| AliExpress | 販促 | `best-message-notice.a26@newarrival.aliexpress.com` / `message@info.aliexpress.com` | promotional | `Promotions/Stores` |
+| **SHEIN** | 販促 | `shein@edm.mail.shein.com` / `@emailmarket.shein.com` / `@news.market.shein.com` | promotional | `Promotions/Fashion` |
+| **Coles Group** | Coles | `coles@specials.coles.com.au` | promotional | `Promotions/Stores` |
+| Coles Group | Flybuys | `Hello@e.flybuys.com.au` | promotional | `Promotions/Rewards` |
+| **Wesfarmers** | Kmart | `kmail@emails.kmart.com.au` | promotional | `Promotions/Stores` |
+| Wesfarmers | Officeworks | `email@comms.officeworks.com.au` | promotional | `Promotions/Stores` |
+| **Country Road Group** | Country Road | `no-reply@send.countryroad.com.au` / `email@em.countryroad.com.au` | promotional | `Promotions/Fashion` |
+| Country Road Group | Trenery | `news@em.trenery.com.au` | promotional | `Promotions/Fashion` |
+
+### 単一サービスの運営元
+
+| 運営元 / サービス | 送信元 | 系統 | ラベル |
 | --- | --- | --- | --- |
-| `mail.rakuten-card.co.jp` | 楽天カード利用明細 | `Finance/Cards/Rakuten` | ✅ ほぼ全て未読 |
-| `cj.jcb.co.jp` | JCB カード | `Finance/Cards/Jcb` | ⚠️ 未分類 |
-| `coincheck.com` | Coincheck (暗号資産) | `Finance/Crypto/Coincheck` | ⚠️ `Accounts` の 8 割 |
-| `netbk.co.jp` | 住信 SBI ネット銀行 | `Finance/Accounts/Sbi` | ⚠️ `Accounts` |
-| `ma.sonybank.jp` | ソニー銀行 | `Finance/Accounts/Sony` | ⚠️ 未分類 |
-| `up.com.au` | UP 銀行 (AU) | `Finance/Accounts/Up` | ⚠️ 未分類 |
-| `paidy.com` | Paidy 後払い | `Finance/Payments` | ⚠️ 未分類 |
-| (楽天証券) | 証券 | `Finance/Investments/Rakuten` | ✅ |
+| Coincheck | `support@coincheck.com` | transactional | `Finance/Crypto/Coincheck` |
+| 住信 SBI ネット銀行 | `prom@netbk.co.jp` | transactional | `Finance/Accounts/Sbi` |
+| ソニー銀行 | `banking@ma.sonybank.jp` | transactional | `Finance/Accounts/Sony` |
+| UP (AU) | `whats@up.com.au` | transactional | `Finance/Accounts/Up` |
+| JCB | `mail@cj.jcb.co.jp` | transactional | `Finance/Cards/Jcb` |
+| Paidy | `noreply@paidy.com` | transactional | `Finance/Payments` |
+| Qoo10 | `qoo10cs@qoo10.jp` | transactional | `Orders/Qoo10` |
+| クロネコヤマト | `mail@kuronekoyamato.co.jp` | transactional | `Orders/Shipping` |
+| NTT ドコモ | `message_r@mail2.apl01.spmode.ne.jp` | notification | `Utilities/Mobile` |
+| Anthropic | `invoice+statements@mail.anthropic.com` | transactional | `Subscriptions` |
+| Stripe | `receipts+acct_…@stripe.com` | transactional | `Subscriptions` |
+| Netflix | `info@members.netflix.com` | promotional | `Subscriptions` |
+| vidIQ | `hello@send.vidiq.com` | promotional | `Subscriptions` |
+| NordVPN | `no-reply@mail.nordvpn.com` | promotional | `Subscriptions` |
+| Font Awesome | `hello@m.fontawesome.com` | promotional | `Subscriptions` |
+| Anytime Fitness | `sunnybankhills@anytimefitness.com.au` | notification | `Subscriptions` |
+| Snap Fitness | `maroochydore@snapfitness.com.au` | notification | `Subscriptions` |
+| freee | `freee@personal.freee.co.jp` | notification | `Official/Tax` |
+| Xero | `messaging-service@post.xero.com` | notification | `Official/Tax` |
+| Ezy Tax Solutions | `accountant@ezytaxsolutionsjapan.com.au` | support | `Official/Tax` |
+| 福岡市 | `shimin.JWO@city.fukuoka.lg.jp` | notification | `Official` |
+| QLD 交通局 | `CSB.SEQN.…@tmr.qld.gov.au` | notification | `Official` |
+| IIBC (TOEIC) | `net-apply@iibc-global.org` | transactional | `Learning/Exams` |
+| スタディサプリ | `noreply@eigosapuri.jp` | notification | `Learning/English` |
+| ELSA | `elsa@promo.elsanow.io` | promotional | `Promotions/Learning` |
+| 東京中央美容外科 | `info@tokyochuobiyougeka.com` | promotional | `Promotions/Beauty` |
+| Smileie / SmilePath | `hello@smileie.au` / `team@smilepath.com.au` | promotional | `Promotions/Beauty` |
+| Priceline | `Priceline@email.priceline.com.au` | promotional | `Promotions/Beauty` |
+| AGA クリニック | `fukuoka@will-agaclinic.com` / `form-web@will-agaclinic.com` | notification | `Health/Clinics` |
+| kuraveil | `info@kuraveil.jp` | promotional | `Promotions/Jobs/Alerts` |
+| Indeed | `no-reply@indeed.com` | promotional | `Promotions/Jobs/Alerts` |
+| LinkedIn | `messages-noreply@linkedin.com` | promotional | `Promotions/Jobs/Agencies` |
+| トランスコスモスパートナーズ | `fukuoka@ml.tcpartners.co.jp` | promotional | `Promotions/Jobs/Temp` |
+| AWX | `payroll@awx.com.au` ほか個人アドレス | transactional | `Work/AWX` |
+| TuneCore | `noreply@tunecore.co.jp` | notification | `Work/Creative` |
+| yagish | `noreply_yagi@yagish.jp` | notification | `Work` |
+| FlareHR | `noreply@flarehr.com` | notification | `Work` |
+| Higgsfield | `support@higgsfield.ai` | support | `Support` |
+| Discord | `noreply@discord.com` | notification | `Security/Codes` |
+| セブン & アイ | `info@sevenmp.omni7.jp` | promotional | `Promotions/Stores` |
+| CCC (T ポイント) | `mytc@tsite.jp` | promotional | `Promotions/Rewards` |
+| Woolworths | `contacts@email.everyday.com.au` | promotional | `Promotions/Rewards` |
+| eBay | `ebay@reply.ebay.com.au` | promotional | `Promotions/Stores` |
+| 4WD Supacentre | `info@edm.4wdsupacentre.com.au` | promotional | `Promotions/Stores` |
+| rebel | `rebel_active@email.rebelsport.com.au` | promotional | `Promotions/Stores` |
+| JB Hi-Fi | `perks@email.jbhifi.com.au` | promotional | `Promotions/Stores` |
+| BUYMA | `info@buyma.com` | promotional | `Promotions/Fashion` |
+| TAION | `member@mail.taion-wear.jp` | promotional | `Promotions/Fashion` |
+| Cotton On | `news@e.cottonon.com` | promotional | `Promotions/Fashion` |
+| Strandbags | `news@email.strandbags.com.au` | promotional | `Promotions/Fashion` |
+| ぐるなび | `gnavi-member@gnavi.co.jp` | promotional | `Promotions/Food` |
+| KFC AU | `kfcmail@kfc.com.au` | promotional | `Promotions/Food` |
+| McDonald's AU | `do-not-reply@my.mcdonalds.com.au` | promotional | `Promotions/Food` |
+| Hungry Jack's | `no-reply@e.hungryjacks.com.au` | promotional | `Promotions/Food` |
+| Nespresso | `nespresso@mail-jp.nespresso.com` | promotional | `Promotions/Food` |
+| T2 Tea | `teasocietynews@t2tea.com` | promotional | `Promotions/Food` |
+| Skyscanner | `no-reply@sender.skyscanner.com` | promotional | `Promotions/Travel` |
+| JAL | `jmbnews@jalmail.jal.com` | promotional | `Promotions/Travel` |
+| AirAsia | `no-reply@promo.airasia.com` | promotional | `Promotions/Travel` |
+| DiDi | `didi@jp.didiglobal.com` | promotional | `Promotions/Transport` |
+| Bolt | `thailand@rides-marketing.bolt.eu` | promotional | `Promotions/Transport` |
+| Super Cheap Auto | `clubsca@e.supercheapauto.com.au` | promotional | `Promotions/Vehicles` |
+| Repco | `members@r.repco.com.au` | promotional | `Promotions/Vehicles` |
+| ITreview | `info@itreview.jp` | promotional | `Promotions/Tech` |
+| Unsplash | `marketing@unsplash.com` | promotional | `Promotions/Creative` |
+| Audiostock | `staff@audiostock.jp` | promotional | `Promotions/Creative` |
+| IronBull Strength | `store+63532597474@m.shopifyemail.com` / `support@ironbullstrength.com` | promotional | `Promotions/Fitness` |
+| Rugby AU | `reply@e.rugby.com.au` | promotional | `Promotions/Events` |
+| Ticketek | `Ticketek@events.ticketek.com.au` | promotional | `Promotions/Events` |
+| Everyday Rewards | `contacts@email.everyday.com.au` | promotional | `Promotions/Rewards` |
 
-### Orders
+### 系統が同じ運営元の中で割れるもの
 
-| 送信元 | 実体 | ラベル | 現状 |
-| --- | --- | --- | --- |
-| `auto-confirm@amazon.co.jp` / `.com.au` | 注文確認 | `Orders/Amazon` | ⚠️ 全て未読 |
-| `order-update@amazon.co.jp` / `.com.au` | 注文更新 | `Orders/Amazon` | ⚠️ 全て未読 |
-| `shipment-tracking@amazon.co.jp` / `.com.au` | 発送通知 | `Orders/Amazon` | ⚠️ 全て未読 |
-| `digital-no-reply@amazon.co.jp` | デジタル購入 | `Orders/Amazon` | ⚠️ 全て未読 |
-| `transaction@notice.aliexpress.com` | AliExpress 取引 | `Orders/AliExpress` | ⚠️ 未分類 |
-| `account@notice.aliexpress.com` | AliExpress アカウント | `Orders/AliExpress` | ⚠️ 未分類 |
-| `qoo10.jp` | Qoo10 | `Orders/Qoo10` | ⚠️ 未分類 |
-| `kuronekoyamato.co.jp` | クロネコヤマト | `Orders/Shipping` | ⚠️ 未分類 |
-| `uber.australia@uber.com` | Uber 領収書 | `Orders` | ⚠️ 未分類 |
+**同じ会社でも系統が違えば行き先が変わる。** ここを見落とすと事故になる。
 
-**`store-news@amazon.co.jp` / `.com.au` は販促なので `Promotions/Stores` へ。**
-同じ Amazon でも系統で行き先が変わる。
-
-### Subscriptions
-
-| 送信元 | 実体 | 現状 |
+| 運営元 | 取引 / 通知 | 販促 |
 | --- | --- | --- |
-| `members.netflix.com` | Netflix | ⚠️ `Entertainments` (このラベルの 100%) |
-| `mail.anthropic.com` | Anthropic 請求書 | ⚠️ 未分類・受信トレイ |
-| `stripe.com` | Stripe 領収書 | ⚠️ 未分類・スター付き |
-| `send.vidiq.com` | vidIQ (YouTube 分析) | ⚠️ 未分類 |
-| `mail.nordvpn.com` | NordVPN | ⚠️ 未分類 |
-| `amazonmusic.com` | Amazon Music | ⚠️ 未分類 |
-| `m.fontawesome.com` | Font Awesome | ⚠️ `Developer` |
-| `anytimefitness.com.au` | ジム会員 | ⚠️ 未分類 |
-| `snapfitness.com.au` | ジム会員 | ⚠️ 未分類 |
-
-### Utilities
-
-| 送信元 | 実体 | 現状 |
-| --- | --- | --- |
-| `mail2.apl01.spmode.ne.jp` | NTT ドコモ | ⚠️ `Cashback rewards` の 44% |
-| `emails.povo.jp` | povo | ⚠️ 未分類 |
-| `kdlsupport.zendesk.com` | povo サポート | ⚠️ 未分類 |
-
-### Promotions
-
-| 送信元 | 実体 | ラベル |
-| --- | --- | --- |
-| `jalan.net` (`point-j` / `otodoke-j` / `member` / `info15-j`) | じゃらん | `Promotions/Travel` |
-| `sender.skyscanner.com` | Skyscanner | `Promotions/Travel` |
-| `jalmail.jal.com` | JAL マイレージ | `Promotions/Travel` ⚠️ 現 `Vehicles` |
-| `promo.airasia.com` | AirAsia | `Promotions/Travel` ⚠️ 現 `Vehicles` |
-| `jp.didiglobal.com` | DiDi 配車 | `Promotions/Transport` ⚠️ 現 `Vehicles` |
-| `rides-marketing.bolt.eu` | Bolt 配車 | `Promotions/Transport` ⚠️ 現 `Vehicles` |
-| `e.supercheapauto.com.au` | カー用品 AU | `Promotions/Vehicles` |
-| `r.repco.com.au` | カー用品 AU | `Promotions/Vehicles` ⚠️ 現 `Cashback` |
-| `gnavi.co.jp` | ぐるなび | `Promotions/Food` |
-| `kfc.com.au` / `my.mcdonalds.com.au` / `e.hungryjacks.com.au` | ファストフード AU | `Promotions/Food` |
-| `mail-jp.nespresso.com` / `t2tea.com` | 飲料 | `Promotions/Food` |
-| `sevenmp.omni7.jp` | セブン & アイ | `Promotions/Stores` |
-| `specials.coles.com.au` / `comms.officeworks.com.au` / `emails.kmart.com.au` | 小売 AU | `Promotions/Stores` |
-| `reply.ebay.com.au` | eBay | `Promotions/Stores` |
-| `store-news@amazon.co.jp` / `.com.au` | Amazon 販促 | `Promotions/Stores` |
-| `newarrival.aliexpress.com` / `info.aliexpress.com` | AliExpress 販促 | `Promotions/Stores` |
-| `edm.4wdsupacentre.com.au` | 4WD Supacentre | `Promotions/Stores` |
-| `email.rebelsport.com.au` | rebel | `Promotions/Stores` |
-| `email.jbhifi.com.au` | JB Hi-Fi | `Promotions/Stores` |
-| `buyma.com` | BUYMA | `Promotions/Fashion` |
-| `mail.taion-wear.jp` | TAION | `Promotions/Fashion` |
-| `shein` (`edm.mail` / `emailmarket` / `news.market`) | SHEIN | `Promotions/Fashion` |
-| `countryroad.com.au` / `em.trenery.com.au` / `e.cottonon.com` / `email.strandbags.com.au` | アパレル AU | `Promotions/Fashion` |
-| `tokyochuobiyougeka.com` | 東京中央美容外科 | `Promotions/Beauty` ⚠️ 現 `Fashion` の約半分 |
-| `beauty.hotpepper.jp` | ホットペッパービューティー | `Promotions/Beauty` ⚠️ 現 `Fashion` |
-| `smileie.au` / `smilepath.com.au` | 歯科矯正 AU | `Promotions/Beauty` |
-| `email.priceline.com.au` | ドラッグストア AU | `Promotions/Beauty` |
-| `e.flybuys.com.au` | Flybuys ポイント | `Promotions/Rewards` |
-| `point.recruit.co.jp` | リクルートポイント | `Promotions/Rewards` |
-| `tsite.jp` | T ポイント | `Promotions/Rewards` |
-| `email.everyday.com.au` | Everyday Rewards | `Promotions/Rewards` |
-| `itreview.jp` | IT 製品レビュー | `Promotions/Tech` |
-| `insta360-news.com` | Insta360 | `Promotions/Creative` |
-| `marketing@unsplash.com` | Unsplash | `Promotions/Creative` |
-| `audiostock.jp` | Audiostock | `Promotions/Creative` |
-| `dmm-affiliate@mail.dmm.com` | DMM アフィリエイト | `Promotions/Affiliate` |
-| `store+63532597474@m.shopifyemail.com` | IronBull (筋トレギア) | `Promotions/Fitness` |
-| `ironbullstrength.com` | IronBull サポート | `Promotions/Fitness` |
-| `e.rugby.com.au` | ラグビー AU | `Promotions/Events` |
-| `events.ticketek.com.au` | Ticketek | `Promotions/Events` |
-| `promo.elsanow.io` | ELSA 英語アプリ | `Promotions/Learning` |
-
-### Promotions/Jobs
-
-| 送信元 | 実体 | ラベル |
-| --- | --- | --- |
-| `kuraveil.jp` | ワーホリ斡旋の広告 | `Promotions/Jobs/Alerts` |
-| `seek.com.au` (`noreply@s.` / `jobmail@s.` / `noreply@email.`) | SEEK | `Promotions/Jobs/Alerts` |
-| `indeed.com` | Indeed | `Promotions/Jobs/Alerts` |
-| `dm-doda.jp` / `lifework-doda.jp` | doda | `Promotions/Jobs/Agencies` |
-| `r-agent.com` | リクルートエージェント | `Promotions/Jobs/Agencies` ⚠️ 現 `Cashback` |
-| `linkedin.com` | LinkedIn スカウト | `Promotions/Jobs/Agencies` ⚠️ 現 `Employment` |
-| `ml.tcpartners.co.jp` | トランスコスモス派遣 | `Promotions/Jobs/Temp` ⚠️ 未分類 |
-
-### Work / Learning / Health / Support / Official
-
-| 送信元 | 実体 | ラベル | 現状 |
-| --- | --- | --- | --- |
-| `awx.com.au` | 勤務先 AWX | `Work/AWX` | ✅ |
-| `tunecore.co.jp` | TuneCore 楽曲配信 | `Work/Creative` | ⚠️ 未分類 |
-| `yagish.jp` | 履歴書作成 | `Work` | ⚠️ 未分類 |
-| `flarehr.com` | FlareHR (AU 福利厚生) | `Work` | ⚠️ 未分類 |
-| `iibc-global.org` | TOEIC 申込 | `Learning/Exams` | ⚠️ 未分類・スター付き |
-| `eigosapuri.jp` | スタディサプリ ENGLISH | `Learning/English` | ⚠️ 未分類 |
-| `v-mail@dmm.com` | DMM 英会話メルマガ | `Learning/English` | ⚠️ `English`・全て未読 |
-| `eikaiwa.dmm.com` | DMM 英会話レッスン予約 | `Learning/English` | ⚠️ `Schedules/DMM` |
-| `will-agaclinic.com` | AGA クリニック | `Health/Clinics` | ⚠️ 未分類・重要 |
-| `noreply-dmmclinic@dmm.com` | DMM クリニック | `Health/Clinics` | ⚠️ 未分類 |
-| `insta360jp.zendesk.com` | Insta360 サポート | `Support` | ⚠️ 未分類 |
-| `higgsfield.ai` | Higgsfield サポート | `Support` | ⚠️ 未分類 |
-| `ubercarshare.com` | Uber Carshare サポート | `Support` | ⚠️ 未分類 |
-| `ezytaxsolutionsjapan.com.au` | 税理士 | `Official/Tax` | ⚠️ 未分類 |
-| `post.xero.com` | Xero 会計 | `Official/Tax` | ⚠️ 未分類・スター付き |
-| `personal.freee.co.jp` | freee 会計 | `Official/Tax` | ⚠️ `Developer` |
-| `city.fukuoka.lg.jp` | 福岡市役所 | `Official` | ⚠️ 未分類 |
-| `tmr.qld.gov.au` | QLD 交通局 | `Official` | ⚠️ 未分類 |
-| `discord.com` | Discord 認証 | `Security/Codes` | ⚠️ 未分類 |
-
----
+| Amazon | `auto-confirm@` `order-update@` `shipment-tracking@` `digital-no-reply@` → `Orders` | `store-news@` → `Promotions` |
+| AliExpress | `notice.aliexpress.com` → `Orders` | `newarrival.` / `info.` → `Promotions` |
+| DMM | `eikaiwa.dmm.com` (予約確認) / `noreply-dmmclinic@` (診察) | `v-mail@` / `dmm-affiliate@` |
+| Uber | `uber.com` (領収書) | — |
+| KDDI | `kdlsupport.zendesk.com` (サポート) | `emails.povo.jp` (お知らせ) |
 
 ## 標本の限界
 
