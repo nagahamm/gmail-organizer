@@ -95,6 +95,7 @@ function buildValidation(kind: ValidationKind | undefined): GoogleAppsScript.Spr
     matchKind: MATCH_KINDS,
     approval: APPROVAL_STATES,
     labelState: ['active', 'archived'],
+    migrationOp: MIGRATION_OPS,
   };
   const values = lists[kind];
   if (!values) return null;

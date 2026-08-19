@@ -48,6 +48,7 @@ const SHEET_NAMES = {
   UNMATCHED: 'unmatched',
   PROPOSALS: 'proposals',
   SAMPLING: 'sampling',
+  MIGRATION: 'migration',
   CONFIG: 'config',
 } as const;
 
@@ -57,3 +58,7 @@ type MatchKind = (typeof MATCH_KINDS)[number];
 
 /** `proposals.承認` が取りうる値。 */
 const APPROVAL_STATES = ['未確認', '承認', '却下', '保留'] as const;
+
+/** `migration.操作` が取りうる値。 */
+const MIGRATION_OPS = ['rename', 'merge', 'tag', 'skip'] as const;
+type MigrationOp = (typeof MIGRATION_OPS)[number];

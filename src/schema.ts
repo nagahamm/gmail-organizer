@@ -7,7 +7,7 @@
  */
 
 type ColumnType = 'text' | 'number' | 'date' | 'checkbox' | 'formula';
-type ValidationKind = 'labelPath' | 'matchKind' | 'approval' | 'labelState';
+type ValidationKind = 'labelPath' | 'matchKind' | 'approval' | 'labelState' | 'migrationOp';
 
 interface ColumnSpec {
   /** コード側から参照する識別子。 */
@@ -152,6 +152,27 @@ const SHEET_SPECS: SheetSpec[] = [
       { key: 'share', header: '割合', width: 80 },
       { key: 'sampleSubject', header: '代表件名', width: 360 },
       { key: 'note', header: '備考', width: 240 },
+    ],
+  },
+  {
+    name: SHEET_NAMES.MIGRATION,
+    note: '現行ラベル → 新体系の移行計画。docs/label-migration.md を見ながら新ラベル列を埋める。',
+    columns: [
+      { key: 'enabled', header: '有効', type: 'checkbox', width: 60 },
+      { key: 'current', header: '現行ラベル', width: 220 },
+      { key: 'messageCount', header: '件数', type: 'number', width: 80 },
+      { key: 'target', header: '新ラベル', validation: 'labelPath', width: 220 },
+      { key: 'location', header: '拠点', width: 70, note: '@AU を遡及付与する場合に入れる。' },
+      {
+        key: 'operation',
+        header: '操作',
+        validation: 'migrationOp',
+        width: 100,
+        note: 'rename は改名 (割り当てを保持)。merge は付与のみで旧ラベルは消さない。tag は拠点だけ付ける。',
+      },
+      { key: 'state', header: '状態', width: 90 },
+      { key: 'ranAt', header: '実行日', type: 'date', width: 120 },
+      { key: 'memo', header: '備考', width: 300 },
     ],
   },
   {
