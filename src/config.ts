@@ -37,6 +37,9 @@ const CONFIG = {
 
   /** スターが付いた求人の昇格先。 */
   WATCH_TARGET_LABEL: 'Job/Watching',
+
+  /** 応募済みと判断したスレッドの行き先。 */
+  APPLIED_LABEL: 'Job/Applied',
 } as const;
 
 /** シート名。真実の源となるスプレッドシートの構成。 */

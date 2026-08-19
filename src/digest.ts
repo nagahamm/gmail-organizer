@@ -19,6 +19,7 @@ function runWeeklyDigest(): void {
   const unmatched = collectUnmatched();
   replaceRows(SHEET_NAMES.UNMATCHED, unmatched.rows);
 
+  proposeAppliedJobs();
   const deadRules = findDeadRules();
   const archived = archiveOldLogs();
 

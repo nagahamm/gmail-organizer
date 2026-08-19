@@ -41,6 +41,7 @@ function onOpen(): void {
     .addItem('新着に適用する', 'applyToNewMail')
     .addItem('スター付き求人を昇格する', 'promoteStarredJobs')
     .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
+    .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
     .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
     .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
