@@ -43,6 +43,8 @@ function applyRetroactive(): void {
   for (let index = cursor.ruleIndex; index < rules.length; index += 1) {
     const rule = rules[index];
     let start = index === cursor.ruleIndex ? cursor.start : 0;
+    // 累計マッチ数はルール単位で数える。通算の processed を渡すと後ろのルールほど水増しされる。
+    let matchedByRule = 0;
 
     for (;;) {
       if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) {
@@ -57,6 +59,7 @@ function applyRetroactive(): void {
 
       for (const thread of threads) entries.push(applyToThread(thread, rule, dryRun));
       processed += threads.length;
+      matchedByRule += threads.length;
 
       // ドライランではラベルが付かず検索結果が減らないので、次のページへ進める。
       // 本適用では対象が消えていくため同じ位置を読み直す。
@@ -64,7 +67,7 @@ function applyRetroactive(): void {
       if (threads.length < APPLY_PAGE_SIZE) break;
     }
 
-    if (!dryRun) touchRule(rule, processed);
+    if (!dryRun) touchRule(rule, matchedByRule);
   }
 
   clearCursor();
