@@ -15,7 +15,14 @@ function applyApprovedProposals(): void {
   const rows = readRows(SHEET_NAMES.PROPOSALS);
   const now = new Date();
 
+  // 提案 1 件ごとに labels / unmatched を読み直すと提案数 × 行数になる。先に 1 回だけ読む。
+  const labelPaths = knownLabelPaths();
+  const unmatched = readRows(SHEET_NAMES.UNMATCHED);
+
   const added: { pattern: string; label: string }[] = [];
+  const newLabels: Row[] = [];
+  const proposalUpdates: CellUpdate[] = [];
+  const unmatchedUpdates: CellUpdate[] = [];
   let approved = 0;
   let rejected = 0;
 
@@ -24,8 +31,8 @@ function applyApprovedProposals(): void {
     const approval = String(row['approval'] || '').trim();
 
     if (approval === '却下') {
-      markProposed(String(row['pattern'] || ''));
-      updateCell(SHEET_NAMES.PROPOSALS, Number(row['_rowNumber']), 'appliedAt', now);
+      collectProposed(unmatched, String(row['pattern'] || ''), unmatchedUpdates);
+      proposalUpdates.push({ rowNumber: Number(row['_rowNumber']), key: 'appliedAt', value: now });
       rejected += 1;
       continue;
     }
@@ -35,17 +42,24 @@ function applyApprovedProposals(): void {
     const pattern = String(row['pattern'] || '').trim();
     const kind = String(row['kind'] || '').trim();
 
-    if (label) ensureLabelRow(label);
+    if (label !== '' && !labelPaths[label]) {
+      labelPaths[label] = true;
+      newLabels.push(buildLabelRow(label));
+    }
 
     if (LABEL_ONLY_KINDS.indexOf(kind) < 0 && pattern !== '' && label !== '') {
       appendRuleFromProposal(row, now);
       added.push({ pattern, label });
     }
 
-    markProposed(pattern);
-    updateCell(SHEET_NAMES.PROPOSALS, Number(row['_rowNumber']), 'appliedAt', now);
+    collectProposed(unmatched, pattern, unmatchedUpdates);
+    proposalUpdates.push({ rowNumber: Number(row['_rowNumber']), key: 'appliedAt', value: now });
     approved += 1;
   }
+
+  appendRows(SHEET_NAMES.LABELS, newLabels);
+  updateCells(SHEET_NAMES.UNMATCHED, unmatchedUpdates);
+  updateCells(SHEET_NAMES.PROPOSALS, proposalUpdates);
 
   if (added.length > 0) applyNewRulesRetroactively(added);
   console.log(`applyApprovedProposals: 承認 ${approved} 件 / 却下 ${rejected} 件 / ルール追加 ${added.length} 件`);
@@ -97,38 +111,42 @@ function applyNewRulesRetroactively(added: { pattern: string; label: string }[])
   console.log(`applyNewRulesRetroactively: ${rules.length} ルールで ${processed} スレッドを処理`);
 }
 
-/** labels シートに無いラベルなら 3 階層へ分解して追加する。 */
-function ensureLabelRow(fullPath: string): void {
+/** labels シートに既にあるラベルの索引。 */
+function knownLabelPaths(): Record<string, boolean> {
+  const paths: Record<string, boolean> = {};
   for (const row of readRows(SHEET_NAMES.LABELS)) {
-    if (String(row['fullPath'] || '').trim() === fullPath) return;
+    const path = String(row['fullPath'] || '').trim();
+    if (path !== '') paths[path] = true;
   }
-
-  const parts = splitLabelPath(fullPath);
-  appendRows(SHEET_NAMES.LABELS, [
-    {
-      labelKey: '',
-      major: parts.major,
-      middle: parts.middle,
-      minor: parts.minor,
-      gmailLabelId: '',
-      defaultSkipInbox: false,
-      defaultMarkRead: false,
-      state: 'active',
-      description: '提案から追加',
-      messageCount: 0,
-      syncedAt: new Date(),
-    },
-  ]);
+  return paths;
 }
 
-/** 同じ送信元について同じ提案を繰り返さないよう印を付ける。 */
-function markProposed(pattern: string): void {
+/** ラベルのフルパスを 3 階層へ分解して labels の 1 行にする。 */
+function buildLabelRow(fullPath: string): Row {
+  const parts = splitLabelPath(fullPath);
+  return {
+    labelKey: '',
+    major: parts.major,
+    middle: parts.middle,
+    minor: parts.minor,
+    gmailLabelId: '',
+    defaultSkipInbox: false,
+    defaultMarkRead: false,
+    state: 'active',
+    description: '提案から追加',
+    messageCount: 0,
+    syncedAt: new Date(),
+  };
+}
+
+/** 同じ送信元について同じ提案を繰り返さないよう、印を付ける行を集める。 */
+function collectProposed(unmatched: Row[], pattern: string, into: CellUpdate[]): void {
   if (pattern === '') return;
 
-  for (const row of readRows(SHEET_NAMES.UNMATCHED)) {
+  for (const row of unmatched) {
     const from = String(row['from'] || '');
     const listId = String(row['listId'] || '');
     if (from !== pattern && listId !== pattern && from.indexOf(pattern) < 0) continue;
-    updateCell(SHEET_NAMES.UNMATCHED, Number(row['_rowNumber']), 'proposed', true);
+    into.push({ rowNumber: Number(row['_rowNumber']), key: 'proposed', value: true });
   }
 }
