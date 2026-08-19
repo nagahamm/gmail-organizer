@@ -46,26 +46,106 @@
 ---
 
 
-## 新設した大項目 — 観測した送信元から起こす
+## Finance — 未分類だった銀行と決済
 
-サンプリングの送信済みメールに実際に出てきた相手だけを書く。
-残りは週次の提案が拾う。
-
-| 有効 | 優先度 | 種別 | パターン | ラベル | 受信トレイ除外 | 既読化 | 根拠 |
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
 | --- | ---: | --- | --- | --- | --- | --- | --- |
-| TRUE | 400 | `from_domain` | `zendesk.com` | `Support` | FALSE | FALSE | Insta360 / povo のサポート |
-| TRUE | 401 | `from_domain` | `higgsfield.ai` | `Support` | FALSE | FALSE | やり取り 5 通 |
-| TRUE | 402 | `from_domain` | `ubercarshare.com` | `Support` | FALSE | FALSE | やり取り 4 通 |
-| TRUE | 410 | `from_domain` | `ezytaxsolutionsjapan.com.au` | `Official/Tax` | FALSE | FALSE | 確定申告で複数回やり取り |
-| TRUE | 411 | `from_domain` | `city.fukuoka.lg.jp` | `Official` | FALSE | FALSE | 福岡市役所 |
-| TRUE | 412 | `from_domain` | `tmr.qld.gov.au` | `Official` | FALSE | FALSE | QLD 交通局 |
+| TRUE | 10 | `from_domain` | `ma.sonybank.jp` | `Finance/Accounts/Sony` | FALSE | FALSE | 未分類で受信トレイに素通り |
+| TRUE | 11 | `from_domain` | `up.com.au` | `Finance/Accounts/Up` | FALSE | FALSE | 未分類。UP 銀行 (AU) |
+| TRUE | 12 | `from_domain` | `paidy.com` | `Finance/Payments` | FALSE | FALSE | 未分類。後払い決済 |
 
-`Support` と `Official` は**受信トレイ除外も既読化もしない**。
-返信待ちや期限のあるものが埋もれると困るため。
+## Orders — Amazon の 2 系統を割る
 
-`Subscriptions` / `Health` / `Personal` は初期ルールを置かない。
-`Subscriptions` は課金通知の送信元を週次の提案で洗い出してから、
-`Personal` は「`List-Unsubscribe` を持たず `noreply` でない」判定を実装してから作る。
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 |
+| --- | ---: | --- | --- | --- | --- | --- |
+| TRUE | 20 | `from` | `shipment-tracking@amazon.co.jp` | `Orders/Amazon` | FALSE | FALSE |
+| TRUE | 21 | `from` | `store-news@amazon.co.jp` | `Promotions/Stores` | TRUE | TRUE |
+| TRUE | 22 | `from_domain` | `qoo10.jp` | `Orders/Qoo10` | FALSE | FALSE |
+
+現行の `ファイナンス/Amazon` 816 通には発送通知と販促が混ざっている。
+**優先度は発送通知を先に置く。** 販促のルールが先に当たると注文情報が受信トレイから消える。
+
+## Subscriptions — 定期課金
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TRUE | 30 | `from_domain` | `mail.anthropic.com` | `Subscriptions` | FALSE | FALSE | 請求書が未分類 |
+| TRUE | 31 | `from_domain` | `stripe.com` | `Subscriptions` | FALSE | FALSE | 領収書が未分類・スター付き |
+| TRUE | 32 | `from_domain` | `members.netflix.com` | `Subscriptions` | FALSE | FALSE | 現在 `Entertainments` |
+| TRUE | 33 | `from_domain` | `send.vidiq.com` | `Subscriptions` | FALSE | FALSE | 未分類 |
+| TRUE | 34 | `from_domain` | `anytimefitness.com.au` | `Subscriptions` | FALSE | FALSE | ジム会員 |
+
+## Utilities — 通信
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TRUE | 40 | `from_domain` | `spmode.ne.jp` | `Utilities/Mobile` | FALSE | FALSE | `Cashback rewards` の 44% を占めていた |
+| TRUE | 41 | `from_domain` | `kdlsupport.zendesk.com` | `Utilities/Mobile` | FALSE | FALSE | povo |
+
+## Learning — 学習・資格
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TRUE | 50 | `from_domain` | `iibc-global.org` | `Learning/Exams` | FALSE | FALSE | TOEIC 申込。**期限がある**のにスター付きで埋もれていた |
+| TRUE | 51 | `from_domain` | `eigosapuri.jp` | `Learning/English` | FALSE | FALSE | 未分類・重要 |
+| TRUE | 52 | `from` | `v-mail@dmm.com` | `Learning/English` | FALSE | FALSE | DMM 英会話。現在 `プロモーション/English` |
+
+## Health — 医療
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TRUE | 60 | `from_domain` | `will-agaclinic.com` | `Health/Clinics` | FALSE | FALSE | 未分類・`IMPORTANT` |
+| TRUE | 61 | `from` | `noreply-dmmclinic@dmm.com` | `Health/Clinics` | FALSE | FALSE | 未分類 |
+
+## Support / Official
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TRUE | 70 | `from_domain` | `insta360jp.zendesk.com` | `Support` | FALSE | FALSE | やり取り 5 通 |
+| TRUE | 71 | `from_domain` | `higgsfield.ai` | `Support` | FALSE | FALSE | やり取り 5 通 |
+| TRUE | 72 | `from_domain` | `ubercarshare.com` | `Support` | FALSE | FALSE | やり取り 4 通 |
+| TRUE | 80 | `from_domain` | `ezytaxsolutionsjapan.com.au` | `Official/Tax` | FALSE | FALSE | 確定申告 |
+| TRUE | 81 | `from_domain` | `post.xero.com` | `Official/Tax` | FALSE | FALSE | 会計ソフト。スター付きで未分類 |
+| TRUE | 82 | `from_domain` | `city.fukuoka.lg.jp` | `Official` | FALSE | FALSE | 福岡市役所 |
+| TRUE | 83 | `from_domain` | `tmr.qld.gov.au` | `Official` | FALSE | FALSE | QLD 交通局 |
+
+## 求人の追加分
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
+| --- | ---: | --- | --- | --- | --- | --- | --- |
+| TRUE | 123 | `from_domain` | `indeed.com` | `Promotions/Jobs/Alerts` | TRUE | TRUE | 未分類 |
+| TRUE | 124 | `from_domain` | `linkedin.com` | `Promotions/Jobs/Agencies` | TRUE | TRUE | 中身はスカウト。現在 `プロモーション/Employment` |
+
+## 未分類だった販促の追加分
+
+| 有効 | 優先度 | 種別 | パターン | ラベル |
+| --- | ---: | --- | --- | --- |
+| TRUE | 210 | `from_domain` | `specials.coles.com.au` | `Promotions/Stores` |
+| TRUE | 211 | `from_domain` | `comms.officeworks.com.au` | `Promotions/Stores` |
+| TRUE | 212 | `from_domain` | `reply.ebay.com.au` | `Promotions/Stores` |
+| TRUE | 213 | `from_domain` | `e.flybuys.com.au` | `Promotions/Rewards` |
+| TRUE | 214 | `from_domain` | `countryroad.com.au` | `Promotions/Fashion` |
+| TRUE | 215 | `from_domain` | `em.trenery.com.au` | `Promotions/Fashion` |
+| TRUE | 216 | `from_domain` | `kfc.com.au` | `Promotions/Food` |
+| TRUE | 217 | `from_domain` | `my.mcdonalds.com.au` | `Promotions/Food` |
+| TRUE | 218 | `from_domain` | `mail-jp.nespresso.com` | `Promotions/Food` |
+| TRUE | 219 | `from_domain` | `sender.skyscanner.com` | `Promotions/Travel` |
+| TRUE | 220 | `from_domain` | `e.supercheapauto.com.au` | `Promotions/Vehicles` |
+| TRUE | 221 | `from_domain` | `r.repco.com.au` | `Promotions/Vehicles` |
+| TRUE | 222 | `from_domain` | `email.priceline.com.au` | `Promotions/Beauty` |
+| TRUE | 223 | `from_domain` | `point.recruit.co.jp` | `Promotions/Rewards` |
+| TRUE | 224 | `from_domain` | `tsite.jp` | `Promotions/Rewards` |
+
+いずれも `受信トレイ除外 = TRUE` / `既読化 = TRUE`。
+
+## Security の追加分
+
+| 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 |
+| --- | ---: | --- | --- | --- | --- | --- |
+| TRUE | 301 | `from_domain` | `discord.com` | `Security/Codes` | FALSE | FALSE |
+
+`Personal` は初期ルールを置かない。
+「`List-Unsubscribe` を持たず `noreply` でない」判定を実装してから作る。
 
 ---
 

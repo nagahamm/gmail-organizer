@@ -8,33 +8,49 @@
 - **拠点タグは `@AU` のみ**。ワーホリは終了済みなので最初から凍結扱いにする
 - **`@JP` は作らない**。`@AU` でないものは全部 JP なので、9,000 通以上に無意味なタグが付くだけ
 
-## 大項目 (11)
+## 大項目 (13)
 
 命名は `docs/naming.md` に従う。可算名詞は複数形、不可算名詞は単数形。
 
 | 大項目 | 意味 | 受信トレイ | 既読化 |
 | --- | --- | --- | --- |
-| `Finance` | 口座・カード・証券・請求・入出金 | 残す | しない |
+| `Finance` | 口座・カード・証券・決済・請求 | 残す | しない |
 | `Orders` | EC 注文・発送・領収 | 残す | しない |
+| `Subscriptions` | **定期課金しているサービス** | 残す | しない |
+| `Utilities` | **通信・電気・ガス・水道** | 残す | しない |
 | `Promotions` | ニュースレター・広告 | **除外** | **する** |
-| `Security` | OTP・ログイン通知・不正利用の警告 | 残す | **しない** |
+| `Security` | OTP・ログイン通知・不正利用の警告 | 残す | しない |
 | `Schedule` | 予約・イベント | 残す | しない |
 | `Work` | 就職活動・勤務先 | 残す | しない |
-| `Support` | 問い合わせ中の案件 | 残す | **しない** |
-| `Official` | 行政・税務・ビザ | 残す | **しない** |
-| `Subscriptions` | 課金しているサービス | 残す | しない |
-| `Health` | 医療 | 残す | しない |
-| `Personal` | 人から届いたメール | 残す | **しない** |
+| `Learning` | **学習・資格試験** | 残す | しない |
+| `Health` | **医療** | 残す | しない |
+| `Support` | 問い合わせ中の案件 | 残す | しない |
+| `Official` | 行政・税務・ビザ | 残す | しない |
+| `Personal` | 人から届いたメール | 残す | しない |
 
-`Money` ではなく `Finance` にした。`Money` は現金そのものを指す口語で、
-口座・カード・証券・請求をまとめる語としては素朴すぎる。`Finance` は
-不可算名詞なので単数形のままでよく、現行の `ファイナンス` の正規化にもなる。
+`Promotions` 以外は全て受信トレイに残し、既読にもしない。
+**除外して既読にしてよいのは販促だけ**という線引きにする。
+これを緩めると、Gmail フィルタで起きていた「静かに消える」が再発する。
 
-`Auth` ではなく `Security` にしたのは、略語を避ける規約に従ったのと、
-OTP だけでなく不正利用の警告やパスワード変更通知も同じ扱いで入るため。
+### 太字の 4 つが 2 巡目で見つかった抜け
 
-`Job` ではなく `Work` にしたのは、雇用だけでなく制作の依頼や取引先との
-やり取りも同じ扱いになるため。`Job` は「就職口」に限定されてしまう。
+| 大項目 | 発見の経緯 |
+| --- | --- |
+| `Utilities` | `Cashback rewards` の 44% が NTT ドコモ (spmode) だった。通信キャリアがポイント還元に入っていた |
+| `Subscriptions` | Anthropic の請求書と Stripe の領収書が未分類で受信トレイにあった。Netflix は販促扱いだった |
+| `Learning` | TOEIC の申込がスター付きで受信トレイに埋もれていた。申込には期限がある |
+| `Health` | AGA クリニックと DMM クリニックが未分類。どちらも `IMPORTANT` 付きの実際の診察連絡 |
+
+### 境界の決め方
+
+重なりやすい 3 つは次で切り分ける。
+
+- **`Subscriptions`** — 定期課金しているサービス。「解約すべきか」を判断するためのラベル
+- **`Utilities`** — 通信・光熱。生活インフラなので解約の判断対象にならない
+- **`Finance/Bills`** — 上記以外の請求・支払い
+
+`Social` は作らない。LinkedIn の中身はスカウトなので `Promotions/Jobs/Agencies`、
+Discord は認証コードなので `Security/Codes` に収まる。
 
 拠点ラベル: `@AU` (凍結済み)
 
@@ -53,12 +69,20 @@ OTP だけでなく不正利用の警告やパスワード変更通知も同じ�
 | `ファイナンス/Revenue` | 10 | `Finance/Income` | | 改名 |
 | `ファイナンス/Bill` | 6 | `Finance/Bills` | | 改名 |
 | `Australia/Bill` | 26 | `Finance/Bills` | `@AU` | 統合 + 付与 |
+| — | 新規 | `Finance/Accounts/Sony` | | ソニー銀行。未分類だった |
+| — | 新規 | `Finance/Accounts/Up` | `@AU` | UP 銀行。未分類だった |
+| — | 新規 | `Finance/Payments` | | Paidy などの後払い決済 |
 
 ## Orders
 
 | 現行 | 件数 | 新 | 移行 |
 | --- | ---: | --- | --- |
-| `ファイナンス/Amazon` | 816 | `Orders/Amazon` | 改名 |
+| `ファイナンス/Amazon` | 816 | `Orders/Amazon` | 改名 ⚠️ |
+| — | 新規 | `Orders/Qoo10` | 未分類だった |
+
+⚠️ 816 通には `shipment-tracking@amazon.co.jp` (発送通知) と
+`store-news@amazon.co.jp` (販促) が混ざっている。販促分は `Promotions/Stores` へ分ける。
+未読 580 通の多くが発送通知だった。
 
 ## Promotions (受信トレイ除外 + 既読)
 
@@ -88,9 +112,12 @@ OTP だけでなく不正利用の警告やパスワード変更通知も同じ�
 
 | 新ラベル | 中身 | 件数 (標本からの推定) |
 | --- | --- | ---: |
-| `Promotions/Jobs/Alerts` | 求人アラート (`kuraveil.jp` / `seek.com.au`) | 約 5,880 |
-| `Promotions/Jobs/Agencies` | エージェント・スカウト (`doda` / `r-agent`) | 約 760 + α |
+| `Promotions/Jobs/Alerts` | 求人アラート (`kuraveil.jp` / `seek.com.au` / `indeed.com`) | 約 5,880 |
+| `Promotions/Jobs/Agencies` | エージェント・スカウト (`doda` / `r-agent` / `linkedin`) | 約 760 + α |
 | `Promotions/Jobs/Temp` | 派遣・バイト (`tcpartners`) | 未計測 |
+
+`indeed.com` は未分類、`r-agent.com` は `Cashback rewards`、
+`linkedin.com` は `プロモーション/Employment` に散らばっていた。
 
 ## Work — 自分が動いている側 (受信トレイに残す)
 
@@ -111,6 +138,8 @@ OTP だけでなく不正利用の警告やパスワード変更通知も同じ�
 | `Authentication/Login` | 1 | `Security/Alerts` | 改名 |
 | — | 新規 | `Security/Codes` | 件名ルールで作成 |
 
+`Discord` の通知は認証コードなのでここに入る。
+
 `Codes` は OTP・確認コード。`Alerts` はログイン通知・不正利用の警告。
 どちらも**受信トレイに残し、既読にもしない**。見えないと困る種類のため。
 
@@ -127,14 +156,53 @@ OTP だけでなく不正利用の警告やパスワード変更通知も同じ�
 
 いずれも**現在ラベルが無く受信トレイに埋もれている**ものを救出する。
 
+### Subscriptions — 定期課金
+
 | 新ラベル | 中身 | 根拠 |
 | --- | --- | --- |
-| `Support` | 問い合わせ中の案件 | 送信済みに Insta360 / Higgsfield / povo / Uber Carshare のサポートスレッドが 4 件以上。返信待ちのものが埋もれると困る |
-| `Official` | 行政・税務・ビザ | 送信済みに福岡市役所・QLD 交通局・税理士。期限のあるものが多い |
-| `Official/Tax` | 確定申告・税理士 | `ezytaxsolutionsjapan.com.au` と複数回やり取りしている |
-| `Subscriptions` | 課金しているサービス | 現在 `Developer` に SaaS の宣伝と課金通知が混在。**使っていないのに払っている**ものを見つけるために独立させる |
-| `Health` | 医療 | 現行フィルタで美容外科が `Fashion` へ入っている。診察・検査の連絡が販促と同じ扱いなのは危うい |
-| `Personal` | 人から届いたメール | `List-Unsubscribe` を持たず `noreply` でない送信元で機械的に絞れる |
+| `Subscriptions` | 定期課金しているサービス全般 | 通知が販促・未分類・スター付きに散らばっており、使っていないのに払っているものを見つけられない |
+
+観測した送信元: Anthropic (請求書) / Stripe (領収書) / Netflix / vidIQ /
+スタディサプリ ENGLISH / Anytime Fitness / Snap Fitness
+
+### Utilities — 通信・光熱
+
+| 新ラベル | 中身 | 根拠 |
+| --- | --- | --- |
+| `Utilities/Mobile` | 携帯キャリア | `spmode` (NTT ドコモ) が `Cashback rewards` の 44%。povo も送信済みに出現 |
+| `Utilities/Internet` | 回線・プロバイダ | 枠だけ用意 |
+| `Utilities/Energy` | 電気・ガス・水道 | 枠だけ用意 |
+
+### Learning — 学習・資格
+
+| 新ラベル | 中身 | 根拠 |
+| --- | --- | --- |
+| `Learning/Exams` | 資格試験の申込・結果 | TOEIC (`iibc-global.org`) がスター付きで埋もれていた。**申込には期限がある** |
+| `Learning/English` | 英語学習サービス | スタディサプリ ENGLISH / DMM 英会話。`プロモーション/English` 450 通には販促と実サービスが混在 |
+
+### Health — 医療
+
+| 新ラベル | 中身 | 根拠 |
+| --- | --- | --- |
+| `Health/Clinics` | 診察・予約・検査結果 | AGA クリニック / DMM クリニックが未分類。どちらも `IMPORTANT` 付き |
+
+現行フィルタでは美容外科が `Fashion` へ入っていた。診察の連絡が販促と同じ扱いなのは危うい。
+
+### Support — 問い合わせ中の案件
+
+送信済みに Insta360 / Higgsfield / povo / Uber Carshare のサポートスレッドが 4 件以上。
+返信待ちが埋もれると困る。
+
+### Official — 行政・税務
+
+| 新ラベル | 根拠 |
+| --- | --- |
+| `Official/Tax` | 税理士 (`ezytaxsolutionsjapan.com.au`) と Xero (会計ソフト、スター付きで未分類) |
+| `Official` | 福岡市役所 / QLD 交通局 |
+
+### Personal — 人から届いたメール
+
+`List-Unsubscribe` を持たず `noreply` でない送信元で機械的に絞れる。
 
 ## 削除するプレースホルダ
 

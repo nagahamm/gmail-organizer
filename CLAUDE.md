@@ -23,9 +23,12 @@ Gmail 標準のフィルタで運用していたが、以下の理由で破綻�
 - **ラベル名は英語**。大項目・中項目は英語、小項目のブランド名のみ原語 (`Rakuten` / `Amazon` / `AWX`)。
   命名規約は `docs/naming.md`。要点は「可算名詞は複数形、不可算名詞は単数形」
   (`Orders` / `Cards` に対して `Finance` / `Fashion`)、略語と動詞を使わない。
-- **ラベルの軸**: 大項目 = メールの**種別** (`Finance` / `Orders` / `Promotions` /
-  `Security` / `Schedule` / `Work` / `Support` / `Official` / `Subscriptions` /
-  `Health` / `Personal`)、中項目 = ジャンル、小項目 = ブランド。
+- **ラベルの軸**: 大項目 = メールの**種別** 13 個 (`Finance` / `Orders` /
+  `Subscriptions` / `Utilities` / `Promotions` / `Security` / `Schedule` / `Work` /
+  `Learning` / `Health` / `Support` / `Official` / `Personal`)、
+  中項目 = ジャンル、小項目 = ブランド。
+  **受信トレイから除外して既読にしてよいのは `Promotions` だけ**。
+  これを緩めると「静かに消える」が再発する。
   **拠点** (`@AU`) は階層に混ぜず**並行ラベル**として付与する。Gmail はフォルダではなく
   タグなので二重付与が自然。`@JP` は作らない (`@AU` でないものは全部 JP のため)。
 - **ワーホリは終了済みなので `@AU` は最初からアーカイブ**。移行時に既存メールへ
