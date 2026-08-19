@@ -85,8 +85,12 @@
 
 | 有効 | 優先度 | 種別 | パターン | ラベル | 除外 | 既読 | 根拠 |
 | --- | ---: | --- | --- | --- | --- | --- | --- |
-| TRUE | 40 | `from_domain` | `spmode.ne.jp` | `Utilities/Mobile` | FALSE | FALSE | `Cashback rewards` の 44% を占めていた |
-| TRUE | 41 | `from_domain` | `kdlsupport.zendesk.com` | `Utilities/Mobile` | FALSE | FALSE | povo |
+| TRUE | 40 | `from_domain` | `spmode.ne.jp` | `Promotions` | TRUE | TRUE | ⚠️ **ドコモスポーツくじ**。通信の請求ではなく toto の販促。`Cashback rewards` の 44% |
+| TRUE | 41 | `from_domain` | `kdlsupport.zendesk.com` | `Utilities/Mobile` | FALSE | FALSE | povo サポート |
+| TRUE | 42 | `from_domain` | `emails.povo.jp` | `Utilities/Mobile` | FALSE | FALSE | povo |
+| TRUE | 43 | `from_domain` | `mobile.rakuten.co.jp` | `Utilities/Mobile` | FALSE | FALSE | 楽天モバイル |
+| TRUE | 44 | `from_domain` | `optus.com.au` | `Utilities/Mobile` | FALSE | FALSE | Optus (AU) |
+| TRUE | 45 | `from_domain` | `digital.linkt.com.au` | `Utilities/Toll` | FALSE | FALSE | 豪州の有料道路 |
 
 ## Learning — 学習・資格
 
@@ -132,6 +136,8 @@
 | TRUE | 81 | `from_domain` | `post.xero.com` | `Official/Tax` | FALSE | FALSE | 会計ソフト。スター付きで未分類 |
 | TRUE | 82 | `from_domain` | `city.fukuoka.lg.jp` | `Official` | FALSE | FALSE | 福岡市役所 |
 | TRUE | 83 | `from_domain` | `tmr.qld.gov.au` | `Official` | FALSE | FALSE | QLD 交通局 |
+| TRUE | 84 | `from_domain` | `ato.gov.au` | `Official/Tax` | FALSE | FALSE | **豪州税務署**。ワーホリの税金還付に直結 |
+| TRUE | 85 | `from_domain` | `qld.containersforchange.com.au` | `Official` | FALSE | FALSE | 容器リサイクルの還付 |
 
 ## 求人の追加分
 

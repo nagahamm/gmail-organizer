@@ -92,7 +92,24 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 
 `from` の完全一致では取りこぼす。**ドメインが 1 社専用なら `from_domain`。**
 
-### 6. 定期配信は時刻が一定
+### 6. 送信元アドレスだけでは実体が分からない
+
+Gmail の「配信を管理」画面には**表示名**が出る。これで**誤認が 4 件見つかった**。
+
+| 送信元 | 私の判断 | 実体 (表示名) |
+| --- | --- | --- |
+| `message_r@mail2.apl01.spmode.ne.jp` | NTT ドコモ (通信) | **ドコモスポーツくじ** — 通信ではなく toto の販促 |
+| `mail@our.sunshinecoast.qld.gov.au` | 市議会 | **Sunshine Coast Libraries** (図書館) |
+| `customer@keanhealth.co.jp` | Kean Health | **chatGENE 遺伝子検査 & 腸内検査** |
+| `info@kuraveil.jp` | ワーホリ斡旋 | **留学くらべーる** (留学比較サイト) |
+
+`spmode.ne.jp` は `Cashback rewards` の 44% を占めていた最頻出の送信元。
+**通信キャリアの請求だと思って `Utilities/Mobile` に入れる設計だったが、
+実体はくじの販促なので `Promotions` が正しい。**
+
+`senders` シートに**表示名の列**が要る。
+
+### 7. 定期配信は時刻が一定
 
 | 送信元 | 配信時刻 (UTC) |
 | --- | --- |
@@ -103,7 +120,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | `itreview.jp` | 00:03 / 00:33 |
 | `duolingo.com` | 20:50 / 00:10 |
 
-### 7. 取引メールほど読まれていない
+### 8. 取引メールほど読まれていない
 
 | ラベル | 未読の状況 |
 | --- | --- |
@@ -114,14 +131,14 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 
 三井住友カードの利用明細は**一部が TRASH に入っていた**。
 
-### 8. catch-all ラベルが 2 つある
+### 9. catch-all ラベルが 2 つある
 
 | ラベル | 通数 | 混入の実態 |
 | --- | ---: | --- |
 | `プロモーション/Cashback rewards` | 3,116 | 標本 50 のうち**ポイント還元は 3 件だけ**。44% が NTT ドコモ |
 | `プロモーション/Fashion` | 3,977 | **約半分が美容外科** |
 
-### 9. 時期によって送信元が総入れ替えになる
+### 10. 時期によって送信元が総入れ替えになる
 
 | 時期 | 中心 |
 | --- | --- |
@@ -154,7 +171,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | 楽天ペイ | `no-reply@pay.rakuten.co.jp` | transactional | `Finance/Payments` |
 | 楽天チェックアウト | `info@checkout.rakuten.co.jp` | transactional | `Finance/Payments` |
 | リクルート決済 | `info@settle.point.recruit.co.jp` | transactional | `Finance/Payments` |
-| CareSuper (豪州年金) | `events@` / `caresuper@` `mail.caresuper.com.au` | notification | `Finance/Superannuation` |
+| CareSuper (豪州年金) | `events@` / `caresuper@` / `membernews@` `mail.caresuper.com.au` | notification | `Finance/Superannuation` |
 | Spirit Super (豪州年金) | `info@spiritsuper.com.au` | notification | `Finance/Superannuation` |
 
 ## Orders
@@ -199,6 +216,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | Google AI Studio | `googleaistudio-noreply@google.com` | `Subscriptions/Tools` |
 | Google Gemini | `google-gemini-noreply@google.com` | `Subscriptions/Tools` |
 | Google Maps | `noreply-maps-timeline@google.com` | `Subscriptions/Tools` |
+| Smart Noter AI | `hello@smartnoter.ai` | `Subscriptions/Tools` |
 | Anytime Fitness | `sunnybankhills@` / `armidale@` `anytimefitness.com.au` | `Subscriptions/Fitness` |
 | Snap Fitness | `maroochydore@snapfitness.com.au` | `Subscriptions/Fitness` |
 
@@ -206,11 +224,12 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 
 | 運営元 / サービス | 送信元 | ラベル |
 | --- | --- | --- |
-| NTT ドコモ | `message_r@mail2.apl01.spmode.ne.jp` | `Utilities/Mobile` |
+
 | povo (KDDI) | `important@` / `infoc@` `emails.povo.jp` | `Utilities/Mobile` |
 | povo サポート | `povosupport@kdlsupport.zendesk.com` | `Utilities/Mobile` |
 | 楽天モバイル | `rm-mail@` / `rmobile-notification@` `mobile.rakuten.co.jp` | `Utilities/Mobile` |
 | Optus (AU) | `noreply@` / `myaccount@` `optus.com.au` | `Utilities/Mobile` |
+| Linkt (豪州有料道路) | `noreply@digital.linkt.com.au` | `Utilities/Toll` |
 
 ## Security
 
@@ -218,6 +237,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | --- | --- | --- |
 | Discord | `noreply@discord.com` | `Security/Codes` |
 | Agoda | `no-reply@security.agoda.com` | `Security/Alerts` |
+| Google アカウント | `noreply-accounts@google.com` | `Security/Alerts` |
 
 ## Schedule
 
@@ -229,6 +249,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | Agoda | `no-reply@agoda.com` | `Schedule/Bookings` |
 | City Backpackers HQ | `info@citybackpackershq.com` | `Schedule/Bookings` |
 | Boatshed | `reservations@boatshed.net.au` | `Schedule/Bookings` |
+| スペースマーケット | `no-reply@ml.spacemarket.com` | `Schedule/Bookings` |
 
 ## Work
 
@@ -253,6 +274,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | YouTube | `no-reply@youtube.com` | `Work/Creative` |
 | Linktree | `hello@ma.linktr.ee` | `Work/Creative` |
 | Blackmagic Design | `no-reply@cloud.blackmagicdesign.com` | `Work/Creative` |
+| Fantia (クリエイター支援) | `noreply@fantia.jp` | `Work/Creative` |
 
 ## Learning
 
@@ -277,7 +299,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | --- | --- | --- |
 | AGA クリニック | `fukuoka@` / `form-web@` `will-agaclinic.com` | `Health/Clinics` |
 | DMM クリニック | `noreply-dmmclinic@dmm.com` | `Health/Clinics` |
-| Kean Health | `customer@keanhealth.co.jp` | `Health` |
+| chatGENE (遺伝子検査・腸内検査) | `customer@keanhealth.co.jp` | `Health` |
 
 ## Housing
 
@@ -305,17 +327,19 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | freee | `freee@personal.freee.co.jp` | `Official/Tax` |
 | 福岡市 | `shimin.JWO@city.fukuoka.lg.jp` | `Official` |
 | QLD 交通局 | `CSB.SEQN.…@tmr.qld.gov.au` | `Official` |
-| Sunshine Coast 市議会 | `mail@our.sunshinecoast.qld.gov.au` / `mail@sunshinecoast.qld.gov.au` | `Official` |
+| Sunshine Coast 図書館 | `mail@our.sunshinecoast.qld.gov.au` / `mail@sunshinecoast.qld.gov.au` | `Official` |
+| **豪州税務署 (ATO)** | `feedback@survey.ato.gov.au` | `Official/Tax` |
+| Containers for Change QLD | `no-reply@qld.containersforchange.com.au` | `Official` |
 
 ## Promotions/Jobs
 
 | 運営元 / サービス | 送信元 | ラベル |
 | --- | --- | --- |
-| kuraveil | `info@kuraveil.jp` | `Promotions/Jobs/Alerts` |
+| 留学くらべーる | `info@kuraveil.jp` | `Promotions/Jobs/Alerts` |
 | SEEK | `noreply@s.` / `jobmail@s.` / `noreply@email.` / `noreply@` `seek.com.au` | `Promotions/Jobs/Alerts` |
 | Indeed | `no-reply@indeed.com` | `Promotions/Jobs/Alerts` |
 | Kmart 求人 | `kmartaustr-jobnotification@noreply10.jobs2web.com` | `Promotions/Jobs/Alerts` |
-| doda | `cs@dm-doda.jp` / `editor@lifework-doda.jp` | `Promotions/Jobs/Agencies` |
+| doda | `cs@dm-doda.jp` / `editor@lifework-doda.jp` / `hunting@doda.jp` / `editor@jobnews-doda.jp` | `Promotions/Jobs/Agencies` |
 | リクルートエージェント | `noreply@r-agent.com` / `s-noda@r-agent.com` | `Promotions/Jobs/Agencies` |
 | リクルートダイレクトスカウト | `info@recruitdirectscout.jp` | `Promotions/Jobs/Agencies` |
 | LinkedIn | `messages-noreply@linkedin.com` | `Promotions/Jobs/Agencies` |
@@ -329,6 +353,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | Skyscanner | `no-reply@sender.skyscanner.com` | `Promotions/Travel` |
 | JAL | `jmbnews@jalmail.jal.com` | `Promotions/Travel` |
 | AirAsia | `no-reply@promo.airasia.com` | `Promotions/Travel` |
+| The Standard (ホテル) | `thestandard@hello.standardhotels.com` | `Promotions/Travel` |
 | Booking.com (販促) | `email.campaign@sg.booking.com` | `Promotions/Travel` |
 | Agoda (販促) | `no-reply@sg.sgt.agoda-email.com` | `Promotions/Travel` |
 | DiDi | `didi@jp.didiglobal.com` / `didi@mkt-jp.didiglobal.com` | `Promotions/Transport` |
@@ -341,7 +366,7 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | KFC AU | `kfcmail@kfc.com.au` | `Promotions/Food` |
 | McDonald's AU | `do-not-reply@my.mcdonalds.com.au` / `do-not-reply@e.maccas.com.au` | `Promotions/Food` |
 | Hungry Jack's | `no-reply@e.hungryjacks.com.au` | `Promotions/Food` |
-| Nespresso | `nespresso@mail-jp.nespresso.com` | `Promotions/Food` |
+| Nespresso | `nespresso@mail-jp.` / `nespresso@jp.` `nespresso.com` | `Promotions/Food` |
 | T2 Tea | `teasocietynews@t2tea.com` | `Promotions/Food` |
 | セブン & アイ | `info@sevenmp.omni7.jp` | `Promotions/Stores` |
 | Coles | `coles@specials.coles.com.au` | `Promotions/Stores` |
@@ -357,15 +382,17 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | AliExpress (販促) | `best-message-notice.a26@newarrival.aliexpress.com` / `message@info.aliexpress.com` | `Promotions/Stores` |
 | 楽天市場 (イベント) | `ichiba-support@mail.event.rakuten.co.jp` | `Promotions/Stores` |
 | 楽天メルマガ | `no-reply@mail.magazine.rakuten.co.jp` | `Promotions/Stores` |
+| 楽天ペイニュース | `rpay-news@emagazine.rakuten.co.jp` | `Promotions/Stores` |
+| ドコモスポーツくじ | `message_r@mail2.apl01.spmode.ne.jp` | `Promotions` |
 | BUYMA | `info@buyma.com` | `Promotions/Fashion` |
 | TAION | `member@mail.taion-wear.jp` | `Promotions/Fashion` |
 | SHEIN | `edm.mail.` / `emailmarket.` / `news.market.` / `news.` / `news.emailmarket.` `shein.com` | `Promotions/Fashion` |
-| Country Road | `no-reply@send.countryroad.com.au` / `email@em.countryroad.com.au` | `Promotions/Fashion` |
+| Country Road | `no-reply@send.` / `email@em.` / `noreply@reviews.` `countryroad.com.au` | `Promotions/Fashion` |
 | Trenery | `news@em.trenery.com.au` | `Promotions/Fashion` |
 | Cotton On | `news@e.cottonon.com` | `Promotions/Fashion` |
 | Strandbags | `news@email.strandbags.com.au` | `Promotions/Fashion` |
 | Lululemon | `hello-auz@e.lululemon.com` | `Promotions/Fashion` |
-| City Beach | `marketing@hello.citybeach.com.au` | `Promotions/Fashion` |
+| City Beach | `marketing@` / `postmaster@` `hello.citybeach.com.au` | `Promotions/Fashion` |
 | 東京中央美容外科 | `info@tokyochuobiyougeka.com` | `Promotions/Beauty` |
 | ホットペッパービューティー | `mag@beauty.hotpepper.jp` | `Promotions/Beauty` |
 | Smileie / SmilePath | `hello@smileie.au` / `team@smilepath.com.au` | `Promotions/Beauty` |
@@ -376,6 +403,8 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | 楽天ポイント | `info@point.rakuten.co.jp` / `point-notice-w@pointcard.rakuten.co.jp` | `Promotions/Rewards` |
 | T ポイント (CCC) | `mytc@tsite.jp` | `Promotions/Rewards` |
 | ITreview | `info@itreview.jp` | `Promotions/Tech` |
+| Niantic Spatial | `info@nianticspatial.com` | `Promotions/Tech` |
+| KANADEMONO | `contact@kanademono.design` | `Promotions/Furniture` |
 | Insta360 | `hey@insta360-news.com` | `Promotions/Creative` |
 | Unsplash | `marketing@unsplash.com` | `Promotions/Creative` |
 | Audiostock (販促) | `staff@audiostock.jp` | `Promotions/Creative` |
@@ -390,8 +419,20 @@ JCB は 2 つのサブドメインのうち**片方だけラベルが付いて�
 | Coursera (新コース) | `no-reply@m.send.coursera.org` | `Promotions/Learning` |
 | ELSA (販促) | `elsa@promo.elsanow.io` | `Promotions/Learning` |
 | Tinder | `tinder@mail.tinder.com` | `Promotions` |
+| わんらび | `mail@danevo-np.com` | `Promotions` ⚠️ 実体未確認 |
 
 ---
+
+## 調査の出典
+
+| 手段 | 範囲 |
+| --- | --- |
+| Gmail API での走査 | 現行ラベル 39 個の全数 + 未分類 9 巡・約 550 スレッド |
+| **Gmail の「配信を管理」画面** | **購読中の送信元 98 件の権威ある一覧**。表示名と直近の通数が出る |
+
+「配信を管理」は**購読解除できる送信元の公式な一覧**なので、
+API での走査より確実に網羅している。差分を取ったところ **18 件の追加**と
+**4 件の誤認**が見つかった。
 
 ## 標本の限界
 

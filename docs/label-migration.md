@@ -182,7 +182,8 @@ Discord は認証コードなので `Security/Codes` に収まる。
 
 | 新ラベル | 中身 | 根拠 |
 | --- | --- | --- |
-| `Utilities/Mobile` | 携帯キャリア | `spmode` (NTT ドコモ) が `Cashback rewards` の 44%。povo も送信済みに出現 |
+| `Utilities/Mobile` | 携帯キャリア | povo / 楽天モバイル / Optus の 3 社。⚠️ `spmode.ne.jp` は当初ここへ入れる予定だったが、表示名が「ドコモスポーツくじ」で通信ではなく toto の販促だと判明したため `Promotions` へ移した |
+| `Utilities/Toll` | 有料道路 | Linkt (豪州) |
 | `Utilities/Internet` | 回線・プロバイダ | 枠だけ用意 |
 | `Utilities/Energy` | 電気・ガス・水道 | 枠だけ用意 |
 
