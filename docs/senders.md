@@ -419,7 +419,6 @@ Gmail の「配信を管理」画面には**表示名**が出る。これで**�
 | Coursera (新コース) | `no-reply@m.send.coursera.org` | `Promotions/Learning` |
 | ELSA (販促) | `elsa@promo.elsanow.io` | `Promotions/Learning` |
 | Tinder | `tinder@mail.tinder.com` | `Promotions` |
-| わんらび | `mail@danevo-np.com` | `Promotions` ⚠️ 実体未確認 |
 
 ---
 
