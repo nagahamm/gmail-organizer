@@ -75,7 +75,9 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | — | 新規 | `Finance/Payments` | | Paidy などの後払い決済 |
 | — | 新規 | `Finance/Cards/Jcb` | | JCB。`CreditCards` の 100% |
 | — | 新規 | `Finance/Crypto/Coincheck` | | Coincheck。`Accounts` の 8 割 |
-| — | 新規 | `Finance/Superannuation` | `@AU` | 豪州の積立年金。**帰国後に還付請求できる** |
+| — | 新規 | `Finance/Superannuation` | `@AU` | 豪州の積立年金。**帰国後に還付請求できる**。CareSuper と Spirit Super の **2 社**ある |
+| — | 新規 | `Finance/Accounts/Nab` | `@AU` | NAB (豪州銀行) |
+| — | 新規 | `Finance/Cards/Smcc` | | 三井住友カード。一部が TRASH にあった |
 
 ## Orders
 
@@ -167,10 +169,14 @@ Discord は認証コードなので `Security/Codes` に収まる。
 
 | 新ラベル | 中身 | 根拠 |
 | --- | --- | --- |
-| `Subscriptions` | 定期課金しているサービス全般 | 通知が販促・未分類・スター付きに散らばっており、使っていないのに払っているものを見つけられない |
+| `Subscriptions/Dev` | 開発・インフラ | Google Cloud Platform / ngrok / Netlify / Calendly / Anthropic / Stripe / Font Awesome / pdfFiller |
+| `Subscriptions/Media` | 音楽・映像 | Spotify / Netflix / Amazon Music |
+| `Subscriptions/Tools` | 制作・その他 | vidIQ / NordVPN / Google AI Studio / Gemini |
+| `Subscriptions/Fitness` | ジム会員 | Anytime Fitness / Snap Fitness |
 
-観測した送信元: Anthropic (請求書) / Stripe (領収書) / Netflix / vidIQ /
-スタディサプリ ENGLISH / Anytime Fitness / Snap Fitness
+7 巡目で中身が厚いことが分かったため中項目で割った。
+通知が販促・未分類・スター付きに散らばっており、
+**使っていないのに払っているものを見つけられない**状態だった。
 
 ### Utilities — 通信・光熱
 

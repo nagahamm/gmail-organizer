@@ -98,6 +98,21 @@ Gmail の検索構文に glob も正規表現も無い。`*` と `\` はただ�
 
 ---
 
+### 5d. 同じドメインの中で `@` の前の名前が系統を表す
+
+| ローカルパート | 系統 | 例 |
+| --- | --- | --- |
+| `orders@` `accounts@` `system@` `inquiry@` `statement@` `auto-confirm@` `shipment-tracking@` | 取引・通知 | Hungry Jack's / Audiostock / TAION / 三井住友 / Amazon |
+| `news@` `member@` `staff@` `store-news@` `point-` `marketing@` `promo` | 販促 | T2 Tea / TAION / Audiostock / Amazon / ぐるなび |
+| `support@` `customerservice@` `cs-` | 問い合わせ | Agoda / Insta360 / スタディサプリ |
+| `security` `no-reply@security.` | セキュリティ | Agoda |
+
+**Agoda は 1 社で 4 系統に割れる**（予約確認 / 問い合わせ / セキュリティ / 販促）。
+現行フィルタの `from: *.agoda-emails.com` はこの 4 つを区別できないどころか、
+ワイルドカードが効かないので何も拾えていなかった。
+
+判定の補助に使えるが、**規則ではなく傾向**。ルールは実際の観測で確定させる。
+
 ## 調査上の制約
 
 ### 検索して出なかったことは、存在しないことではない
