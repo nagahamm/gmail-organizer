@@ -78,20 +78,28 @@ function resetRetroactive(): void {
   console.log('applyRetroactive の再開位置を消しました');
 }
 
-/** ルールを順に評価して適用する。戻り値は処理したスレッド数。 */
+/** シートの有効なルールを評価して適用する。戻り値は処理したスレッド数。 */
 function applyRules(windowQuery: string, retroactive: boolean): number {
+  const now = new Date();
+  const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, retroactive));
+  return runRules(rules, windowQuery);
+}
+
+/**
+ * 渡されたルールだけを評価して適用する。
+ * 承認された提案をその場で遡及適用するときにも使う。
+ */
+function runRules(rules: Rule[], windowQuery: string): number {
   const startedAt = Date.now();
   const runId = newRunId();
-  const now = new Date();
   const dryRun = isDryRun();
 
-  const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, retroactive));
   const entries: LogEntry[] = [];
   let processed = 0;
 
   for (const rule of rules) {
     if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) {
-      console.warn('applyRules: 時間切れのため残りのルールを飛ばしました');
+      console.warn('runRules: 時間切れのため残りのルールを飛ばしました');
       break;
     }
 
