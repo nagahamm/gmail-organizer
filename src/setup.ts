@@ -70,7 +70,9 @@ function applyValidations(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: Sheet
     const range = sheet.getRange(2, index[column.key] + 1, SETUP_ROWS, 1);
 
     if (column.type === 'checkbox') {
-      range.insertCheckboxes();
+      // insertCheckboxes() は範囲内の全セルに false を書き込むため使えない。
+      // 2000 行が値で埋まり、実データが入力規則を貼った範囲の下へ押し出される。
+      range.setDataValidation(SpreadsheetApp.newDataValidation().requireCheckbox().build());
       continue;
     }
     const rule = buildValidation(column.validation);
