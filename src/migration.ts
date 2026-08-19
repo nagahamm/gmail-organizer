@@ -106,8 +106,10 @@ function runMigration(): void {
     }
 
     if (!dryRun) {
-      updateCell(SHEET_NAMES.MIGRATION, Number(row['_rowNumber']), 'state', '完了');
-      updateCell(SHEET_NAMES.MIGRATION, Number(row['_rowNumber']), 'ranAt', new Date());
+      updateCells(SHEET_NAMES.MIGRATION, [
+        { rowNumber: Number(row['_rowNumber']), key: 'state', value: '完了' },
+        { rowNumber: Number(row['_rowNumber']), key: 'ranAt', value: new Date() },
+      ]);
     }
   }
 

@@ -200,8 +200,10 @@ function getOrCreateLabel(name: string): GoogleAppsScript.Gmail.GmailLabel {
 /** ルールの最終マッチ日と累計マッチ数を更新する。死んだルールを見つけるため。 */
 function touchRule(rule: Rule, matched: number): void {
   if (matched === 0) return;
-  updateCell(SHEET_NAMES.RULES, rule.rowNumber, 'lastMatchedAt', new Date());
-  updateCell(SHEET_NAMES.RULES, rule.rowNumber, 'matchCount', rule.matchCount + matched);
+  updateCells(SHEET_NAMES.RULES, [
+    { rowNumber: rule.rowNumber, key: 'lastMatchedAt', value: new Date() },
+    { rowNumber: rule.rowNumber, key: 'matchCount', value: rule.matchCount + matched },
+  ]);
 }
 
 function readCursor(): RetroCursor {

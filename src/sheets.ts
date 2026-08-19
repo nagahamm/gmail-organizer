@@ -138,13 +138,69 @@ function replaceRows(sheetName: string, rows: Row[]): void {
   appendRows(sheetName, rows);
 }
 
-/** 1 セルだけ更新する。ルールの累計マッチ数などに使う。 */
-function updateCell(sheetName: string, rowNumber: number, key: string, value: unknown): void {
+/** 1 セルの更新指示。 */
+interface CellUpdate {
+  /** 1 始まりの行番号。`readRows()` が返す `_rowNumber` をそのまま渡す。 */
+  rowNumber: number;
+  /** spec 上の列 key。 */
+  key: string;
+  value: unknown;
+}
+
+/**
+ * 複数セルをまとめて更新する。
+ *
+ * 1 セルずつ書くとヘッダ行の読み直しが毎回入り、100 行の更新で 1,000 回以上の
+ * API コールになる。GAS は 1 実行 6 分で止まるので、行数に比例して呼ぶ形は使えない。
+ * ヘッダ解決は 1 回だけ行い、行ごとに連続する列を 1 回の `setValues()` で書く。
+ */
+function updateCells(sheetName: string, updates: CellUpdate[]): void {
+  if (updates.length === 0) return;
+
   const spec = findSheetSpec(sheetName);
   const sheet = getSheet(sheetName);
   const index = resolveColumns(sheet, spec);
-  if (!(key in index)) throw new Error(`シート "${sheetName}" に列 "${key}" がありません。`);
-  sheet.getRange(rowNumber, index[key] + 1).setValue(value);
+
+  const formula: Record<string, boolean> = {};
+  for (const column of spec.columns) {
+    if (column.type === 'formula') formula[column.key] = true;
+  }
+
+  // 行番号 → (0 始まりの列番号 → 値)。
+  const byRow: Record<number, Record<number, unknown>> = {};
+  for (const update of updates) {
+    if (!(update.key in index)) {
+      throw new Error(`シート "${sheetName}" に列 "${update.key}" がありません。`);
+    }
+    if (formula[update.key]) {
+      throw new Error(`シート "${sheetName}" の列 "${update.key}" は数式列です。書き換えると列全体が壊れます。`);
+    }
+    if (!byRow[update.rowNumber]) byRow[update.rowNumber] = {};
+    byRow[update.rowNumber][index[update.key]] = update.value;
+  }
+
+  for (const key of Object.keys(byRow)) {
+    const rowNumber = Number(key);
+    const cells = byRow[rowNumber];
+    const columns = Object.keys(cells)
+      .map(Number)
+      .sort((left, right) => left - right);
+
+    let at = 0;
+    while (at < columns.length) {
+      let end = at;
+      while (end + 1 < columns.length && columns[end + 1] === columns[end] + 1) end += 1;
+
+      const line = columns.slice(at, end + 1).map((column) => cells[column]);
+      sheet.getRange(rowNumber, columns[at] + 1, 1, line.length).setValues([line]);
+      at = end + 1;
+    }
+  }
+}
+
+/** 1 セルだけ更新する。まとめて更新できるなら `updateCells()` を使う。 */
+function updateCell(sheetName: string, rowNumber: number, key: string, value: unknown): void {
+  updateCells(sheetName, [{ rowNumber, key, value }]);
 }
 
 /** 1 始まりの列番号を A1 記法の列文字に変換する。 */

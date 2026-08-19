@@ -40,6 +40,7 @@ function refreshSenders(): void {
   }
 
   const added: Row[] = [];
+  const updates: CellUpdate[] = [];
   let updated = 0;
 
   for (const address of Object.keys(observed)) {
@@ -50,12 +51,16 @@ function refreshSenders(): void {
       added.push(buildSenderRow(seen));
       continue;
     }
-    updateSenderRow(existing, seen);
+    for (const update of senderUpdates(existing, seen)) updates.push(update);
     updated += 1;
   }
 
+  for (const update of dormantUpdates(rows, observed)) updates.push(update);
+
+  // 追記より先に流す。追記で行が増えても既存行の行番号は変わらないが、
+  // 読み取り済みの行番号を使う以上、間に他の書き込みを挟まない方が追いやすい。
+  updateCells(SHEET_NAMES.SENDERS, updates);
   appendRows(SHEET_NAMES.SENDERS, added);
-  markDormantSenders(rows, observed);
 
   console.log(`refreshSenders: 新規 ${added.length} 件 / 更新 ${updated} 件`);
 }
@@ -129,27 +134,35 @@ function buildSenderRow(seen: SenderObservation): Row {
   };
 }
 
-/** 観測できる列だけを更新する。人が育てた列には触れない。 */
-function updateSenderRow(existing: Row, seen: SenderObservation): void {
+/**
+ * 観測できる列だけの更新指示を作る。人が育てた列には触れない。
+ *
+ * ここで書き込まないのは、送信元の数だけ API を呼ぶと 6 分制限に当たるため。
+ * 呼び出し元が全件ぶんを集めて 1 回で流す。
+ */
+function senderUpdates(existing: Row, seen: SenderObservation): CellUpdate[] {
   const rowNumber = Number(existing['_rowNumber']);
+  const updates: CellUpdate[] = [];
 
   // 表示名は変わることがあるので観測するたびに最新へ更新する。
   if (seen.displayName !== '') {
-    updateCell(SHEET_NAMES.SENDERS, rowNumber, 'displayName', seen.displayName);
+    updates.push({ rowNumber, key: 'displayName', value: seen.displayName });
   }
-  updateCell(SHEET_NAMES.SENDERS, rowNumber, 'recentCount', seen.count);
-  updateCell(SHEET_NAMES.SENDERS, rowNumber, 'lastSeen', seen.lastSeen);
-  updateCell(SHEET_NAMES.SENDERS, rowNumber, 'state', 'active');
+  updates.push({ rowNumber, key: 'recentCount', value: seen.count });
+  updates.push({ rowNumber, key: 'lastSeen', value: seen.lastSeen });
+  updates.push({ rowNumber, key: 'state', value: 'active' });
 
   const firstSeen = existing['firstSeen'];
   if (!(firstSeen instanceof Date) || seen.firstSeen < firstSeen) {
-    updateCell(SHEET_NAMES.SENDERS, rowNumber, 'firstSeen', seen.firstSeen);
+    updates.push({ rowNumber, key: 'firstSeen', value: seen.firstSeen });
   }
+  return updates;
 }
 
-/** しばらく届いていない送信元を dormant にする。解約済みの見落としを拾うため。 */
-function markDormantSenders(rows: Row[], observed: Record<string, SenderObservation>): void {
+/** しばらく届いていない送信元を dormant にする更新指示。解約済みの見落としを拾うため。 */
+function dormantUpdates(rows: Row[], observed: Record<string, SenderObservation>): CellUpdate[] {
   const threshold = Date.now() - CONFIG.SENDER_DORMANT_DAYS * 24 * 60 * 60 * 1000;
+  const updates: CellUpdate[] = [];
 
   for (const row of rows) {
     const address = String(row['address'] || '').trim().toLowerCase();
@@ -159,8 +172,9 @@ function markDormantSenders(rows: Row[], observed: Record<string, SenderObservat
     const lastSeen = row['lastSeen'];
     if (lastSeen instanceof Date && lastSeen.getTime() >= threshold) continue;
 
-    updateCell(SHEET_NAMES.SENDERS, Number(row['_rowNumber']), 'state', 'dormant');
+    updates.push({ rowNumber: Number(row['_rowNumber']), key: 'state', value: 'dormant' });
   }
+  return updates;
 }
 
 /**
