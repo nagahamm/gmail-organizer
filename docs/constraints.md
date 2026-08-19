@@ -68,6 +68,18 @@ Gmail の検索構文に glob も正規表現も無い。`*` と `\` はただ�
 **対処**: `senders` シートに `運営元` の列を持ち、会社単位で追えるようにする。
 ルール自体はドメイン単位のままでよいが、**漏れの点検は運営元単位で行う**。
 
+### 5c. 同じサービスでも拠点・支店ごとにアドレスが違う
+
+5b とは逆に、`from` の完全一致では取りこぼすケース。
+
+| サービス | アドレス |
+| --- | --- |
+| トランスコスモスパートナーズ | `fukuoka@` / `tokyo@` `ml.tcpartners.co.jp` |
+| Anytime Fitness | `sunnybankhills@` / `armidale@` `anytimefitness.com.au` |
+| CareSuper | `events@` / `caresuper@` `mail.caresuper.com.au` |
+
+**判断基準: ドメインが 1 社専用なら `from_domain`、共有なら `from`。**
+
 ### 6. ラベル改名は割り当てを保持するが、統合は再タグ付けが要る
 
 1:1 の改名は `Gmail.Users.Labels.patch` で一瞬。メールの割り当てはそのまま残る。
