@@ -85,7 +85,7 @@ function runMigration(): void {
       let start = step === cursor.stepIndex && resuming ? cursor.start : 0;
 
       for (;;) {
-        if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) {
+        if (outOfTime(startedAt)) {
           writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
           writeLog(runId, entries);
           console.log(`runMigration: 中断。${index + 1}/${plan.length} 行目のステップ ${step + 1}`);

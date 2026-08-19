@@ -47,7 +47,7 @@ function applyRetroactive(): void {
     let matchedByRule = 0;
 
     for (;;) {
-      if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) {
+      if (outOfTime(startedAt)) {
         writeCursor({ ruleIndex: index, start });
         writeLog(runId, entries);
         console.log(`applyRetroactive: 中断。ルール ${index + 1}/${rules.length}、${processed} スレッド処理`);
@@ -101,7 +101,7 @@ function runRules(rules: Rule[], windowQuery: string): number {
   let processed = 0;
 
   for (const rule of rules) {
-    if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) {
+    if (outOfTime(startedAt)) {
       console.warn('runRules: 時間切れのため残りのルールを飛ばしました');
       break;
     }

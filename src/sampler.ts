@@ -58,7 +58,7 @@ function surveySenders(labelName: string, survey: string, hints: string[], start
   let scanned = 0;
 
   for (const thread of threads) {
-    if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) break;
+    if (outOfTime(startedAt)) break;
 
     const messages = thread.getMessages();
     if (messages.length === 0) continue;
@@ -128,7 +128,7 @@ function surveyAppliedDetection(startedAt: number): Row[] {
 
   for (const labelName of SAMPLING_TARGETS.JOB_LABELS) {
     for (const thread of searchLabel(labelName)) {
-      if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) break;
+      if (outOfTime(startedAt)) break;
 
       const messages = thread.getMessages();
       if (messages.length === 0) continue;
