@@ -33,13 +33,13 @@ const CONFIG = {
   LOCATION_AU: '@AU',
 
   /** スターを入力装置として監視する対象のラベル接頭辞。 */
-  WATCH_SOURCE_PREFIX: 'Promo/Jobs/',
+  WATCH_SOURCE_PREFIX: 'Promotions/Jobs/',
 
   /** スターが付いた求人の昇格先。 */
-  WATCH_TARGET_LABEL: 'Job/Watching',
+  WATCH_TARGET_LABEL: 'Work/Shortlist',
 
   /** 応募済みと判断したスレッドの行き先。 */
-  APPLIED_LABEL: 'Job/Applied',
+  APPLIED_LABEL: 'Work/Applications',
 } as const;
 
 /** シート名。真実の源となるスプレッドシートの構成。 */

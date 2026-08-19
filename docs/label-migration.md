@@ -8,183 +8,138 @@
 - **拠点タグは `@AU` のみ**。ワーホリは終了済みなので最初から凍結扱いにする
 - **`@JP` は作らない**。`@AU` でないものは全部 JP なので、9,000 通以上に無意味なタグが付くだけ
 
-## 大項目 (7)
+## 大項目 (11)
 
-| 大項目 | 意味 | 既定の扱い |
-| --- | --- | --- |
-| `Money` | 口座・カード・証券・請求・入出金 | 受信トレイに残す |
-| `Orders` | EC 注文・発送・領収 | 受信トレイに残す |
-| `Promo` | ニュースレター・広告 | **受信トレイ除外 + 既読** |
-| `Auth` | OTP・ログイン通知・セキュリティ | 受信トレイに残す |
-| `Schedule` | 予約・イベント | 受信トレイに残す |
-| `Job` | **自分が動いている**就職活動・勤務先 | 受信トレイに残す |
-| `Personal` | 人間から届いたメール | 受信トレイに残す |
+命名は `docs/naming.md` に従う。可算名詞は複数形、不可算名詞は単数形。
 
-`Job` と `Promo/Jobs` を分けたのが今回の肝です。理由は後述。
+| 大項目 | 意味 | 受信トレイ | 既読化 |
+| --- | --- | --- | --- |
+| `Finance` | 口座・カード・証券・請求・入出金 | 残す | しない |
+| `Orders` | EC 注文・発送・領収 | 残す | しない |
+| `Promotions` | ニュースレター・広告 | **除外** | **する** |
+| `Security` | OTP・ログイン通知・不正利用の警告 | 残す | **しない** |
+| `Schedule` | 予約・イベント | 残す | しない |
+| `Work` | 就職活動・勤務先 | 残す | しない |
+| `Support` | 問い合わせ中の案件 | 残す | **しない** |
+| `Official` | 行政・税務・ビザ | 残す | **しない** |
+| `Subscriptions` | 課金しているサービス | 残す | しない |
+| `Health` | 医療 | 残す | しない |
+| `Personal` | 人から届いたメール | 残す | **しない** |
+
+`Money` ではなく `Finance` にした。`Money` は現金そのものを指す口語で、
+口座・カード・証券・請求をまとめる語としては素朴すぎる。`Finance` は
+不可算名詞なので単数形のままでよく、現行の `ファイナンス` の正規化にもなる。
+
+`Auth` ではなく `Security` にしたのは、略語を避ける規約に従ったのと、
+OTP だけでなく不正利用の警告やパスワード変更通知も同じ扱いで入るため。
+
+`Job` ではなく `Work` にしたのは、雇用だけでなく制作の依頼や取引先との
+やり取りも同じ扱いになるため。`Job` は「就職口」に限定されてしまう。
+
+拠点ラベル: `@AU` (凍結済み)
 
 ---
 
-## Money
+## Finance
 
 | 現行 | 件数 | 新 | 拠点 | 移行 |
 | --- | ---: | --- | --- | --- |
-| `ファイナンス/Accounts` | 683 | `Money/Bank` | | 改名 |
-| `ファイナンス/Deposit` | 7 | `Money/Bank/Deposit` | | 改名 |
-| `ファイナンス/楽天カード` | 609 | `Money/Card/Rakuten` | | 改名 |
-| `ファイナンス/CreditCards` | 161 | `Money/Card/Credit` | | 改名 |
-| `ファイナンス/DebitCards` | 22 | `Money/Card/Debit` | | 改名 |
-| `ファイナンス/楽天証券` | 60 | `Money/Invest/Rakuten` | | 改名 |
-| `ファイナンス/Revenue` | 10 | `Money/Income` | | 改名 |
-| `ファイナンス/Bill` | 6 | `Money/Bill` | | 改名 |
-| `Australia/Bill` | 26 | `Money/Bill` | `@AU` | 統合 + 付与 |
+| `ファイナンス/Accounts` | 683 | `Finance/Accounts` | | 改名 |
+| `ファイナンス/Deposit` | 7 | `Finance/Accounts/Deposits` | | 改名 |
+| `ファイナンス/楽天カード` | 609 | `Finance/Cards/Rakuten` | | 改名 |
+| `ファイナンス/CreditCards` | 161 | `Finance/Cards/Credit` | | 改名 |
+| `ファイナンス/DebitCards` | 22 | `Finance/Cards/Debit` | | 改名 |
+| `ファイナンス/楽天証券` | 60 | `Finance/Investments/Rakuten` | | 改名 |
+| `ファイナンス/Revenue` | 10 | `Finance/Income` | | 改名 |
+| `ファイナンス/Bill` | 6 | `Finance/Bills` | | 改名 |
+| `Australia/Bill` | 26 | `Finance/Bills` | `@AU` | 統合 + 付与 |
 
 ## Orders
 
+| 現行 | 件数 | 新 | 移行 |
+| --- | ---: | --- | --- |
+| `ファイナンス/Amazon` | 816 | `Orders/Amazon` | 改名 |
+
+## Promotions (受信トレイ除外 + 既読)
+
 | 現行 | 件数 | 新 | 拠点 | 移行 |
 | --- | ---: | --- | --- | --- |
-| `ファイナンス/Amazon` | 816 | `Orders/Amazon` | | 改名 |
-| (`Australia/Stores` の取引分) | ? | `Orders/*` | `@AU` | サンプリング後に決定 |
+| `プロモーション/Fashion` | 3,977 | `Promotions/Fashion` | | 改名 |
+| `プロモーション/Cashback rewards` | 3,116 | `Promotions/Rewards` | | 改名 ⚠️ |
+| `Australia/Stores` | 2,039 | `Promotions/Stores` | `@AU` | 統合 + 付与 |
+| `プロモーション/Stores` | 480 | `Promotions/Stores` | | 改名 |
+| `プロモーション/Travel` | 2,000 | `Promotions/Travel` | | 改名 |
+| `プロモーション/Meal` | 1,497 | `Promotions/Food` | | 改名 |
+| `Australia/Meal` | 0 | → `Promotions/Food` へ | | **削除** |
+| `Australia/Beauty` | 1,029 | `Promotions/Beauty` | `@AU` | 改名 + 付与 |
+| `プロモーション/Developer` | 777 | `Promotions/Tech` | | 改名 |
+| `プロモーション/Vehicles` | 502 | `Promotions/Vehicles` | | 改名 |
+| `プロモーション/English` | 450 | `Promotions/English` | | 改名 |
+| `プロモーション/Affiliate` | 285 | `Promotions/Affiliate` | | 改名 |
+| `プロモーション/Creater` | 269 | `Promotions/Creator` | | 改名 (綴り訂正) |
+| `プロモーション/Entertainments` | 209 | `Promotions/Entertainment` | | 改名 (不可算) |
+| `プロモーション/Furniture` | 148 | `Promotions/Furniture` | | 改名 |
+| `プロモーション/Fitness` | 125 | `Promotions/Fitness` | | 改名 |
 
-## Promo
+⚠️ `Rewards` にはリクルートエージェントの求人が誤って混入している。
+移行後に中身を精査して `Promotions/Jobs/Agencies` へ移す。
+
+## Promotions/Jobs — 読み流す求人
+
+| 新ラベル | 中身 | 件数 (標本からの推定) |
+| --- | --- | ---: |
+| `Promotions/Jobs/Alerts` | 求人アラート (`kuraveil.jp` / `seek.com.au`) | 約 5,880 |
+| `Promotions/Jobs/Agencies` | エージェント・スカウト (`doda` / `r-agent`) | 約 760 + α |
+| `Promotions/Jobs/Temp` | 派遣・バイト (`tcpartners`) | 未計測 |
+
+## Work — 自分が動いている側 (受信トレイに残す)
 
 | 現行 | 件数 | 新 | 拠点 | 移行 |
 | --- | ---: | --- | --- | --- |
-| `プロモーション/Fashion` | 3,977 | `Promo/Fashion` | | 改名 |
-| `プロモーション/Cashback rewards` | 3,116 | `Promo/Cashback` | | 改名 |
-| `Australia/Stores` | 2,039 | `Promo/Store` | `@AU` | 統合 + 付与 ⚠️ |
-| `プロモーション/Stores` | 480 | `Promo/Store` | | 改名 |
-| `プロモーション/Travel` | 2,000 | `Promo/Travel` | | 改名 |
-| `プロモーション/Meal` | 1,497 | `Promo/Food` | | 改名 |
-| `Australia/Meal` | 0 | → `Promo/Food` へ | | **削除** |
-| `Australia/Beauty` | 1,029 | `Promo/Beauty` | `@AU` | 改名 + 付与 |
-| `プロモーション/Developer` | 777 | `Promo/Dev` | | 改名 |
-| `プロモーション/Vehicles` | 502 | `Promo/Vehicle` | | 改名 |
-| `プロモーション/English` | 450 | `Promo/English` | | 改名 |
-| `プロモーション/Affiliate` | 285 | `Promo/Affiliate` | | 改名 |
-| `プロモーション/Creater` | 269 | `Promo/Creator` | | 改名 (綴り訂正) |
-| `プロモーション/Entertainments` | 209 | `Promo/Entertainment` | | 改名 |
-| `プロモーション/Furniture` | 148 | `Promo/Furniture` | | 改名 |
-| `プロモーション/Fitness` | 125 | `Promo/Fitness` | | 改名 |
+| `Australia/AWX` | 148 | `Work/AWX` | `@AU` | 改名 + 付与 |
+| `Australia/AWX/Payslip` | 24 | `Work/AWX/Payslips` | `@AU` | 改名 + 付与 |
+| — | 新規 | `Work/Applications` | | 提案経由で作成 |
+| — | 新規 | `Work/Shortlist` | | スター起点で作成 |
 
-## 求人まわり — `Promo/Jobs` と `Job` に二分する
+`Applied` は動詞なので `Applications` にした。`Watching` も動詞なので、
+求人サイトの用語として一般的な `Shortlist` にした。
 
-現行の `プロモーション/Employment` (5,418) + `Australia/Employment` (1,223) = **6,641 通**。
-全ラベル中で最大の塊です。
+## Security
 
-### なぜ 2 つに割るのか
+| 現行 | 件数 | 新 | 移行 |
+| --- | ---: | --- | --- |
+| `Authentication/Login` | 1 | `Security/Alerts` | 改名 |
+| — | 新規 | `Security/Codes` | 件名ルールで作成 |
 
-ご要望の 4 分類「応募したやつ / リクルート系 / 関心が高いやつ / バイトなど」は、
-そのまま並べると**また軸が混ざります**。今回直した問題と同じ構造です。
-
-| ご要望の分類 | 実際の軸 |
-| --- | --- |
-| 応募したやつ | **自分の行動** (アクション済みか) |
-| リクルート系からのやつ | **送信元の種類** |
-| 中でも関心が高いやつ | **主観的な評価** |
-| バイトなどのやつ | **雇用形態** |
-
-なので階層を分けます。**一番効く境界線は「自分がアクションしたかどうか」**です。
-応募したメールは埋もれたら困る。求人アラートは読み流すもの。この 2 つは扱いが正反対なので、
-大項目のレベルで分けます。
-
-### `Promo/Jobs` — 読み流す側 (受信トレイ除外 + 既読)
-
-| 新ラベル | 中身 | 判定方法 |
-| --- | --- | --- |
-| `Promo/Jobs/Agency` | リクルート系 (エージェント・スカウト) | 送信元ドメイン / `List-Id` |
-| `Promo/Jobs/PartTime` | バイト・カジュアル | 送信元 (タウンワーク / バイトル / Indeed のバイト系) |
-| `Promo/Jobs/Alert` | 一般の求人アラート | 上記以外の求人系 `List-Id` |
-
-`プロモーション/Employment` 5,418 と `Australia/Employment` 1,223 の大半はここに落ちます
-(AU 分には `@AU` を付与)。
-
-### `Job` — 自分が動いている側 (受信トレイに残す)
-
-| 新ラベル | 中身 | 判定方法 |
-| --- | --- | --- |
-| `Job/Applied` | 応募済みの案件のやり取り | **自動判定可** (下記) |
-| `Job/Watching` | 関心が高い求人 | **スター起点の半自動** (下記) |
-| `Job/AWX` | 勤務先 AWX とのやり取り | 送信元 (現 `Australia/AWX` 148) |
-| `Job/AWX/Payslip` | 給与明細 | 現 `Australia/AWX/Payslip` 24 |
-
-### 「応募したやつ」は自動判定できます
-
-一番強いシグナルは **スレッドに自分の送信メールが含まれているか**です。
-`GmailThread.getMessages()` を回して `from` が自分なら、そのスレッドは
-「自分が返信した = 応募 or やり取りが発生した」と判定できます。
-求人アラートは一方通行なので、この 1 点でほぼ切り分けられます。
-
-補助シグナルとして件名パターンも併用します。
-
-- 日本語: `ご応募` / `応募が完了` / `選考` / `面接` / `書類選考`
-- 英語: `Application received` / `Thanks for applying` / `Your application` / `Interview`
-
-`Job/Applied` に入ったものは**受信トレイに残す**ので、埋もれません。
-
-### 「関心が高いやつ」はスターを入力装置にする
-
-主観的な評価なので、機械では判定できません。かといって毎回ラベルを手で付けるのは面倒です。
-そこで **スターを入力装置として使います**。
-
-```
-Promo/Jobs/* のメールにスターを付ける
-        ↓ 次の GAS 実行 (15分以内)
-Job/Watching ラベルに昇格 + 受信トレイに戻す + スターは外す
-        ↓ 週次
-Claude が「Watching に入れた求人の傾向」を見て、
-似た条件の求人を次から Job/Watching に入れるか提案する
-```
-
-スマホでもワンタップで済み、状態はラベルとして残る。さらに**週次 AI がその判断を学習して
-ルール化を提案する**ので、続けるほど手作業が減ります。承認ループと同じ思想です。
+`Codes` は OTP・確認コード。`Alerts` はログイン通知・不正利用の警告。
+どちらも**受信トレイに残し、既読にもしない**。見えないと困る種類のため。
 
 ## Schedule
 
 | 現行 | 件数 | 新 | 拠点 | 移行 |
 | --- | ---: | --- | --- | --- |
-| `Australia/Events` | 455 | `Schedule/Event` | `@AU` | 改名 + 付与 |
+| `Australia/Events` | 455 | `Schedule/Events` | `@AU` | 改名 + 付与 |
 | `Schedules/DMM` | 278 | `Schedule/DMM` | | 改名 |
-| `Australia/Accommodations` | 0 | — | | **削除** (AU を畳むため) |
+| `Australia/Accommodations` | 0 | → `Schedule/Bookings` へ | | **削除** |
+| — | 新規 | `Schedule/Bookings` | | 宿・レストラン・施設の予約確認 |
 
-## Auth
+## 新設する大項目
 
-| 現行 | 件数 | 新 | 拠点 | 移行 |
-| --- | ---: | --- | --- | --- |
-| `Authentication/Login` | 1 | `Auth/Login` | | 改名 |
+いずれも**現在ラベルが無く受信トレイに埋もれている**ものを救出する。
 
-**1 通しかありません。** OTP やログイン通知が全部受信トレイに埋もれている状態です。
-新体系では件名パターン (`認証コード` / `verification code` / `One-time` / `security alert`) で
-拾うルールを作ります。
-
-## Personal
-
-新規。人間から届いたメール。判定は「`List-Unsubscribe` ヘッダを持たない」かつ
-「送信元が `noreply` 系でない」で機械的にかなり絞れます。
+| 新ラベル | 中身 | 根拠 |
+| --- | --- | --- |
+| `Support` | 問い合わせ中の案件 | 送信済みに Insta360 / Higgsfield / povo / Uber Carshare のサポートスレッドが 4 件以上。返信待ちのものが埋もれると困る |
+| `Official` | 行政・税務・ビザ | 送信済みに福岡市役所・QLD 交通局・税理士。期限のあるものが多い |
+| `Official/Tax` | 確定申告・税理士 | `ezytaxsolutionsjapan.com.au` と複数回やり取りしている |
+| `Subscriptions` | 課金しているサービス | 現在 `Developer` に SaaS の宣伝と課金通知が混在。**使っていないのに払っている**ものを見つけるために独立させる |
+| `Health` | 医療 | 現行フィルタで美容外科が `Fashion` へ入っている。診察・検査の連絡が販促と同じ扱いなのは危うい |
+| `Personal` | 人から届いたメール | `List-Unsubscribe` を持たず `noreply` でない送信元で機械的に絞れる |
 
 ## 削除するプレースホルダ
 
-`Australia` / `ファイナンス` / `プロモーション` / `Schedules` / `Authentication` (いずれも 0 通)。
-新しい大項目に置き換わります。
-
----
-
-## `@AU` の扱い — 最初からアーカイブ
-
-**ワーホリは終了済み**です。したがって `@AU` は「アクティブな分類軸」ではなく、
-最初から**「過去を掘り出すためのマーカー」**として作ります。
-
-- 移行時に既存の `Australia/*` 配下 4,944 通へ `@AU` を**遡及付与する**
-- AU 関連ルールは取り込み時点で `凍結日 = 移行日` にする。**新規メールには付けない**
-- ラベル自体は消さない (過去メールの検索性のため)
-
-`凍結日` と `有効 = FALSE` は別物です。`有効 = FALSE` はルールを完全に止めますが、
-`凍結日` は**過去メールへの遡及適用は許し、新規メールにだけ適用しない**。
-「既存の 4,944 通には付けるが、今後は増やさない」という挙動がこれで作れます。
-
-結果として `@AU` は増えないラベルになり、`Promo/Store` などの本体ラベルは
-日本の生活でそのまま使い続けられます。
-
----
+`Australia` / `ファイナンス` / `プロモーション` / `Schedules` / `Authentication`
+(いずれも 0 通)。**提案のみ。実削除は人間が Gmail 上で行う。**
 
 ## 要判断ポイントは解決済み
 
@@ -193,24 +148,24 @@ Claude が「Watching に入れた求人の傾向」を見て、
 **① `Australia/Stores` に取引メールは混ざっていなかった**
 
 標本 50 スレッドは全て販促 (4WD Supacentre / rebel / Everyday Rewards / JB Hi-Fi)。
-注文確認・発送通知は 1 通も出なかった。`Promo/Store` + `@AU` で確定、`Orders` への分割は不要。
-ただし `contacts@email.everyday.com.au` はポイント案内なので `Promo/Cashback` に切り分ける。
+注文確認・発送通知は 1 通も出なかった。`Promotions/Stores` + `@AU` で確定、`Orders` への分割は不要。
+ただし `contacts@email.everyday.com.au` はポイント案内なので `Promotions/Rewards` に切り分ける。
 
 **② 求人 6,641 通は 3 ドメインでほぼ説明がつく**
 
 | 送信元 | 標本での比率 | 行き先 |
 | --- | --- | --- |
-| `kuraveil.jp` | `プロモーション/Employment` の 86% | `Promo/Jobs/Alert` (実態はワーホリ広告、購読解除の候補) |
-| `seek.com.au` | `Australia/Employment` の 100% | `Promo/Jobs/Alert` + `@AU` |
-| `dm-doda.jp` / `lifework-doda.jp` | 残り | `Promo/Jobs/Agency` |
+| `kuraveil.jp` | `プロモーション/Employment` の 86% | `Promotions/Jobs/Alerts` (実態はワーホリ広告、購読解除の候補) |
+| `seek.com.au` | `Australia/Employment` の 100% | `Promotions/Jobs/Alerts` + `@AU` |
+| `dm-doda.jp` / `lifework-doda.jp` | 残り | `Promotions/Jobs/Agencies` |
 
-**③ `Job/Applied` は「スレッドに自分の送信あり」で判定できる**
+**③ `Work/Applications` は「スレッドに自分の送信あり」で判定できる**
 
 送信済み 61 スレッドを見たところ、応募は**メールで直接やり取り**しており、
 プラットフォーム内で完結していない。この判定がそのまま使える。
 
 さらに、これらのスレッドには**現在ユーザーラベルが付いておらず受信トレイに埋もれている**。
-`Job/Applied` を作ると 15 前後のスレッドが救出される。
+`Work/Applications` を作ると 15 前後のスレッドが救出される。
 
 ## サンプリングで見つかった追加の問題
 
@@ -220,6 +175,6 @@ Claude が「Watching に入れた求人の傾向」を見て、
 移行時に中身を精査する。
 
 **`fukuoka@ml.tcpartners.co.jp` が直近 2 日で 11 通、全て未読・ラベルなしで受信トレイにある。**
-`Promo/Jobs/PartTime` の主要な構成要素になる。
+`Promotions/Jobs/Temp` の主要な構成要素になる。
 
 初期ルールセットは `docs/initial-rules.md`。

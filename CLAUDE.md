@@ -23,18 +23,19 @@ Gmail 標準のフィルタで運用していたが、以下の理由で破綻�
 - **ラベル名は英語**。大項目・中項目は英語、小項目のブランド名のみ原語 (`Rakuten` / `Amazon` / `AWX`)。
   命名規約は `docs/naming.md`。要点は「可算名詞は複数形、不可算名詞は単数形」
   (`Orders` / `Cards` に対して `Finance` / `Fashion`)、略語と動詞を使わない。
-- **ラベルの軸**: 大項目 = メールの**種別** (`Money` / `Orders` / `Promo` / `Auth` /
-  `Schedule` / `Job` / `Personal`)、中項目 = ジャンル、小項目 = ブランド。
+- **ラベルの軸**: 大項目 = メールの**種別** (`Finance` / `Orders` / `Promotions` /
+  `Security` / `Schedule` / `Work` / `Support` / `Official` / `Subscriptions` /
+  `Health` / `Personal`)、中項目 = ジャンル、小項目 = ブランド。
   **拠点** (`@AU`) は階層に混ぜず**並行ラベル**として付与する。Gmail はフォルダではなく
   タグなので二重付与が自然。`@JP` は作らない (`@AU` でないものは全部 JP のため)。
 - **ワーホリは終了済みなので `@AU` は最初からアーカイブ**。移行時に既存メールへ
   遡及付与するだけで、新規メールには付けない (AU 関連ルールの `凍結日` を移行日にする)。
   ラベル自体は過去メールの検索性のために残す。
-- **求人は `Promo/Jobs` と `Job` に二分する**。境界線は「自分がアクションしたか」。
-  読み流す側 (`Promo/Jobs/Agency` / `PartTime` / `Alert`) は受信トレイ除外 + 既読、
-  自分が動いている側 (`Job/Applied` / `Watching` / `AWX`) は受信トレイに残す。
-  `Job/Applied` は「スレッドに自分の送信が含まれるか」で自動判定する。
-  `Job/Watching` は**スターを入力装置**にし、スター付与を検知してラベルへ昇格させる。
+- **求人は `Promotions/Jobs` と `Work` に二分する**。境界線は「自分がアクションしたか」。
+  読み流す側 (`Promotions/Jobs/Agencies` / `Temp` / `Alerts`) は受信トレイ除外 + 既読、
+  自分が動いている側 (`Work/Applications` / `Shortlist` / `AWX`) は受信トレイに残す。
+  `Work/Applications` は「スレッドに自分の送信が含まれるか」で判定し、提案として出す。
+  `Work/Shortlist` は**スターを入力装置**にし、スター付与を検知してラベルへ昇格させる。
 - **真実の源はスプレッドシート**。Gmail フィルタは真実の源から降格させる。
 - **マッチングは `List-Id` を第一級に扱う**。メーリングリストは `List-Id` /
   `List-Unsubscribe` ヘッダを持つので Gmail 検索の `list:` 演算子で確実に引ける。
