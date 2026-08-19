@@ -98,6 +98,52 @@ function writableBlocks(spec: SheetSpec, index: Record<string, number>, width: n
   return blocks;
 }
 
+/** spec に数式列があるか。 */
+function hasFormulaColumn(spec: SheetSpec): boolean {
+  for (const column of spec.columns) {
+    if (column.type === 'formula') return true;
+  }
+  return false;
+}
+
+/**
+ * 実データの最終行を返す。ヘッダ行しか無ければ 1。
+ *
+ * `getLastRow()` は使えない。開いた範囲を参照する ARRAYFORMULA は
+ * 空文字をシート末尾まで出力し、それが content として数えられることがある。
+ * `labels` はまさにその形なので、数式列を除いたかたまりだけを見て数える。
+ */
+function lastDataRow(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  blocks: ColumnBlock[],
+  searchUpTo: number
+): number {
+  if (searchUpTo < 2) return 1;
+
+  let last = 1;
+  for (const block of blocks) {
+    const values = sheet.getRange(2, block.start, searchUpTo - 1, block.size).getValues();
+    for (let at = values.length - 1; at >= 0; at -= 1) {
+      if (at + 2 <= last) break;
+      if (values[at].every((cell) => cell === '' || cell === null)) continue;
+      last = at + 2;
+      break;
+    }
+  }
+  return last;
+}
+
+/** 追記を始める行番号。 */
+function appendTopRow(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  spec: SheetSpec,
+  blocks: ColumnBlock[]
+): number {
+  const lastRow = sheet.getLastRow();
+  if (!hasFormulaColumn(spec)) return lastRow + 1;
+  return lastDataRow(sheet, blocks, lastRow) + 1;
+}
+
 /** オブジェクトの配列を末尾に追記する。数式列には一切触れない。 */
 function appendRows(sheetName: string, rows: Row[]): void {
   if (rows.length === 0) return;
@@ -116,8 +162,10 @@ function appendRows(sheetName: string, rows: Row[]): void {
     return line;
   });
 
-  const top = sheet.getLastRow() + 1;
-  for (const block of writableBlocks(spec, index, width)) {
+  const blocks = writableBlocks(spec, index, width);
+  const top = appendTopRow(sheet, spec, blocks);
+
+  for (const block of blocks) {
     const slice = values.map((line) => line.slice(block.start - 1, block.start - 1 + block.size));
     sheet.getRange(top, block.start, slice.length, block.size).setValues(slice);
   }
