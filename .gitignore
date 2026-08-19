@@ -1,5 +1,5 @@
 node_modules/
 .clasp.json
-.claspignore
+build/
 *.log
 .DS_Store

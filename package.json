@@ -1,0 +1,16 @@
+{
+  "name": "gmail-organizer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gmail のラベル振り分けをスプレッドシートで一元管理し、GAS で自動適用する",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "push": "clasp push",
+    "open": "clasp open"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "@types/google-apps-script": "^1.0.83",
+    "typescript": "^5.6.3"
+  }
+}
