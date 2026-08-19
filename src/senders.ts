@@ -30,7 +30,8 @@ interface SenderObservation {
 function refreshSenders(): void {
   const startedAt = Date.now();
   const window = readConfig('SENDER_SCAN_WINDOW', CONFIG.SENDER_SCAN_WINDOW);
-  const observed = scanSenders(window, startedAt);
+  const scan = scanSenders(window, startedAt);
+  const observed = scan.observed;
 
   const rows = readRows(SHEET_NAMES.SENDERS);
   const known: Record<string, Row> = {};
@@ -51,29 +52,40 @@ function refreshSenders(): void {
       added.push(buildSenderRow(seen));
       continue;
     }
-    for (const update of senderUpdates(existing, seen)) updates.push(update);
+    for (const update of senderUpdates(existing, seen, scan.complete)) updates.push(update);
     updated += 1;
   }
 
-  for (const update of dormantUpdates(rows, observed)) updates.push(update);
+  // 打ち切られた走査では「observed に無い」と「まだ見ていない」が区別できない。
+  // 見ていないものを休眠と断定しない。
+  if (scan.complete) {
+    for (const update of dormantUpdates(rows, observed)) updates.push(update);
+  }
 
   // 追記より先に流す。追記で行が増えても既存行の行番号は変わらないが、
   // 読み取り済みの行番号を使う以上、間に他の書き込みを挟まない方が追いやすい。
   updateCells(SHEET_NAMES.SENDERS, updates);
   appendRows(SHEET_NAMES.SENDERS, added);
 
-  console.log(`refreshSenders: 新規 ${added.length} 件 / 更新 ${updated} 件`);
+  const note = scan.complete ? '' : ' (時間切れで途中まで。直近90日と休眠判定は据え置き)';
+  console.log(`refreshSenders: 新規 ${added.length} 件 / 更新 ${updated} 件${note}`);
+}
+
+/** 走査の結果。`complete` が false なら観測は途中までしかない。 */
+interface SenderScan {
+  observed: Record<string, SenderObservation>;
+  complete: boolean;
 }
 
 /** 走査して送信元ごとに集計する。6 分制限に収まるよう時間を見て打ち切る。 */
-function scanSenders(window: string, startedAt: number): Record<string, SenderObservation> {
+function scanSenders(window: string, startedAt: number): SenderScan {
   const observed: Record<string, SenderObservation> = {};
   let start = 0;
 
   for (;;) {
     if (Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS) {
-      console.warn('scanSenders: 時間切れで打ち切りました。直近90日は過小になります');
-      break;
+      console.warn('scanSenders: 時間切れで打ち切りました');
+      return { observed, complete: false };
     }
 
     const threads = GmailApp.search(window, start, SENDER_PAGE_SIZE);
@@ -106,7 +118,7 @@ function scanSenders(window: string, startedAt: number): Record<string, SenderOb
     start += threads.length;
     if (threads.length < SENDER_PAGE_SIZE) break;
   }
-  return observed;
+  return { observed, complete: true };
 }
 
 /**
@@ -140,7 +152,7 @@ function buildSenderRow(seen: SenderObservation): Row {
  * ここで書き込まないのは、送信元の数だけ API を呼ぶと 6 分制限に当たるため。
  * 呼び出し元が全件ぶんを集めて 1 回で流す。
  */
-function senderUpdates(existing: Row, seen: SenderObservation): CellUpdate[] {
+function senderUpdates(existing: Row, seen: SenderObservation, complete: boolean): CellUpdate[] {
   const rowNumber = Number(existing['_rowNumber']);
   const updates: CellUpdate[] = [];
 
@@ -148,7 +160,8 @@ function senderUpdates(existing: Row, seen: SenderObservation): CellUpdate[] {
   if (seen.displayName !== '') {
     updates.push({ rowNumber, key: 'displayName', value: seen.displayName });
   }
-  updates.push({ rowNumber, key: 'recentCount', value: seen.count });
+  // 途中までの通数で上書きすると配信頻度の判断が狂う。前回の値を残す。
+  if (complete) updates.push({ rowNumber, key: 'recentCount', value: seen.count });
   updates.push({ rowNumber, key: 'lastSeen', value: seen.lastSeen });
   updates.push({ rowNumber, key: 'state', value: 'active' });
 
