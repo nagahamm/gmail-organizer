@@ -188,10 +188,15 @@ Discord は認証コードなので `Security/Codes` に収まる。
 
 ### Learning — 学習・資格
 
+9 巡目の狙い撃ち走査で、**`Promotions/Jobs` に次ぐ規模**だと分かった。送信元は 15 以上。
+
 | 新ラベル | 中身 | 根拠 |
 | --- | --- | --- |
-| `Learning/Exams` | 資格試験の申込・結果 | TOEIC (`iibc-global.org`) がスター付きで埋もれていた。**申込には期限がある** |
-| `Learning/English` | 英語学習サービス | スタディサプリ ENGLISH / DMM 英会話。`プロモーション/English` 450 通には販促と実サービスが混在 |
+| `Learning/Certificates` | 修了証・資格認定 | **Google Data Analytics Certificate の修了証 8 通以上が `IMPORTANT` 付きで未分類だった**。転職で提示できる実在の資格 |
+| `Learning/Courses` | 受講中のコース進捗 | Coursera / Udemy / TechTrain |
+| `Learning/Exams` | 資格試験の申込・受験票・結果 | TOEIC。調査時点の **4 日後に受験**があるのにスター頼みだった |
+| `Learning/English` | 英語学習サービス | Duolingo / ELSA / DMM 英会話 / スタディサプリ / EF |
+| `Learning/Admissions` | 進学・入学相談・オープンキャンパス | **入学相談会の予約確定がスター付きで未分類**。進学を検討している |
 
 ### Health — 医療
 

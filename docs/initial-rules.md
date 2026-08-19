@@ -95,6 +95,17 @@
 | TRUE | 50 | `from_domain` | `iibc-global.org` | `Learning/Exams` | FALSE | FALSE | TOEIC 申込。**期限がある**のにスター付きで埋もれていた |
 | TRUE | 51 | `from_domain` | `eigosapuri.jp` | `Learning/English` | FALSE | FALSE | 未分類・重要 |
 | TRUE | 52 | `from` | `v-mail@dmm.com` | `Learning/English` | FALSE | FALSE | DMM 英会話。現在 `プロモーション/English` |
+| TRUE | 53 | `from_domain` | `t.learn.coursera.org` | `Learning/Certificates` | FALSE | FALSE | **Google Career Certificate の修了証 8 通以上が未分類だった** |
+| TRUE | 54 | `from_domain` | `m.learn.coursera.org` | `Learning/Courses` | FALSE | FALSE | 受講中のコース進捗 |
+| TRUE | 55 | `from_domain` | `students.udemy.com` | `Learning/Courses` | FALSE | FALSE | Udemy |
+| TRUE | 56 | `from_domain` | `duolingo.com` | `Learning/English` | TRUE | TRUE | 大量・全て未読の学習リマインダー |
+| TRUE | 57 | `from_domain` | `elsanow.io` | `Learning/English` | FALSE | FALSE | ELSA |
+| TRUE | 58 | `from_domain` | `studysapuri.jp` | `Learning/English` | FALSE | FALSE | スタディサプリ |
+| TRUE | 59 | `from` | `noreply@eikaiwa.dmm.com` | `Learning/English` | FALSE | FALSE | DMM 英会話のレッスン予約確認 |
+| TRUE | 60 | `from_domain` | `reserva.be` | `Learning/Admissions` | FALSE | FALSE | **入学相談会の予約がスター付きで未分類だった** |
+| TRUE | 61 | `from_domain` | `willfu.jp` | `Learning/Admissions` | FALSE | FALSE | WILLFU |
+| TRUE | 62 | `from_domain` | `efjapan.com` | `Learning/English` | FALSE | FALSE | EF |
+| TRUE | 63 | `from_domain` | `techbowl.co.jp` | `Learning/Courses` | TRUE | TRUE | TechTrain |
 
 ## Health — 医療
 
@@ -128,6 +139,7 @@
 | --- | ---: | --- | --- | --- | --- | --- | --- |
 | TRUE | 123 | `from_domain` | `indeed.com` | `Promotions/Jobs/Alerts` | TRUE | TRUE | 未分類 |
 | TRUE | 124 | `from_domain` | `linkedin.com` | `Promotions/Jobs/Agencies` | TRUE | TRUE | 中身はスカウト。現在 `プロモーション/Employment` |
+| TRUE | 125 | `from_domain` | `recruitdirectscout.jp` | `Promotions/Jobs/Agencies` | TRUE | TRUE | リクルートダイレクトスカウト。**リクルート 6 サービス目**。未分類 |
 
 ## 未分類だった販促の追加分
 
