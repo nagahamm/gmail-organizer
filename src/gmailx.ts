@@ -39,6 +39,19 @@ function extractAddress(from: string): string {
   return (bracketed ? bracketed[1] : from).trim().toLowerCase();
 }
 
+/**
+ * `Name <user@example.com>` から表示名だけを取り出す。
+ *
+ * アドレスだけでは実体が分からない。`spmode.ne.jp` は NTT ドコモのドメインだが
+ * 表示名は「ドコモスポーツくじ」で、実体は通信ではなく toto の販促だった。
+ */
+function extractDisplayName(from: string): string {
+  if (!from) return '';
+  const at = from.indexOf('<');
+  if (at < 0) return '';
+  return from.slice(0, at).trim().replace(/^"|"$/g, '');
+}
+
 /** 送信元アドレスからドメインを取り出す。 */
 function senderDomain(from: string): string {
   const address = extractAddress(from);

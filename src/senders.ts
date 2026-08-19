@@ -14,6 +14,7 @@ const SENDER_PAGE_SIZE = 100;
 
 interface SenderObservation {
   address: string;
+  displayName: string;
   count: number;
   firstSeen: Date;
   lastSeen: Date;
@@ -82,7 +83,14 @@ function scanSenders(window: string, startedAt: number): Record<string, SenderOb
       const at = new Date(head.getDate().getTime());
 
       if (!observed[address]) {
-        observed[address] = { address, count: 0, firstSeen: at, lastSeen: at, messageId: head.getId() };
+        observed[address] = {
+          address,
+          displayName: extractDisplayName(head.getFrom()),
+          count: 0,
+          firstSeen: at,
+          lastSeen: at,
+          messageId: head.getId(),
+        };
       }
       const seen = observed[address];
       seen.count += 1;
@@ -104,6 +112,7 @@ function scanSenders(window: string, startedAt: number): Record<string, SenderOb
 function buildSenderRow(seen: SenderObservation): Row {
   return {
     address: seen.address,
+    displayName: seen.displayName,
     operator: '',
     service: '',
     kind: '',
@@ -124,6 +133,10 @@ function buildSenderRow(seen: SenderObservation): Row {
 function updateSenderRow(existing: Row, seen: SenderObservation): void {
   const rowNumber = Number(existing['_rowNumber']);
 
+  // 表示名は変わることがあるので観測するたびに最新へ更新する。
+  if (seen.displayName !== '') {
+    updateCell(SHEET_NAMES.SENDERS, rowNumber, 'displayName', seen.displayName);
+  }
   updateCell(SHEET_NAMES.SENDERS, rowNumber, 'recentCount', seen.count);
   updateCell(SHEET_NAMES.SENDERS, rowNumber, 'lastSeen', seen.lastSeen);
   updateCell(SHEET_NAMES.SENDERS, rowNumber, 'state', 'active');

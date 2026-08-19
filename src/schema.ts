@@ -105,6 +105,12 @@ const SHEET_SPECS: SheetSpec[] = [
     columns: [
       { key: 'address', header: '送信元', width: 260 },
       {
+        key: 'displayName',
+        header: '表示名',
+        width: 200,
+        note: 'From ヘッダの表示名。アドレスだけでは実体が分からないため機械で取る。',
+      },
+      {
         key: 'operator',
         header: '運営元',
         width: 140,
