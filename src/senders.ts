@@ -29,8 +29,7 @@ interface SenderObservation {
  */
 function refreshSenders(startedAt?: number): void {
   // 呼び出し元が別のステップと予算を分け合う場合は、その開始時刻を受け取る。
-  // メニューから直接呼ばれる場合は引数が無い。数値でなければ自前で起点を取る。
-  const since = typeof startedAt === 'number' ? startedAt : Date.now();
+  const since = budgetStart(startedAt);
   const window = readConfig('SENDER_SCAN_WINDOW', CONFIG.SENDER_SCAN_WINDOW);
   const scan = scanSenders(window, since);
   const observed = scan.observed;

@@ -19,8 +19,8 @@ interface RetroCursor {
 }
 
 /** 新着メールへの適用。時間主導トリガーから 15 分おきに呼ぶ。 */
-function applyToNewMail(): void {
-  const processed = applyRules('newer_than:2d', false);
+function applyToNewMail(startedAt?: number): void {
+  const processed = applyRules('newer_than:2d', false, budgetStart(startedAt));
   console.log(`applyToNewMail: ${processed} スレッドを処理しました`);
 }
 
@@ -82,18 +82,18 @@ function resetRetroactive(): void {
 }
 
 /** シートの有効なルールを評価して適用する。戻り値は処理したスレッド数。 */
-function applyRules(windowQuery: string, retroactive: boolean): number {
+function applyRules(windowQuery: string, retroactive: boolean, startedAt?: number): number {
   const now = new Date();
   const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, retroactive));
-  return runRules(rules, windowQuery);
+  return runRules(rules, windowQuery, budgetStart(startedAt));
 }
 
 /**
  * 渡されたルールだけを評価して適用する。
  * 承認された提案をその場で遡及適用するときにも使う。
  */
-function runRules(rules: Rule[], windowQuery: string): number {
-  const startedAt = Date.now();
+function runRules(rules: Rule[], windowQuery: string, startedAt?: number): number {
+  const since = budgetStart(startedAt);
   const runId = newRunId();
   const dryRun = isDryRun();
 
@@ -101,7 +101,7 @@ function runRules(rules: Rule[], windowQuery: string): number {
   let processed = 0;
 
   for (const rule of rules) {
-    if (outOfTime(startedAt)) {
+    if (outOfTime(since)) {
       console.warn('runRules: 時間切れのため残りのルールを飛ばしました');
       break;
     }

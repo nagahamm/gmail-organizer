@@ -86,6 +86,17 @@ function outOfTime(startedAt: number): boolean {
   return Date.now() - startedAt > CONFIG.MAX_RUNTIME_MS;
 }
 
+/**
+ * 予算の起点を決める。
+ *
+ * 呼び出し元がステップを続けて回す場合はその開始時刻を渡す。
+ * メニューやトリガーから直接呼ばれる場合は引数が無い (あるいはイベント
+ * オブジェクトが渡る) ので、数値でなければ今から数え始める。
+ */
+function budgetStart(startedAt?: number): number {
+  return typeof startedAt === 'number' ? startedAt : Date.now();
+}
+
 /** 割合を「12.3%」の形にする。母数 0 なら空文字。 */
 function percent(part: number, whole: number): string {
   if (whole === 0) return '';

@@ -6,9 +6,13 @@
 
 /** 15 分おきに呼ばれる本体。トリガー数とクォータを節約するため 1 本にまとめる。 */
 function everyQuarterHour(): void {
-  applyApprovedProposals();
-  applyToNewMail();
-  promoteStarredJobs();
+  // 3 つのステップで 1 つの予算を分け合う。ステップごとに数え直すと
+  // 6 分制限を超え、writeLog() に到達せずログにも何も残らない。
+  const startedAt = Date.now();
+
+  applyApprovedProposals(startedAt);
+  applyToNewMail(startedAt);
+  promoteStarredJobs(startedAt);
 }
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */

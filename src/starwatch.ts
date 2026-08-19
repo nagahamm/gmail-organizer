@@ -8,7 +8,8 @@
  * 状態はラベルとして残る。スターは外すので次回以降の走査対象から自然に消える。
  */
 
-function promoteStarredJobs(): void {
+function promoteStarredJobs(startedAt?: number): void {
+  const since = budgetStart(startedAt);
   const sources = watchSourceLabels();
   if (sources.length === 0) {
     console.log(`promoteStarredJobs: ${CONFIG.WATCH_SOURCE_PREFIX} 配下のラベルがまだありません`);
@@ -22,11 +23,15 @@ function promoteStarredJobs(): void {
 
   const entries: LogEntry[] = [];
   for (const thread of threads) {
+    if (outOfTime(since)) {
+      console.warn('promoteStarredJobs: 時間切れで打ち切りました。次の実行で続きを拾います');
+      break;
+    }
     entries.push(promoteThread(thread, dryRun));
   }
 
   writeLog(runId, entries);
-  console.log(`promoteStarredJobs: ${threads.length} スレッドを ${CONFIG.WATCH_TARGET_LABEL} へ昇格`);
+  console.log(`promoteStarredJobs: ${entries.length} スレッドを ${CONFIG.WATCH_TARGET_LABEL} へ昇格`);
 }
 
 /**

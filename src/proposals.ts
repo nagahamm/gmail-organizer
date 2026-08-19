@@ -11,7 +11,8 @@
 /** ラベルだけを作る提案。ルール行は作らない。 */
 const LABEL_ONLY_KINDS = ['new_label', 'rename_label', 'archive_label'];
 
-function applyApprovedProposals(): void {
+function applyApprovedProposals(startedAt?: number): void {
+  const since = budgetStart(startedAt);
   const rows = readRows(SHEET_NAMES.PROPOSALS);
   const now = new Date();
 
@@ -61,7 +62,7 @@ function applyApprovedProposals(): void {
   updateCells(SHEET_NAMES.UNMATCHED, unmatchedUpdates);
   updateCells(SHEET_NAMES.PROPOSALS, proposalUpdates);
 
-  if (added.length > 0) applyNewRulesRetroactively(added);
+  if (added.length > 0) applyNewRulesRetroactively(added, since);
   console.log(`applyApprovedProposals: 承認 ${approved} 件 / 却下 ${rejected} 件 / ルール追加 ${added.length} 件`);
 }
 
@@ -96,7 +97,10 @@ function appendRuleFromProposal(row: Row, now: Date): void {
  * 追加したばかりのルールだけを遡及適用する。
  * 行番号を推測せず、シートを読み直して該当行を引き当てる。
  */
-function applyNewRulesRetroactively(added: { pattern: string; label: string }[]): void {
+function applyNewRulesRetroactively(
+  added: { pattern: string; label: string }[],
+  startedAt?: number
+): void {
   const wanted: Record<string, boolean> = {};
   for (const item of added) wanted[`${item.pattern} ${item.label}`] = true;
 
@@ -107,7 +111,7 @@ function applyNewRulesRetroactively(added: { pattern: string; label: string }[])
   if (rules.length === 0) return;
 
   const windowQuery = readConfig('RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW);
-  const processed = runRules(rules, windowQuery);
+  const processed = runRules(rules, windowQuery, budgetStart(startedAt));
   console.log(`applyNewRulesRetroactively: ${rules.length} ルールで ${processed} スレッドを処理`);
 }
 
