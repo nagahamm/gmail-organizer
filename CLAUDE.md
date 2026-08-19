@@ -23,9 +23,9 @@ Gmail 標準のフィルタで運用していたが、以下の理由で破綻�
 - **ラベル名は英語**。大項目・中項目は英語、小項目のブランド名のみ原語 (`Rakuten` / `Amazon` / `AWX`)。
   命名規約は `docs/naming.md`。要点は「可算名詞は複数形、不可算名詞は単数形」
   (`Orders` / `Cards` に対して `Finance` / `Fashion`)、略語と動詞を使わない。
-- **ラベルの軸**: 大項目 = メールの**種別** 13 個 (`Finance` / `Orders` /
+- **ラベルの軸**: 大項目 = メールの**種別** 14 個 (`Finance` / `Orders` /
   `Subscriptions` / `Utilities` / `Promotions` / `Security` / `Schedule` / `Work` /
-  `Learning` / `Health` / `Support` / `Official` / `Personal`)、
+  `Learning` / `Health` / `Housing` / `Support` / `Official` / `Personal`)、
   中項目 = ジャンル、小項目 = ブランド。
   **受信トレイから除外して既読にしてよいのは `Promotions` だけ**。
   これを緩めると「静かに消える」が再発する。

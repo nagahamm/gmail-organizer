@@ -8,7 +8,7 @@
 - **拠点タグは `@AU` のみ**。ワーホリは終了済みなので最初から凍結扱いにする
 - **`@JP` は作らない**。`@AU` でないものは全部 JP なので、9,000 通以上に無意味なタグが付くだけ
 
-## 大項目 (13)
+## 大項目 (14)
 
 命名は `docs/naming.md` に従う。可算名詞は複数形、不可算名詞は単数形。
 
@@ -40,6 +40,7 @@
 | `Subscriptions` | Anthropic の請求書と Stripe の領収書が未分類で受信トレイにあった。Netflix は販促扱いだった |
 | `Learning` | TOEIC の申込がスター付きで受信トレイに埋もれていた。申込には期限がある |
 | `Health` | AGA クリニックと DMM クリニックが未分類。どちらも `IMPORTANT` 付きの実際の診察連絡 |
+| `Housing` | Flatmates (シェアハウス探し) が `IMPORTANT` 付きで未分類。6 巡目で発見 |
 
 ### 境界の決め方
 
@@ -130,6 +131,9 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | `Australia/AWX/Payslip` | 24 | `Work/AWX/Payslips` | `@AU` | 改名 + 付与 |
 | — | 新規 | `Work/Applications` | | 提案経由で作成 |
 | — | 新規 | `Work/Shortlist` | | スター起点で作成 |
+| — | 新規 | `Work/Roster` | `@AU` | Tanda のシフト表。`IMPORTANT` 付きで未分類だった |
+| — | 新規 | `Work/Payslips` | `@AU` | MYOB の給与明細。`IMPORTANT` 付きで未分類だった |
+| — | 新規 | `Work/Creative` | | 楽曲販売・YouTube・Linktree。制作の**収益側** |
 
 `Applied` は動詞なので `Applications` にした。`Watching` も動詞なので、
 求人サイトの用語として一般的な `Shortlist` にした。
