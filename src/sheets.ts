@@ -64,7 +64,41 @@ function readRows(sheetName: string): Row[] {
   return rows;
 }
 
-/** オブジェクトの配列を末尾に追記する。数式列は書かない (ARRAYFORMULA が埋める)。 */
+/**
+ * 数式列を除いた、連続する列のかたまり。
+ *
+ * 行の全幅を setValues() で書くと数式セルを空文字で潰してしまう。
+ * ARRAYFORMULA は 1 つ上のセルから下へスピルするので、
+ * 空文字を 1 つ書き込むだけで列全体が死ぬ。かたまりごとに書いて避ける。
+ */
+interface ColumnBlock {
+  /** 1 始まりの開始列。 */
+  start: number;
+  /** 列数。 */
+  size: number;
+}
+
+function writableBlocks(spec: SheetSpec, index: Record<string, number>, width: number): ColumnBlock[] {
+  const skip: Record<number, boolean> = {};
+  for (const column of spec.columns) {
+    if (column.type === 'formula') skip[index[column.key]] = true;
+  }
+
+  const blocks: ColumnBlock[] = [];
+  let start = -1;
+
+  for (let at = 0; at <= width; at += 1) {
+    const blocked = at === width || skip[at];
+    if (!blocked && start < 0) start = at;
+    if (blocked && start >= 0) {
+      blocks.push({ start: start + 1, size: at - start });
+      start = -1;
+    }
+  }
+  return blocks;
+}
+
+/** オブジェクトの配列を末尾に追記する。数式列には一切触れない。 */
 function appendRows(sheetName: string, rows: Row[]): void {
   if (rows.length === 0) return;
   const spec = findSheetSpec(sheetName);
@@ -82,14 +116,25 @@ function appendRows(sheetName: string, rows: Row[]): void {
     return line;
   });
 
-  sheet.getRange(sheet.getLastRow() + 1, 1, values.length, width).setValues(values);
+  const top = sheet.getLastRow() + 1;
+  for (const block of writableBlocks(spec, index, width)) {
+    const slice = values.map((line) => line.slice(block.start - 1, block.start - 1 + block.size));
+    sheet.getRange(top, block.start, slice.length, block.size).setValues(slice);
+  }
 }
 
-/** データ行を全て消してから書き直す。集計シートの更新に使う。 */
+/** データ行を全て消してから書き直す。数式列は消さない。 */
 function replaceRows(sheetName: string, rows: Row[]): void {
+  const spec = findSheetSpec(sheetName);
   const sheet = getSheet(sheetName);
   const lastRow = sheet.getLastRow();
-  if (lastRow >= 2) sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).clearContent();
+
+  if (lastRow >= 2) {
+    const index = resolveColumns(sheet, spec);
+    for (const block of writableBlocks(spec, index, sheet.getLastColumn())) {
+      sheet.getRange(2, block.start, lastRow - 1, block.size).clearContent();
+    }
+  }
   appendRows(sheetName, rows);
 }
 
