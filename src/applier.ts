@@ -148,6 +148,14 @@ function applyToThread(
   if (rule.neverSpam) actions.push('迷惑メールにしない(記録のみ)');
   entry.action = actions.join(', ');
 
+  // 受信トレイから外す / 既読にするルールは、既に別の種別ラベルが付いた
+  // スレッドには適用しない。同じ送信元から取引と販促の両方が届く場合に、
+  // 販促のルールが注文確認を静かに消してしまうのを防ぐ。
+  if ((rule.skipInbox || rule.markRead) && hasOtherTypeLabel(thread, rule)) {
+    entry.result = 'skipped: 既に分類済み';
+    return entry;
+  }
+
   if (dryRun) return entry;
 
   try {
@@ -160,6 +168,23 @@ function applyToThread(
     entry.result = `error: ${error instanceof Error ? error.message : String(error)}`;
   }
   return entry;
+}
+
+/**
+ * そのスレッドが既に別の種別ラベルを持っているか。
+ *
+ * 拠点ラベル (`@` で始まるもの) と、そのルール自身の付与先は数えない。
+ * 1 通に `Promotions/Stores` と `@AU` の両方が付くのは正しい挙動なので、
+ * 並行付与を壊さないようにする。
+ *
+ * `thread.getLabels()` は 1 スレッド 1 コールなので、破壊的なルールに限って呼ぶ。
+ */
+function hasOtherTypeLabel(thread: GoogleAppsScript.Gmail.GmailThread, rule: Rule): boolean {
+  return thread.getLabels().some((label) => {
+    const name = label.getName();
+    if (name === rule.label || name === rule.location) return false;
+    return name.charAt(0) !== '@';
+  });
 }
 
 /** ラベルのキャッシュ。1 回の実行内で同じラベルを何度も引かないため。 */
