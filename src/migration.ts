@@ -59,7 +59,9 @@ function runMigration(): void {
   const startedAt = Date.now();
   const runId = newRunId();
   const dryRun = isDryRun();
-  const plan = readRows(SHEET_NAMES.MIGRATION).filter((row) => row['enabled'] === true);
+  const plan = orderMigrationPlan(
+    readRows(SHEET_NAMES.MIGRATION).filter((row) => row['enabled'] === true)
+  );
   const cursor = readMigrationCursor();
   const entries: LogEntry[] = [];
 
@@ -116,6 +118,25 @@ function runMigration(): void {
   clearMigrationCursor();
   writeLog(runId, entries);
   console.log(`runMigration: 完了。${plan.length} 行を処理`);
+}
+
+/**
+ * 改名を統合より先に並べ替える。
+ *
+ * 統合は getOrCreateLabel() で新ラベルを作ってしまう。同じ新ラベルを指す改名が
+ * 後に回ると、Gmail が同名ラベルの重複を拒んで改名だけが落ち、
+ * 現行ラベルが日本語名のまま取り残される。
+ *
+ * シートの行順は seedMigrationPlan() が Gmail のラベル一覧順で起こすので、
+ * 人が並べ替えられる前提には頼れない。ここで揃える。
+ *
+ * 再開カーソルは plan への添字なので、並べ替えは決定的である必要がある。
+ * 鍵は operation だけで、実行中に書き換わる 状態 / 実行日 は順序に影響しない。
+ */
+function orderMigrationPlan(plan: Row[]): Row[] {
+  const rank = (row: Row): number =>
+    String(row['operation'] || '').trim() === 'rename' ? 0 : 1;
+  return plan.slice().sort((left, right) => rank(left) - rank(right));
 }
 
 /**
