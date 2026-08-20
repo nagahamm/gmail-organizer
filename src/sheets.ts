@@ -78,10 +78,15 @@ interface ColumnBlock {
   size: number;
 }
 
-function writableBlocks(spec: SheetSpec, index: Record<string, number>, width: number): ColumnBlock[] {
+function blocksExcluding(
+  spec: SheetSpec,
+  index: Record<string, number>,
+  width: number,
+  excludeTypes: ColumnType[]
+): ColumnBlock[] {
   const skip: Record<number, boolean> = {};
   for (const column of spec.columns) {
-    if (column.type === 'formula') skip[index[column.key]] = true;
+    if (column.type && excludeTypes.indexOf(column.type) >= 0) skip[index[column.key]] = true;
   }
 
   const blocks: ColumnBlock[] = [];
@@ -98,20 +103,28 @@ function writableBlocks(spec: SheetSpec, index: Record<string, number>, width: n
   return blocks;
 }
 
-/** spec に数式列があるか。 */
-function hasFormulaColumn(spec: SheetSpec): boolean {
-  for (const column of spec.columns) {
-    if (column.type === 'formula') return true;
-  }
-  return false;
+function writableBlocks(spec: SheetSpec, index: Record<string, number>, width: number): ColumnBlock[] {
+  return blocksExcluding(spec, index, width, ['formula']);
+}
+
+/**
+ * 実データの検出に使える、信頼できる列のかたまり。formula 列に加え checkbox 列も除く。
+ *
+ * `requireCheckbox()` を貼った未入力セルは、Sheets 内部では空文字ではなく
+ * 真偽値 `FALSE` を持つセルとして扱われる。`setup()` は `SETUP_ROWS` 分の
+ * チェックボック列にあらかじめ検証を貼るため、これを実データとして数えると
+ * 最終行が常に `SETUP_ROWS` 分膨らんでしまう。
+ */
+function anchorBlocks(spec: SheetSpec, index: Record<string, number>, width: number): ColumnBlock[] {
+  return blocksExcluding(spec, index, width, ['formula', 'checkbox']);
 }
 
 /**
  * 実データの最終行を返す。ヘッダ行しか無ければ 1。
  *
- * `getLastRow()` は使えない。開いた範囲を参照する ARRAYFORMULA は
- * 空文字をシート末尾まで出力し、それが content として数えられることがある。
- * `labels` はまさにその形なので、数式列を除いたかたまりだけを見て数える。
+ * `getLastRow()` は使えない。ARRAYFORMULA は空文字をシート末尾まで出力し、
+ * checkbox 列は未入力でも `FALSE` を持つ。どちらも content として数えられてしまうため、
+ * それらを除いたかたまりだけを見て数える。
  */
 function lastDataRow(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
@@ -137,11 +150,11 @@ function lastDataRow(
 function appendTopRow(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
   spec: SheetSpec,
-  blocks: ColumnBlock[]
+  index: Record<string, number>,
+  width: number
 ): number {
-  const lastRow = sheet.getLastRow();
-  if (!hasFormulaColumn(spec)) return lastRow + 1;
-  return lastDataRow(sheet, blocks, lastRow) + 1;
+  const searchUpTo = sheet.getLastRow();
+  return lastDataRow(sheet, anchorBlocks(spec, index, width), searchUpTo) + 1;
 }
 
 /** オブジェクトの配列を末尾に追記する。数式列には一切触れない。 */
@@ -163,7 +176,7 @@ function appendRows(sheetName: string, rows: Row[]): void {
   });
 
   const blocks = writableBlocks(spec, index, width);
-  const top = appendTopRow(sheet, spec, blocks);
+  const top = appendTopRow(sheet, spec, index, width);
 
   for (const block of blocks) {
     const slice = values.map((line) => line.slice(block.start - 1, block.start - 1 + block.size));
