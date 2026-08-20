@@ -121,22 +121,35 @@ function runMigration(): void {
 }
 
 /**
- * 改名を統合より先に並べ替える。
+ * 実行順を揃える。鍵は 2 つ。
  *
- * 統合は getOrCreateLabel() で新ラベルを作ってしまう。同じ新ラベルを指す改名が
- * 後に回ると、Gmail が同名ラベルの重複を拒んで改名だけが落ち、
- * 現行ラベルが日本語名のまま取り残される。
+ * 1. 改名が統合より先。統合は getOrCreateLabel() で新ラベルを作ってしまうため、
+ *    同じ新ラベルを指す改名が後に回ると Gmail が同名ラベルの重複を拒み、
+ *    改名だけが落ちて現行ラベルが日本語名のまま取り残される。
+ * 2. 改名の中では新ラベルの階層が浅い順。`Finance/Accounts/Deposits` を先に作ると、
+ *    Gmail が親の `Finance/Accounts` を暗黙に作る場合に、
+ *    本来そこへ改名するはずの `ファイナンス/Accounts` が衝突で落ちる。
+ *    暗黙生成の有無は確認できていないので、どちらでも正しい順にしておく。
  *
  * シートの行順は seedMigrationPlan() が Gmail のラベル一覧順で起こすので、
  * 人が並べ替えられる前提には頼れない。ここで揃える。
  *
  * 再開カーソルは plan への添字なので、並べ替えは決定的である必要がある。
- * 鍵は operation だけで、実行中に書き換わる 状態 / 実行日 は順序に影響しない。
+ * 鍵は operation と 新ラベル だけで、実行中に書き換わる 状態 / 実行日 は順序に影響しない。
  */
 function orderMigrationPlan(plan: Row[]): Row[] {
-  const rank = (row: Row): number =>
+  const isRename = (row: Row): number =>
     String(row['operation'] || '').trim() === 'rename' ? 0 : 1;
-  return plan.slice().sort((left, right) => rank(left) - rank(right));
+
+  /** 新ラベルの階層の深さ。統合行は改名の後ろに固まるので 0 で構わない。 */
+  const depth = (row: Row): number => {
+    if (isRename(row) !== 0) return 0;
+    return String(row['target'] || '').trim().split('/').length;
+  };
+
+  return plan
+    .slice()
+    .sort((left, right) => isRename(left) - isRename(right) || depth(left) - depth(right));
 }
 
 /**
