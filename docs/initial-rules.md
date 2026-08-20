@@ -184,16 +184,8 @@
 
 ワーホリは終了済みなので `@AU` は新規メールに付けない。
 `migration` シートで既存ラベル配下に遡及付与するだけにする。
-
-| 有効 | 現行ラベル | 新ラベル | 拠点 | 操作 |
-| --- | --- | --- | --- | --- |
-| TRUE | `Australia/Stores` | `Promotions/Stores` | `@AU` | `merge` |
-| TRUE | `Australia/Employment` | `Promotions/Jobs/Alerts` | `@AU` | `merge` |
-| TRUE | `Australia/Beauty` | `Promotions/Beauty` | `@AU` | `rename` |
-| TRUE | `Australia/Events` | `Schedule/Events` | `@AU` | `rename` |
-| TRUE | `Australia/Bill` | `Finance/Bills` | `@AU` | `merge` |
-| TRUE | `Australia/AWX` | `Work/AWX` | `@AU` | `rename` |
-| TRUE | `Australia/AWX/Payslip` | `Work/AWX/Payslips` | `@AU` | `rename` |
+貼るデータは `docs/label-migration.md` の「`migration` シートへ貼るデータ」を参照
+(ルール側に持たせると行が倍に増えるうえ新着への適用と混ざるため、ここには置かない)。
 
 どうしても新着にも `@AU` を付けたい送信元が出てきた場合は、
 ラベル用と拠点用でルールを 2 行に分ける。`凍結日` はルール全体を止めるので、
@@ -212,5 +204,5 @@
 2. この表を `rules` シートへ追記する
 3. `DRY_RUN = TRUE` のまま「新着に適用する」を実行し、`log` を確認する
 4. 問題なければ `config` の `DRY_RUN` を `FALSE` にして本適用
-5. `migration` シートを埋めて移行を実行
+5. `docs/label-migration.md` の「`migration` シートへ貼るデータ」に沿って移行を実行
 6. 取り込んだ旧フィルタ行を、ログで一致を確認できたものから有効化 / 削除する

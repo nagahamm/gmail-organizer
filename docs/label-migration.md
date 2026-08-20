@@ -225,8 +225,10 @@ Discord は認証コードなので `Security/Codes` に収まる。
 
 ## 削除するプレースホルダ
 
-`Australia` / `ファイナンス` / `プロモーション` / `Schedules` / `Authentication`
+`Australia` / `ファイナンス` / `プロモーション` / `Schedules` / `Authentication` /
+`Australia/Meal` / `Australia/Accommodations`
 (いずれも 0 通)。**提案のみ。実削除は人間が Gmail 上で行う。**
+`migration` シートには行を起こさない (対象スレッドが無いため)。
 
 ## 要判断ポイントは解決済み
 
@@ -265,3 +267,57 @@ Discord は認証コードなので `Security/Codes` に収まる。
 `Promotions/Jobs/Temp` の主要な構成要素になる。
 
 初期ルールセットは `docs/initial-rules.md`。
+
+## `migration` シートへ貼るデータ
+
+上の各表を `migration` シートの列順に書き起こした版。列を手で転記すると誤りやすいので、
+この表をそのまま貼り付ける。`件数` は `seedMigrationPlan()` が `labels` シートから
+上書きするので目安でよい。`拠点` が空の行は改名・統合のみで `@AU` は付けない。
+
+`プロモーション/Employment` (5,418 通) はここに含まれない。単一ドメインに寄っていないため
+1 行の改名・統合では割れず、`docs/initial-rules.md` の求人ルール (`kuraveil.jp` など) が
+新着・既存の両方を個別に振り分ける。
+
+| 有効 | 現行ラベル | 件数 | 新ラベル | 拠点 | 操作 | 備考 |
+| --- | --- | ---: | --- | --- | --- | --- |
+| TRUE | `ファイナンス/Accounts` | 683 | `Finance/Accounts` | | `rename` | |
+| TRUE | `ファイナンス/Deposit` | 7 | `Finance/Accounts/Deposits` | | `rename` | |
+| TRUE | `ファイナンス/楽天カード` | 609 | `Finance/Cards/Rakuten` | | `rename` | |
+| TRUE | `ファイナンス/CreditCards` | 161 | `Finance/Cards/Jcb` | | `rename` | 中身は 100% JCB |
+| TRUE | `ファイナンス/DebitCards` | 22 | `Finance/Cards/Debit` | | `rename` | |
+| TRUE | `ファイナンス/楽天証券` | 60 | `Finance/Investments/Rakuten` | | `rename` | |
+| TRUE | `ファイナンス/Revenue` | 10 | `Finance/Income` | | `rename` | |
+| TRUE | `ファイナンス/Bill` | 6 | `Finance/Bills` | | `rename` | |
+| TRUE | `Australia/Bill` | 26 | `Finance/Bills` | `@AU` | `merge` | |
+| TRUE | `ファイナンス/Amazon` | 816 | `Orders/Amazon` | | `rename` | 発送通知と販促が混在。rules 優先度 20/21 が後追いで販促分を `Promotions/Stores` へ振り分ける |
+| TRUE | `プロモーション/Fashion` | 3977 | `Promotions/Fashion` | | `rename` | |
+| TRUE | `プロモーション/Cashback rewards` | 3116 | `Promotions/Rewards` | | `rename` | `r-agent.com` の求人が混入。rules 優先度 122 が後追いで `Promotions/Jobs/Agencies` へ移す |
+| TRUE | `Australia/Stores` | 2039 | `Promotions/Stores` | `@AU` | `merge` | |
+| TRUE | `プロモーション/Stores` | 480 | `Promotions/Stores` | | `rename` | |
+| TRUE | `プロモーション/Travel` | 2000 | `Promotions/Travel` | | `rename` | |
+| TRUE | `プロモーション/Meal` | 1497 | `Promotions/Food` | | `rename` | |
+| TRUE | `Australia/Beauty` | 1029 | `Promotions/Beauty` | `@AU` | `rename` | |
+| TRUE | `プロモーション/Developer` | 777 | `Promotions/Tech` | | `rename` | |
+| TRUE | `プロモーション/Vehicles` | 502 | `Promotions/Vehicles` | | `rename` | |
+| TRUE | `プロモーション/English` | 450 | `Promotions/English` | | `rename` | |
+| TRUE | `プロモーション/Affiliate` | 285 | `Promotions/Affiliate` | | `rename` | |
+| TRUE | `プロモーション/Creater` | 269 | `Promotions/Creator` | | `rename` | 綴り訂正 |
+| TRUE | `プロモーション/Entertainments` | 209 | `Promotions/Entertainment` | | `rename` | 不可算名詞化 |
+| TRUE | `プロモーション/Furniture` | 148 | `Promotions/Furniture` | | `rename` | |
+| TRUE | `プロモーション/Fitness` | 125 | `Promotions/Fitness` | | `rename` | |
+| TRUE | `Australia/Employment` | 1223 | `Promotions/Jobs/Alerts` | `@AU` | `merge` | 100% `seek.com.au` |
+| TRUE | `Australia/AWX` | 148 | `Work/AWX` | `@AU` | `rename` | |
+| TRUE | `Australia/AWX/Payslip` | 24 | `Work/AWX/Payslips` | `@AU` | `rename` | |
+| TRUE | `Authentication/Login` | 1 | `Security/Alerts` | | `rename` | |
+| TRUE | `Australia/Events` | 455 | `Schedule/Events` | `@AU` | `rename` | |
+| TRUE | `Schedules/DMM` | 278 | `Schedule/DMM` | | `rename` | |
+
+### 貼り付けと実行の順番
+
+1. GAS のメニューから `seedMigrationPlan()` を実行し、`labels` シートの現行ラベルから
+   行を起こす (`件数` はここで実測値に置き換わる)
+2. 上の表を `新ラベル` / `拠点` / `操作` / `備考` 列に貼る。行の対応は `現行ラベル` で揃える
+3. `config` の `DRY_RUN` が `TRUE` であることを確認し、`runMigration()` を実行して `log`
+   シートを確認する
+4. 問題なければ `DRY_RUN` を `FALSE` にして本適用する。4,920 通規模で 6 分制限を跨ぐため、
+   タイムアウトで中断したら同じ関数を再実行すればカーソルから再開する
