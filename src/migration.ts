@@ -65,59 +65,77 @@ function runMigration(): void {
   const cursor = readMigrationCursor();
   const entries: LogEntry[] = [];
 
-  for (let index = cursor.rowIndex; index < plan.length; index += 1) {
-    const row = plan[index];
-    const operation = String(row['operation'] || 'skip').trim() as MigrationOp;
-    const current = String(row['current'] || '').trim();
-    const target = String(row['target'] || '').trim();
-    const location = String(row['location'] || '').trim();
+  // クォータ超過など想定外の例外で抜けた場合でも、ここまでの進捗を失わないための現在地。
+  let index = cursor.rowIndex;
+  let step = 0;
+  let start = 0;
 
-    if (operation === 'skip' || current === '') continue;
+  try {
+    for (; index < plan.length; index += 1) {
+      const row = plan[index];
+      const operation = String(row['operation'] || 'skip').trim() as MigrationOp;
+      const current = String(row['current'] || '').trim();
+      const target = String(row['target'] || '').trim();
+      const location = String(row['location'] || '').trim();
 
-    // この行の途中から再開したかどうか。改名を二度実行しないための判定。
-    const resuming = index === cursor.rowIndex && (cursor.stepIndex > 0 || cursor.start > 0);
-    if (operation === 'rename' && target !== '' && !resuming) {
-      entries.push(renameLabel(current, target, dryRun));
-    }
+      if (operation === 'skip' || current === '') continue;
 
-    const resulting = operation === 'rename' && target !== '' ? target : current;
-    const steps = buildMigrationSteps(operation, current, resulting, target, location);
+      // この行の途中から再開したかどうか。改名を二度実行しないための判定。
+      const resuming = index === cursor.rowIndex && (cursor.stepIndex > 0 || cursor.start > 0);
+      if (operation === 'rename' && target !== '' && !resuming) {
+        entries.push(renameLabel(current, target, dryRun));
+      }
 
-    for (let step = resuming ? cursor.stepIndex : 0; step < steps.length; step += 1) {
-      let start = step === cursor.stepIndex && resuming ? cursor.start : 0;
+      const resulting = operation === 'rename' && target !== '' ? target : current;
+      const steps = buildMigrationSteps(operation, current, resulting, target, location);
 
-      for (;;) {
-        if (outOfTime(startedAt)) {
-          writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
-          writeLog(runId, entries);
-          console.log(`runMigration: 中断。${index + 1}/${plan.length} 行目のステップ ${step + 1}`);
-          return;
+      for (step = resuming ? cursor.stepIndex : 0; step < steps.length; step += 1) {
+        start = step === cursor.stepIndex && resuming ? cursor.start : 0;
+
+        for (;;) {
+          if (outOfTime(startedAt)) {
+            writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
+            writeLog(runId, entries);
+            console.log(`runMigration: 中断。${index + 1}/${plan.length} 行目のステップ ${step + 1}`);
+            return;
+          }
+
+          const query = `label:"${sanitizeQueryValue(steps[step].source)}" -label:"${sanitizeQueryValue(steps[step].applied)}"`;
+          const threads = GmailApp.search(query, start, MIGRATION_PAGE_SIZE);
+          if (threads.length === 0) break;
+
+          for (const thread of threads) entries.push(addLabelToThread(thread, steps[step].applied, dryRun));
+
+          // ドライランではラベルが付かず検索結果が減らないので位置を進める。
+          // 本適用では対象が消えていくため同じ位置を読み直す。
+          start = dryRun ? start + threads.length : start;
+          if (threads.length < MIGRATION_PAGE_SIZE) break;
         }
+      }
 
-        const query = `label:"${sanitizeQueryValue(steps[step].source)}" -label:"${sanitizeQueryValue(steps[step].applied)}"`;
-        const threads = GmailApp.search(query, start, MIGRATION_PAGE_SIZE);
-        if (threads.length === 0) break;
-
-        for (const thread of threads) entries.push(addLabelToThread(thread, steps[step].applied, dryRun));
-
-        // ドライランではラベルが付かず検索結果が減らないので位置を進める。
-        // 本適用では対象が消えていくため同じ位置を読み直す。
-        start = dryRun ? start + threads.length : start;
-        if (threads.length < MIGRATION_PAGE_SIZE) break;
+      if (!dryRun) {
+        updateCells(SHEET_NAMES.MIGRATION, [
+          { rowNumber: Number(row['_rowNumber']), key: 'state', value: '完了' },
+          { rowNumber: Number(row['_rowNumber']), key: 'ranAt', value: new Date() },
+        ]);
       }
     }
 
-    if (!dryRun) {
-      updateCells(SHEET_NAMES.MIGRATION, [
-        { rowNumber: Number(row['_rowNumber']), key: 'state', value: '完了' },
-        { rowNumber: Number(row['_rowNumber']), key: 'ranAt', value: new Date() },
-      ]);
-    }
+    clearMigrationCursor();
+    writeLog(runId, entries);
+    console.log(`runMigration: 完了。${plan.length} 行を処理`);
+  } catch (error) {
+    // クォータ超過や GAS のハード制限など、outOfTime() では検知できない中断。
+    // 次回実行が先頭からやり直しにならないよう、ここまでの進捗を保存してから再送出する。
+    writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
+    writeLog(runId, entries);
+    console.log(
+      `runMigration: 例外で中断。${index + 1}/${plan.length} 行目のステップ ${step + 1}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    throw error;
   }
-
-  clearMigrationCursor();
-  writeLog(runId, entries);
-  console.log(`runMigration: 完了。${plan.length} 行を処理`);
 }
 
 /**
