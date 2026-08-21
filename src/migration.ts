@@ -62,7 +62,10 @@ function runMigration(): void {
   const plan = orderMigrationPlan(
     readRows(SHEET_NAMES.MIGRATION).filter((row) => row['enabled'] === true)
   );
-  const cursor = readMigrationCursor();
+  // ドライランは毎回 plan の先頭から独立して検証するだけにする。中断してもカーソルを
+  // 保存・参照しない。本適用のカーソルと共有すると、ドライランの中断が本適用の
+  // 開始位置を狂わせ、その前段の行が実行されないまま静かにスキップされてしまう。
+  const cursor = dryRun ? { rowIndex: 0, stepIndex: 0, start: 0 } : readMigrationCursor();
   const entries: LogEntry[] = [];
 
   // クォータ超過など想定外の例外で抜けた場合でも、ここまでの進捗を失わないための現在地。
@@ -94,7 +97,7 @@ function runMigration(): void {
 
         for (;;) {
           if (outOfTime(startedAt)) {
-            writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
+            if (!dryRun) writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
             writeLog(runId, entries);
             console.log(`runMigration: 中断。${index + 1}/${plan.length} 行目のステップ ${step + 1}`);
             return;
@@ -121,13 +124,13 @@ function runMigration(): void {
       }
     }
 
-    clearMigrationCursor();
+    if (!dryRun) clearMigrationCursor();
     writeLog(runId, entries);
     console.log(`runMigration: 完了。${plan.length} 行を処理`);
   } catch (error) {
     // クォータ超過や GAS のハード制限など、outOfTime() では検知できない中断。
     // 次回実行が先頭からやり直しにならないよう、ここまでの進捗を保存してから再送出する。
-    writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
+    if (!dryRun) writeMigrationCursor({ rowIndex: index, stepIndex: step, start });
     writeLog(runId, entries);
     console.log(
       `runMigration: 例外で中断。${index + 1}/${plan.length} 行目のステップ ${step + 1}: ${
