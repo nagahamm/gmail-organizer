@@ -85,11 +85,17 @@ function runMigration(): void {
 
       // この行の途中から再開したかどうか。改名を二度実行しないための判定。
       const resuming = index === cursor.rowIndex && (cursor.stepIndex > 0 || cursor.start > 0);
+      let renameError = '';
       if (operation === 'rename' && target !== '' && !resuming) {
-        entries.push(renameLabel(current, target, dryRun));
+        const entry = renameLabel(current, target, dryRun);
+        entries.push(entry);
+        if (!dryRun && entry.result.indexOf('error') === 0) renameError = entry.result;
       }
 
-      const resulting = operation === 'rename' && target !== '' ? target : current;
+      // 改名が失敗していれば現行ラベルは古い名前のまま。以降のステップは
+      // 新ラベル名ではなく現行ラベル名で検索しないと対象を一件も引けない。
+      const renamed = operation === 'rename' && target !== '' && renameError === '';
+      const resulting = renamed ? target : current;
       const steps = buildMigrationSteps(operation, current, resulting, target, location);
 
       for (step = resuming ? cursor.stepIndex : 0; step < steps.length; step += 1) {
@@ -120,7 +126,7 @@ function runMigration(): void {
 
       if (!dryRun) {
         updateCells(SHEET_NAMES.MIGRATION, [
-          { rowNumber: Number(row['_rowNumber']), key: 'state', value: '完了' },
+          { rowNumber: Number(row['_rowNumber']), key: 'state', value: renameError || '完了' },
           { rowNumber: Number(row['_rowNumber']), key: 'ranAt', value: new Date() },
         ]);
       }
