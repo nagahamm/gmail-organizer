@@ -109,9 +109,11 @@ function runMigration(): void {
 
           for (const thread of threads) entries.push(addLabelToThread(thread, steps[step].applied, dryRun));
 
-          // ドライランではラベルが付かず検索結果が減らないので位置を進める。
-          // 本適用では対象が消えていくため同じ位置を読み直す。
-          start = dryRun ? start + threads.length : start;
+          // 本適用も含め常に位置を進める。Gmail の検索インデックスは同一実行内で
+          // 直前に付与したラベルを即座には反映しないため、`-label:"付与先"` の除外に
+          // 頼って同じ位置を読み直すと、同じページを繰り返し処理するだけで対象全体に
+          // 到達できない。除外は日をまたいだ再開でインデックスが追いついてから効く。
+          start += threads.length;
           if (threads.length < MIGRATION_PAGE_SIZE) break;
         }
       }
