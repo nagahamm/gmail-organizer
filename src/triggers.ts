@@ -54,6 +54,7 @@ function onOpen(): void {
     .addItem('移行計画を作る', 'seedMigrationPlan')
     .addItem('移行を実行する', 'menuRunMigration')
     .addItem('移行の再開位置を消す', 'resetMigration')
+    .addItem('親ラベルを作る', 'ensureParentLabels')
     .addSeparator()
     .addItem('照合ロジックの自己テスト', 'runMatcherSelfTest')
     .addItem('トリガーを登録する', 'installTriggers')

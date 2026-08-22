@@ -205,6 +205,41 @@ function resetMigration(): void {
 }
 
 /**
+ * 祖先ラベルを実体として作る。
+ *
+ * Gmail はラベル名の `/` で階層表示するが、親セグメント自体が実在するラベルで
+ * ないとサイドバーで展開可能な入れ子として扱わない (`Work/AWX` は親子とも
+ * 改名で実在するため正しく入れ子になるが、葉ラベルだけを作る移行では
+ * `Finance` や `Promotions` のような親が一度も作られず、名前に `/` が
+ * 入っているだけの平坦なラベルのままになる)。
+ *
+ * 現在実在するラベル名から祖先パスを求め、実在しないものだけ作成する。
+ */
+function ensureParentLabels(): void {
+  const existing: Record<string, boolean> = {};
+  for (const label of GmailApp.getUserLabels()) existing[label.getName()] = true;
+
+  const missing: Record<string, boolean> = {};
+  for (const name of Object.keys(existing)) {
+    const segments = name.split('/');
+    for (let depth = 1; depth < segments.length; depth += 1) {
+      const ancestor = segments.slice(0, depth).join('/');
+      if (!existing[ancestor]) missing[ancestor] = true;
+    }
+  }
+
+  const created = Object.keys(missing).sort();
+  for (const name of created) GmailApp.createLabel(name);
+
+  console.log(`ensureParentLabels: ${created.length}件の親ラベルを作成しました (${created.join(', ')})`);
+  activeBook().toast(
+    created.length > 0 ? `親ラベルを${created.length}件作成しました: ${created.join(', ')}` : '不足している親ラベルはありませんでした。',
+    'gmail-organizer',
+    15
+  );
+}
+
+/**
  * ラベルを改名する。
  * Gmail の改名はメールの割り当てを保持するので、1:1 の対応はこれで無風に移せる。
  */
