@@ -61,9 +61,10 @@ function applyRetroactive(): void {
       processed += threads.length;
       matchedByRule += threads.length;
 
-      // ドライランではラベルが付かず検索結果が減らないので、次のページへ進める。
-      // 本適用では対象が消えていくため同じ位置を読み直す。
-      start = dryRun ? start + threads.length : start;
+      // 本適用も含め常に位置を進める。Gmail の検索インデックスは同一実行内で
+      // 直前に付与したラベルを即座には反映しないため、除外条件に頼って同じ位置を
+      // 読み直すと、同じページを繰り返し処理するだけで対象全体に到達できない。
+      start += threads.length;
       if (threads.length < APPLY_PAGE_SIZE) break;
     }
 
