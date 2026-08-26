@@ -36,7 +36,10 @@ function applyRetroactive(): void {
   const windowQuery = readConfig('RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW);
 
   const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, true));
-  const cursor = readCursor();
+  // ドライランは毎回先頭から独立して検証する。中断してもカーソルを保存・参照しない。
+  // 本適用のカーソルと共有すると、ドライランの中断が本適用の開始位置を狂わせ、
+  // その前段のルールが一度も適用されないまま静かにスキップされてしまう。
+  const cursor = dryRun ? { ruleIndex: 0, start: 0 } : readCursor();
   const entries: LogEntry[] = [];
   let processed = 0;
 
@@ -48,7 +51,7 @@ function applyRetroactive(): void {
 
     for (;;) {
       if (outOfTime(startedAt)) {
-        writeCursor({ ruleIndex: index, start });
+        if (!dryRun) writeCursor({ ruleIndex: index, start });
         writeLog(runId, entries);
         console.log(`applyRetroactive: 中断。ルール ${index + 1}/${rules.length}、${processed} スレッド処理`);
         return;
@@ -71,7 +74,7 @@ function applyRetroactive(): void {
     if (!dryRun) touchRule(rule, matchedByRule);
   }
 
-  clearCursor();
+  if (!dryRun) clearCursor();
   writeLog(runId, entries);
   console.log(`applyRetroactive: 完了。${processed} スレッド処理`);
 }
