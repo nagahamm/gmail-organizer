@@ -214,6 +214,9 @@ function resetMigration(): void {
  * 入っているだけの平坦なラベルのままになる)。
  *
  * 現在実在するラベル名から祖先パスを求め、実在しないものだけ作成する。
+ *
+ * 新しく作られる葉は getOrCreateLabel() が親ごと作るので、こちらは
+ * **すでに平坦に作られてしまった既存ラベル**を救うための後追い修復として残す。
  */
 function ensureParentLabels(): void {
   const existing: Record<string, boolean> = {};
@@ -228,8 +231,9 @@ function ensureParentLabels(): void {
     }
   }
 
+  // 浅い順に作る。作成は getOrCreateLabel() に寄せてラベル作成の経路を 1 本に保つ。
   const created = Object.keys(missing).sort();
-  for (const name of created) GmailApp.createLabel(name);
+  for (const name of created) getOrCreateLabel(name);
 
   console.log(`ensureParentLabels: ${created.length}件の親ラベルを作成しました (${created.join(', ')})`);
   activeBook().toast(

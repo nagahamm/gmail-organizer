@@ -194,9 +194,24 @@ function hasOtherTypeLabel(thread: GoogleAppsScript.Gmail.GmailThread, rule: Rul
 /** ラベルのキャッシュ。1 回の実行内で同じラベルを何度も引かないため。 */
 const labelCache: Record<string, GoogleAppsScript.Gmail.GmailLabel> = {};
 
+/**
+ * ラベルを引く。無ければ祖先を浅い順に作ってから葉を作る。
+ *
+ * Gmail は名前の `/` で階層表示するが、親セグメント自体が実在するラベルでないと
+ * 入れ子として扱わず、`/` を含んだだけの平坦なラベルが並ぶ。葉だけを作ると
+ * ensureParentLabels() で後追い修復するまでその状態が残るので、作る側で閉じる。
+ */
 function getOrCreateLabel(name: string): GoogleAppsScript.Gmail.GmailLabel {
   if (labelCache[name]) return labelCache[name];
-  const label = GmailApp.getUserLabelByName(name) || GmailApp.createLabel(name);
+
+  let label = GmailApp.getUserLabelByName(name);
+  if (!label) {
+    // 先頭が `/` の場合は親が空になるので cut > 0 で弾く。
+    const cut = name.lastIndexOf('/');
+    if (cut > 0) getOrCreateLabel(name.slice(0, cut));
+    label = GmailApp.createLabel(name);
+  }
+
   labelCache[name] = label;
   return label;
 }
