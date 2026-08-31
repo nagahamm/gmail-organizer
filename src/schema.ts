@@ -23,6 +23,11 @@ interface ColumnSpec {
   type?: ColumnType;
   width?: number;
   validation?: ValidationKind;
+  /**
+   * 以前のヘッダ名。setup() がヘッダのセルだけを書き換えて既存データを保つ。
+   * 列を作り直すとデータが失われ、追加と破損の区別も付かなくなる。
+   */
+  renamedFrom?: string;
   /** type が 'formula' のとき、2 行目に入れる ARRAYFORMULA。 */
   formula?: string;
   note?: string;
@@ -160,7 +165,13 @@ const SHEET_SPECS: SheetSpec[] = [
         width: 100,
         note: 'Gmail が付けたカテゴリ。promotions / social / updates は受信トレイ除外の根拠になる。',
       },
-      { key: 'count7d', header: '受信トレイ件数', type: 'number', width: 110 },
+      {
+        key: 'count7d',
+        header: '受信トレイ件数',
+        type: 'number',
+        width: 110,
+        renamedFrom: '直近7日件数',
+      },
       { key: 'countTotal', header: '累計件数', type: 'number', width: 90, note: '1 回の検索で取れる上限までしか数えないため、上限に達した場合は下限値。' },
       { key: 'unreadRate', header: '未読率', width: 80, note: '高いほど読む気がない = 受信トレイ除外の候補。' },
       { key: 'firstSeen', header: '初回受信日', type: 'date', width: 110 },

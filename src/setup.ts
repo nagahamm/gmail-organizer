@@ -38,7 +38,7 @@ function ensureSheet(book: GoogleAppsScript.Spreadsheet.Spreadsheet, spec: Sheet
 }
 
 /**
- * ヘッダ行を用意する。既存のヘッダは動かさず、足りないものだけ末尾に足す。
+ * ヘッダ行を用意する。改名を追随し、足りないものだけ末尾に足す。既存の列は動かさない。
  *
  * ヘッダが書き換わったまま追加すると、`resolveColumns()` が新しく増えた方の列を
  * 参照するようになり、以降の書き込みが黙って別の列へ流れる。エラーは出ない。
@@ -47,9 +47,12 @@ function ensureSheet(book: GoogleAppsScript.Spreadsheet.Spreadsheet, spec: Sheet
  */
 function ensureHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpec): void {
   const width = sheet.getLastColumn();
-  const existing =
-    width === 0 ? [] : sheet.getRange(1, 1, 1, width).getValues()[0].map(String).filter((h) => h !== '');
+  // 位置を数えるので空文字を落とさない。落とすと改名対象の列を取り違える。
+  const raw = width === 0 ? [] : sheet.getRange(1, 1, 1, width).getValues()[0].map(String);
 
+  renameHeaders(sheet, spec, raw);
+
+  const existing = raw.filter((h) => h !== '');
   const headers = spec.columns.map((c) => c.header);
   const missing = headers.filter((header) => existing.indexOf(header) < 0);
   if (missing.length === 0) return;
@@ -63,9 +66,33 @@ function ensureHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpe
     );
   }
 
-  // 追加位置は実際の最終列の次。existing は空文字を除いてあるので、
-  // ヘッダ行に空セルが混じるとずれる。
   sheet.getRange(1, width + 1, 1, missing.length).setValues([missing]);
+}
+
+/**
+ * ヘッダの改名を追随する。
+ *
+ * 列を作り直すと既存データが失われるうえ、追加なのか改名なのかを
+ * ensureHeaders() が区別できなくなる。ヘッダのセルだけを書き換えて位置は動かさない。
+ * `raw` も書き換えるので、以降の判定は改名後の名前で行われる。
+ */
+function renameHeaders(
+  sheet: GoogleAppsScript.Spreadsheet.Sheet,
+  spec: SheetSpec,
+  raw: string[]
+): void {
+  for (const column of spec.columns) {
+    if (!column.renamedFrom) continue;
+    // 既に新しい名前になっていれば何もしない。
+    if (raw.indexOf(column.header) >= 0) continue;
+
+    const at = raw.indexOf(column.renamedFrom);
+    if (at < 0) continue;
+
+    sheet.getRange(1, at + 1).setValue(column.header);
+    raw[at] = column.header;
+    console.log(`ensureHeaders: ${spec.name} の "${column.renamedFrom}" を "${column.header}" に改名しました`);
+  }
 }
 
 function applyFormats(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpec): void {
