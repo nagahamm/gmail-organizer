@@ -127,7 +127,6 @@ function buildValidation(kind: ValidationKind | undefined): GoogleAppsScript.Spr
     approval: APPROVAL_STATES,
     // missing = Gmail から消えたラベル。行は残して状態だけ落とす。
     labelState: ['active', 'archived', 'missing'],
-    migrationOp: MIGRATION_OPS,
     senderKind: SENDER_KINDS,
     senderState: SENDER_STATES,
   };

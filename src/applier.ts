@@ -216,6 +216,42 @@ function getOrCreateLabel(name: string): GoogleAppsScript.Gmail.GmailLabel {
   return label;
 }
 
+/**
+ * 祖先ラベルを実体として作る。
+ *
+ * Gmail はラベル名の `/` で階層表示するが、親セグメント自体が実在するラベルで
+ * ないとサイドバーで展開可能な入れ子として扱わず、`/` を含んだだけの平坦なラベルが並ぶ。
+ *
+ * 新しく作られる葉は getOrCreateLabel() が親ごと作るので、こちらは
+ * **すでに平坦に作られてしまった既存ラベル**を救うための後追い修復。
+ */
+function ensureParentLabels(): void {
+  const existing: Record<string, boolean> = {};
+  for (const label of GmailApp.getUserLabels()) existing[label.getName()] = true;
+
+  const missing: Record<string, boolean> = {};
+  for (const name of Object.keys(existing)) {
+    const segments = name.split('/');
+    for (let depth = 1; depth < segments.length; depth += 1) {
+      const ancestor = segments.slice(0, depth).join('/');
+      if (!existing[ancestor]) missing[ancestor] = true;
+    }
+  }
+
+  // 浅い順に作る。作成は getOrCreateLabel() に寄せてラベル作成の経路を 1 本に保つ。
+  const created = Object.keys(missing).sort();
+  for (const name of created) getOrCreateLabel(name);
+
+  console.log(`ensureParentLabels: ${created.length}件の親ラベルを作成しました (${created.join(', ')})`);
+  activeBook().toast(
+    created.length > 0
+      ? `親ラベルを${created.length}件作成しました: ${created.join(', ')}`
+      : '不足している親ラベルはありませんでした。',
+    'gmail-organizer',
+    15
+  );
+}
+
 /** ルールの最終マッチ日と累計マッチ数を更新する。死んだルールを見つけるため。 */
 function touchRule(rule: Rule, matched: number): void {
   if (matched === 0) return;

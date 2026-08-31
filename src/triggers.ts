@@ -59,10 +59,6 @@ function onOpen(): void {
     .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
     .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
-    .addSeparator()
-    .addItem('移行計画を作る', 'seedMigrationPlan')
-    .addItem('移行を実行する', 'menuRunMigration')
-    .addItem('移行の再開位置を消す', 'resetMigration')
     .addItem('親ラベルを作る', 'ensureParentLabels')
     .addSeparator()
     .addItem('照合ロジックの自己テスト', 'runMatcherSelfTest')
@@ -83,17 +79,4 @@ function menuApplyRetroactive(): void {
 
   if (ui.alert('遡及適用', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   applyRetroactive();
-}
-
-/** 移行はラベルを作り替えるので、メニューからは確認を挟む。 */
-function menuRunMigration(): void {
-  const ui = SpreadsheetApp.getUi();
-  const dryRun = isDryRun();
-
-  const message = dryRun
-    ? 'DRY_RUN が有効です。ラベルは変更せず log に記録するだけです。\n実行しますか?'
-    : 'DRY_RUN が無効です。実際にラベルを改名・付与します。\n\nlog シートでドライランの結果を確認済みですか?';
-
-  if (ui.alert('ラベル移行', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
-  runMigration();
 }

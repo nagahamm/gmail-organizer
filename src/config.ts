@@ -55,7 +55,6 @@ const SHEET_NAMES = {
   LOG_ARCHIVE: 'log_archive',
   UNMATCHED: 'unmatched',
   PROPOSALS: 'proposals',
-  MIGRATION: 'migration',
   CONFIG: 'config',
 } as const;
 
@@ -72,6 +71,3 @@ const SENDER_STATES = ['active', 'dormant', 'unsubscribed'] as const;
 /** `proposals.承認` が取りうる値。 */
 const APPROVAL_STATES = ['未確認', '承認', '却下', '保留'] as const;
 
-/** `migration.操作` が取りうる値。 */
-const MIGRATION_OPS = ['rename', 'merge', 'tag', 'skip'] as const;
-type MigrationOp = (typeof MIGRATION_OPS)[number];
