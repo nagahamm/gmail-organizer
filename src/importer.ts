@@ -79,13 +79,10 @@ function importLabels(startedAt: number): LabelImportResult {
     const found = existing[label.id];
     if (!found) {
       rows.push({
-        labelKey: label.id,
         major: parts.major,
         middle: parts.middle,
         minor: parts.minor,
         gmailLabelId: label.id,
-        defaultSkipInbox: false,
-        defaultMarkRead: false,
         state,
         description: '',
         messageCount,

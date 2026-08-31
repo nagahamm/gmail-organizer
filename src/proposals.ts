@@ -129,13 +129,10 @@ function knownLabelPaths(): Record<string, boolean> {
 function buildLabelRow(fullPath: string): Row {
   const parts = splitLabelPath(fullPath);
   return {
-    labelKey: '',
     major: parts.major,
     middle: parts.middle,
     minor: parts.minor,
     gmailLabelId: '',
-    defaultSkipInbox: false,
-    defaultMarkRead: false,
     state: 'active',
     description: '提案から追加',
     messageCount: 0,

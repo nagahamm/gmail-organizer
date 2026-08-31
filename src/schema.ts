@@ -43,7 +43,6 @@ const SHEET_SPECS: SheetSpec[] = [
     name: SHEET_NAMES.LABELS,
     note: 'ラベルマスタ。大項目 = メールの種別、中項目 = ジャンル、小項目 = ブランド。',
     columns: [
-      { key: 'labelKey', header: 'label_key', width: 90 },
       { key: 'major', header: '大項目', width: 100 },
       { key: 'middle', header: '中項目', width: 120 },
       { key: 'minor', header: '小項目', width: 120 },
@@ -56,8 +55,6 @@ const SHEET_SPECS: SheetSpec[] = [
         note: 'Gmail 上のラベル名そのもの。B/C/D から自動生成される。',
       },
       { key: 'gmailLabelId', header: 'gmail_label_id', width: 200 },
-      { key: 'defaultSkipInbox', header: '既定_受信トレイ除外', type: 'checkbox', width: 140 },
-      { key: 'defaultMarkRead', header: '既定_既読化', type: 'checkbox', width: 110 },
       { key: 'state', header: '状態', validation: 'labelState', width: 90 },
       { key: 'description', header: '説明', width: 260 },
       { key: 'messageCount', header: '件数', type: 'number', width: 80 },
