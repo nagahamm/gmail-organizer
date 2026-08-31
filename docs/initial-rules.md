@@ -1,6 +1,6 @@
 # 初期ルールセット
 
-`docs/sampling-2026-08-19.md` の実測から起こした `rules` シートの初期投入分。
+実態調査の結果から起こした `rules` シートの初期投入分。
 そのまま貼り付けられるよう、シートの列順に並べている。
 
 `Finance` / `Promotions` の既存分は `importCurrentState()` が Gmail フィルタから

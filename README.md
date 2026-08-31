@@ -35,8 +35,6 @@ npx clasp open
 | 1 | シートを作成 / 更新 | `labels` / `rules` / `senders` / `log` / `log_archive` / `unmatched` / `proposals` / `config` を生成 |
 | 2 | 現在のラベルとフィルタを取り込む | 既存 39 ラベルと Gmail フィルタをシートへ。**手入力は不要** |
 
-実態調査は 9 巡して完了しており、結論は `docs/sampling-2026-08-19.md` にある。
-
 ## 安全側の既定
 
 - **`DRY_RUN` は既定で有効**。ラベルは変更せず `log` シートに `dry_run` として記録するだけ。
