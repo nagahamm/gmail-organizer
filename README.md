@@ -11,7 +11,7 @@ Gmail のラベル振り分けを Google スプレッドシートで一元管理
 | ファイル | 内容 |
 | --- | --- |
 | [`docs/design.md`](docs/design.md) | 現状分析・アーキテクチャ・シートのスキーマ・サービス選定 |
-| [`docs/label-migration.md`](docs/label-migration.md) | 現行 39 ラベル → 新体系の移行マッピング (**完了記録**) |
+| [`docs/naming.md`](docs/naming.md) | ラベルの体系 (大項目 14 と中項目の切り方) と命名規約 |
 | [`CLAUDE.md`](CLAUDE.md) | 設計の決定事項・開発の進め方・コミット規約 |
 
 ## 導入

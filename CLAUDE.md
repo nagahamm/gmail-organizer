@@ -20,10 +20,9 @@ Gmail のラベル振り分けを Google スプレッドシートで一元管理
 | --- | --- |
 | `docs/design.md` | 現状分析・アーキテクチャ・シートのスキーマ・サービス選定 |
 | `docs/constraints.md` | Gmail / GAS / 設計上の制約。**実装前に必ず読む** |
-| `docs/naming.md` | ラベルの命名規約 |
+| `docs/naming.md` | ラベルの体系 (大項目 14 と中項目の切り方) と命名規約 |
 | `docs/senders.md` | 送信元カタログ (運営元 → サービス → 送信元) |
 | `docs/sampling-2026-08-19.md` | 9 巡した実態調査の記録 |
-| `docs/label-migration.md` | 現行 39 ラベル → 新体系の移行マッピング (完了記録) |
 | `docs/initial-rules.md` | `rules` シートへ貼る初期ルール |
 
 ## 設計の要点
