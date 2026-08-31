@@ -32,8 +32,6 @@ const CONFIG = {
   /** この日数以上届いていない送信元は dormant にする。 */
   SENDER_DORMANT_DAYS: 60,
 
-  /** サンプリング時に 1 ラベルあたり読むスレッド数の上限。 */
-  SAMPLE_LIMIT: 300,
 
   /** 拠点タグ。@JP は作らない (@AU でないものは全部 JP のため)。 */
   LOCATION_AU: '@AU',
@@ -57,7 +55,6 @@ const SHEET_NAMES = {
   LOG_ARCHIVE: 'log_archive',
   UNMATCHED: 'unmatched',
   PROPOSALS: 'proposals',
-  SAMPLING: 'sampling',
   MIGRATION: 'migration',
   CONFIG: 'config',
 } as const;

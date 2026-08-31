@@ -50,7 +50,6 @@ function onOpen(): void {
     .createMenu('gmail-organizer')
     .addItem('1. シートを作成 / 更新', 'setup')
     .addItem('2. 現在のラベルとフィルタを取り込む', 'importCurrentState')
-    .addItem('3. 移行前の実態を調査する', 'runSampling')
     .addSeparator()
     .addItem('新着に適用する', 'applyToNewMail')
     .addItem('スター付き求人を昇格する', 'promoteStarredJobs')

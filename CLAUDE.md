@@ -6,7 +6,7 @@ Gmail のラベル振り分けを Google スプレッドシートで一元管理
 ## Core Principles
 
 - **SOLID**: 各モジュールの責務を保つ。照合 (`matcher.ts`) / 適用 (`applier.ts`) /
-  シート入出力 (`sheets.ts`) / 調査 (`sampler.ts`) の実装をまたいで混ぜない。
+  シート入出力 (`sheets.ts`) の実装をまたいで混ぜない。
   `matcher.ts` は GAS API に依存しない純粋関数のまま保つ。
 - **KISS**: 素直に書く。動く最小の実装を選ぶ。
 - **YAGNI**: 今必要でない設定項目・抽象化・オプションを足さない。

@@ -184,20 +184,6 @@ const SHEET_SPECS: SheetSpec[] = [
     ],
   },
   {
-    name: SHEET_NAMES.SAMPLING,
-    note: '移行前の実態調査。読み取り専用の結果置き場。',
-    columns: [
-      { key: 'at', header: '集計日', type: 'date', width: 110 },
-      { key: 'survey', header: '調査対象', width: 200 },
-      { key: 'bucket', header: '分類', width: 140 },
-      { key: 'key', header: 'キー', width: 260 },
-      { key: 'count', header: '件数', type: 'number', width: 80 },
-      { key: 'share', header: '割合', width: 80 },
-      { key: 'sampleSubject', header: '代表件名', width: 360 },
-      { key: 'note', header: '備考', width: 240 },
-    ],
-  },
-  {
     name: SHEET_NAMES.MIGRATION,
     note: '現行ラベル → 新体系の移行計画。docs/label-migration.md を見ながら新ラベル列を埋める。',
     columns: [
@@ -233,7 +219,6 @@ const SHEET_SPECS: SheetSpec[] = [
 const CONFIG_DEFAULTS: string[][] = [
   ['DRY_RUN', 'TRUE', 'TRUE の間はラベルを変更せず log に dry_run として記録するだけ'],
   ['RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW, '遡及適用の対象期間'],
-  ['SAMPLE_LIMIT', String(CONFIG.SAMPLE_LIMIT), 'サンプリングで 1 ラベルあたり読むスレッド数の上限'],
   ['NOTIFY_TO', '', '週次ダイジェストの送信先。空なら実行アカウント宛'],
 ];
 

@@ -32,11 +32,10 @@ npx clasp open
 
 | # | メニュー | 内容 |
 | --- | --- | --- |
-| 1 | シートを作成 / 更新 | `labels` / `rules` / `log` / `unmatched` / `proposals` / `sampling` / `config` を生成 |
+| 1 | シートを作成 / 更新 | `labels` / `rules` / `senders` / `log` / `log_archive` / `unmatched` / `proposals` / `config` を生成 |
 | 2 | 現在のラベルとフィルタを取り込む | 既存 39 ラベルと Gmail フィルタをシートへ。**手入力は不要** |
-| 3 | 移行前の実態を調査する | `docs/label-migration.md` の要判断ポイントを実データで確認 |
 
-3 の結果を見てから移行マッピングを確定し、`rules` を有効化する。
+実態調査は 9 巡して完了しており、結論は `docs/sampling-2026-08-19.md` にある。
 
 ## 安全側の既定
 
