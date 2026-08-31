@@ -10,9 +10,14 @@ Gmail のラベル振り分けを Google スプレッドシートで一元管理
 
 | ファイル | 内容 |
 | --- | --- |
-| [`docs/design.md`](docs/design.md) | 現状分析・アーキテクチャ・シートのスキーマ・サービス選定 |
+| [`docs/design.md`](docs/design.md) | 現状分析・アーキテクチャ・シート構成・サービス選定 |
+| [`docs/constraints.md`](docs/constraints.md) | Gmail / GAS / 設計上の制約。**実装前に必ず読む** |
 | [`docs/naming.md`](docs/naming.md) | ラベルの体系 (大項目 14 と中項目の切り方) と命名規約 |
+| [`docs/senders.md`](docs/senders.md) | 送信元カタログ (運営元 → サービス → 送信元) |
+| [`docs/initial-rules.md`](docs/initial-rules.md) | `rules` シートへ貼る初期ルール |
 | [`CLAUDE.md`](CLAUDE.md) | 設計の決定事項・開発の進め方・コミット規約 |
+
+列の定義は `src/schema.ts` が唯一の置き場です。ドキュメントには再掲しません。
 
 ## 導入
 
