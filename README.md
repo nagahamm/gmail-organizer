@@ -14,6 +14,7 @@ Gmail のラベル振り分けを Google スプレッドシートで一元管理
 | [`docs/constraints.md`](docs/constraints.md) | Gmail / GAS / 設計上の制約。**実装前に必ず読む** |
 | [`docs/naming.md`](docs/naming.md) | ラベルの体系 (大項目 14 と中項目の切り方) と命名規約 |
 | [`docs/senders.md`](docs/senders.md) | 送信元カタログ (運営元 → サービス → 送信元) |
+| [`docs/requirements.md`](docs/requirements.md) | 振る舞いの要件 (Gherkin)。**機能変更の着手前にここを更新する** |
 | [`docs/initial-rules.md`](docs/initial-rules.md) | `rules` シートへ貼る初期ルール |
 | [`CLAUDE.md`](CLAUDE.md) | 設計の決定事項・開発の進め方・コミット規約 |
 
