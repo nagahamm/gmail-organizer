@@ -37,16 +37,35 @@ function ensureSheet(book: GoogleAppsScript.Spreadsheet.Spreadsheet, spec: Sheet
   applyFormulas(sheet, spec);
 }
 
-/** ヘッダ行を用意する。既存のヘッダは動かさず、足りないものだけ末尾に足す。 */
+/**
+ * ヘッダ行を用意する。既存のヘッダは動かさず、足りないものだけ末尾に足す。
+ *
+ * ヘッダが書き換わったまま追加すると、`resolveColumns()` が新しく増えた方の列を
+ * 参照するようになり、以降の書き込みが黙って別の列へ流れる。エラーは出ない。
+ * 仕様の列が欠けていて、かつ仕様に無いヘッダが居座っている場合はその形なので、
+ * 追加せずに止めて人に直させる。
+ */
 function ensureHeaders(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpec): void {
   const width = sheet.getLastColumn();
   const existing =
     width === 0 ? [] : sheet.getRange(1, 1, 1, width).getValues()[0].map(String).filter((h) => h !== '');
 
-  const missing = spec.columns.map((c) => c.header).filter((header) => existing.indexOf(header) < 0);
+  const headers = spec.columns.map((c) => c.header);
+  const missing = headers.filter((header) => existing.indexOf(header) < 0);
   if (missing.length === 0) return;
 
-  sheet.getRange(1, existing.length + 1, 1, missing.length).setValues([missing]);
+  const unknown = existing.filter((header) => headers.indexOf(header) < 0);
+  if (unknown.length > 0) {
+    throw new Error(
+      `シート "${spec.name}" のヘッダが壊れています。仕様に無い列 "${unknown.join('", "')}" があり、` +
+        `"${missing.join('", "')}" が見つかりません。` +
+        `列名を直してから setup() を実行してください (このまま追加すると書き込み先が別の列へ移ります)。`
+    );
+  }
+
+  // 追加位置は実際の最終列の次。existing は空文字を除いてあるので、
+  // ヘッダ行に空セルが混じるとずれる。
+  sheet.getRange(1, width + 1, 1, missing.length).setValues([missing]);
 }
 
 function applyFormats(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpec): void {
