@@ -14,7 +14,17 @@ function setup(): void {
     ensureSheet(book, spec);
   }
   seedConfigDefaults();
-  book.toast('setup 完了。次に importCurrentState() を実行してください。', 'gmail-organizer', 10);
+
+  // 定期実行の登録を初期化の一本道に組み込む。メニューの独立項目のままだと、
+  // 押し忘れてもエラーが出ずに何も起きないので気づけない。
+  // DRY_RUN の既定は TRUE なので、ここで登録してもラベルは変更されない。
+  installTriggers();
+
+  book.toast(
+    'setup 完了。トリガーも登録しました。次に importCurrentState() を実行してください。',
+    'gmail-organizer',
+    10
+  );
 }
 
 function ensureSheet(book: GoogleAppsScript.Spreadsheet.Spreadsheet, spec: SheetSpec): void {

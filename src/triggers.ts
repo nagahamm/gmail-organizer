@@ -25,7 +25,10 @@ function installTriggers(): void {
 
   ScriptApp.newTrigger('everyQuarterHour').timeBased().everyMinutes(15).create();
   ScriptApp.newTrigger('runWeeklyDigest').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(7).create();
-  console.log('トリガーを登録しました: everyQuarterHour (15 分間隔) / runWeeklyDigest (日曜 7 時)');
+  // シートから実行したときにも登録されたことが見えるようにする。console はシートから見えない。
+  const message = 'トリガーを登録しました: everyQuarterHour (15 分間隔) / runWeeklyDigest (日曜 7 時)';
+  console.log(message);
+  activeBook().toast(message, 'gmail-organizer', 10);
 }
 
 /** 登録済みトリガーを全て外す。運用を止めるとき用。 */
