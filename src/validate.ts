@@ -23,14 +23,64 @@ function validateSheets(startedAt?: number): SheetProblem[] {
   const budget = budgetStart(startedAt);
   const problems: SheetProblem[] = [];
 
+  // シートを直してから再実行したときに古い索引を使わないよう、実行のたびに捨てる。
+  labelPathCache = null;
+
   for (const spec of SHEET_SPECS) {
     if (outOfTime(budget)) {
       problems.push({ cell: spec.name, header: '', detail: '時間切れでここから先は検査していません' });
       return problems;
     }
     collectSheetProblems(spec, problems);
+    collectDanglingLabels(spec, problems);
   }
   return problems;
+}
+
+/** labels シートに実在するラベル名。1 回の検査で何度も読み直さないため覚えておく。 */
+let labelPathCache: Record<string, boolean> | null = null;
+
+/**
+ * ラベルを指す列が、実在しないラベルを指していないか。
+ *
+ * `labels` は importCurrentState() が Gmail の実態に追随させるので、
+ * ここに無い名前は「Gmail に無いラベル」と同義になる。移行でラベル名が変わったのに
+ * 古い名前を指したままのルールを有効化すると、getOrCreateLabel() が旧ラベルを
+ * 作り直してしまう。適用される前に気づけるようにする。
+ *
+ * `proposals` は対象外。まだ存在しないラベルを提案するのが役目のため。
+ */
+function collectDanglingLabels(spec: SheetSpec, problems: SheetProblem[]): void {
+  if (spec.name === SHEET_NAMES.LABELS || spec.name === SHEET_NAMES.PROPOSALS) return;
+
+  const targets = spec.columns.filter((column) => column.validation === 'labelPath');
+  if (targets.length === 0) return;
+
+  // 索引の作り方は proposals.ts の knownLabelPaths() と同じなのでそれを使う。
+  if (!labelPathCache) labelPathCache = knownLabelPaths();
+
+  const sheet = getSheet(spec.name);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const index = resolveColumns(sheet, spec);
+  const values = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+
+  for (const column of targets) {
+    const position = index[column.key];
+    for (let offset = 0; offset < values.length; offset += 1) {
+      if (problems.length >= VALIDATE_MAX_PROBLEMS) return;
+
+      const value = String(values[offset][position] || '').trim();
+      if (value === '' || labelPathCache[value]) continue;
+
+      problems.push({
+        cell: `${spec.name}!${columnLetter(position + 1)}${offset + 2}`,
+        header: column.header,
+        detail: `labels に無いラベルを指しています: "${value}" (有効化すると Gmail 側に作られます)`,
+      });
+    }
+  }
 }
 
 function collectSheetProblems(spec: SheetSpec, problems: SheetProblem[]): void {
