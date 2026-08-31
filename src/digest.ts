@@ -26,9 +26,14 @@ function runWeeklyDigest(): void {
   proposeAppliedJobs();
   const deadRules = findDeadRules();
   const archived = archiveOldLogs();
+  // シートは人が直接編集するので、型崩れは週次で必ず目に入るようにする。
+  const problems = validateSheets(startedAt);
 
-  sendDigestMail(unmatched, deadRules, archived);
-  console.log(`runWeeklyDigest: 未分類 ${unmatched.rows.length} 件 / 死んだルール ${deadRules.length} 件 / ログ退避 ${archived} 行`);
+  sendDigestMail(unmatched, deadRules, archived, problems);
+  console.log(
+    `runWeeklyDigest: 未分類 ${unmatched.rows.length} 件 / 死んだルール ${deadRules.length} 件 / ` +
+      `ログ退避 ${archived} 行 / 型の問題 ${problems.length} 件`
+  );
 }
 
 interface UnmatchedStat {
@@ -164,7 +169,12 @@ function archiveOldLogs(): number {
   return old.length;
 }
 
-function sendDigestMail(unmatched: UnmatchedResult, deadRules: DeadRule[], archived: number): void {
+function sendDigestMail(
+  unmatched: UnmatchedResult,
+  deadRules: DeadRule[],
+  archived: number,
+  problems: SheetProblem[]
+): void {
   const to = readConfig('NOTIFY_TO', '') || Session.getActiveUser().getEmail();
   if (!to) return;
 
@@ -177,6 +187,9 @@ function sendDigestMail(unmatched: UnmatchedResult, deadRules: DeadRule[], archi
   lines.push(`直近 7 日で未分類だったスレッド: ${unmatched.scanned} 件`);
   lines.push(`ログ退避: ${archived} 行`);
   lines.push('');
+
+  // 型崩れは他の集計を狂わせるので先頭に出す。
+  for (const line of describeProblems(problems)) lines.push(line);
 
   if (unmatched.rows.length > 0) {
     lines.push(`■ 未分類の送信元 上位 ${unmatched.rows.length} 件`);

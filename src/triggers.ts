@@ -61,6 +61,7 @@ function onOpen(): void {
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
     .addItem('親ラベルを作る', 'ensureParentLabels')
     .addSeparator()
+    .addItem('シートを検査する', 'menuValidateSheets')
     .addItem('照合ロジックの自己テスト', 'runMatcherSelfTest')
     .addItem('トリガーを登録する', 'installTriggers')
     .addItem('トリガーを全て外す', 'uninstallTriggers')

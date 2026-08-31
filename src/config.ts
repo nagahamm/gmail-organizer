@@ -65,6 +65,9 @@ type MatchKind = (typeof MATCH_KINDS)[number];
 /** `senders.系統` が取りうる値。メールの性格を表す。 */
 const SENDER_KINDS = ['transactional', 'promotional', 'notification', 'support'] as const;
 
+/** `labels.状態` が取りうる値。missing = Gmail から消えたラベル。行は残して状態だけ落とす。 */
+const LABEL_STATES = ['active', 'archived', 'missing'] as const;
+
 /** `senders.状態` が取りうる値。 */
 const SENDER_STATES = ['active', 'dormant', 'unsubscribed'] as const;
 

@@ -125,8 +125,7 @@ function buildValidation(kind: ValidationKind | undefined): GoogleAppsScript.Spr
   const lists: Record<string, readonly string[]> = {
     matchKind: MATCH_KINDS,
     approval: APPROVAL_STATES,
-    // missing = Gmail から消えたラベル。行は残して状態だけ落とす。
-    labelState: ['active', 'archived', 'missing'],
+    labelState: LABEL_STATES,
     senderKind: SENDER_KINDS,
     senderState: SENDER_STATES,
   };
