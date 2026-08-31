@@ -17,16 +17,23 @@ function everyQuarterHour(): void {
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */
 function installTriggers(): void {
-  const managed = ['everyQuarterHour', 'runWeeklyDigest'];
+  const managed = ['everyQuarterHour', 'applyRetroactive', 'runWeeklyDigest'];
 
   for (const trigger of ScriptApp.getProjectTriggers()) {
     if (managed.indexOf(trigger.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(trigger);
   }
 
   ScriptApp.newTrigger('everyQuarterHour').timeBased().everyMinutes(15).create();
+  // 月次の取りこぼし回収。applyToNewMail() の対象は newer_than:2d なので、
+  // それより長く止まった分やルールを後から足した分はこちらでしか拾えない。
+  // applyRetroactive() は引数を取らないので、トリガーのイベントオブジェクトを
+  // 誤って受けることがない。そのまま登録してよい。
+  ScriptApp.newTrigger('applyRetroactive').timeBased().onMonthDay(1).atHour(4).create();
   ScriptApp.newTrigger('runWeeklyDigest').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(7).create();
+
   // シートから実行したときにも登録されたことが見えるようにする。console はシートから見えない。
-  const message = 'トリガーを登録しました: everyQuarterHour (15 分間隔) / runWeeklyDigest (日曜 7 時)';
+  const message =
+    'トリガーを登録しました: everyQuarterHour (15 分間隔) / applyRetroactive (毎月 1 日 4 時) / runWeeklyDigest (日曜 7 時)';
   console.log(message);
   activeBook().toast(message, 'gmail-organizer', 10);
 }
