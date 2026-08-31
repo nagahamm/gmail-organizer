@@ -280,7 +280,7 @@ function renameLabel(current: string, target: string, dryRun: boolean): LogEntry
 let gmailLabelCache: GoogleAppsScript.Gmail.Schema.Label[] | null = null;
 
 function findGmailLabel(name: string): GoogleAppsScript.Gmail.Schema.Label | null {
-  if (!gmailLabelCache) gmailLabelCache = Gmail.Users!.Labels!.list('me').labels || [];
+  if (!gmailLabelCache) gmailLabelCache = listGmailLabels();
   const found = gmailLabelCache.filter((item) => item.name === name);
   return found.length > 0 ? found[0] : null;
 }

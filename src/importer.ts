@@ -46,8 +46,7 @@ interface LabelImportResult {
  * そこはシート側が正。
  */
 function importLabels(startedAt: number): LabelImportResult {
-  const listed = Gmail.Users!.Labels!.list('me');
-  const all = listed.labels || [];
+  const all = listGmailLabels();
   const now = new Date();
 
   const existing: Record<string, Row> = {};
@@ -137,8 +136,7 @@ function importLabels(startedAt: number): LabelImportResult {
 
 /** 既存の Gmail フィルタを rules シートへ下書きとして投入する。 */
 function importFilters(): number {
-  const listed = Gmail.Users!.Settings!.Filters!.list('me');
-  const filters = listed.filter || [];
+  const filters = listGmailFilters();
   const labelNames = labelIdToName();
   const known = existingKeys(SHEET_NAMES.RULES, 'pattern');
   const now = new Date();
@@ -246,9 +244,8 @@ function expandFromCriteria(raw: string): ExtractedPattern[] {
 
 /** Gmail のラベル ID → 名前の対応表。 */
 function labelIdToName(): Record<string, string> {
-  const listed = Gmail.Users!.Labels!.list('me');
   const map: Record<string, string> = {};
-  for (const label of listed.labels || []) {
+  for (const label of listGmailLabels()) {
     if (label.id && label.name) map[label.id] = label.name;
   }
   return map;

@@ -7,6 +7,29 @@
  * ここを使うのは調査系 (sampler.ts / digest) に限る。
  */
 
+/**
+ * ラベル一覧。
+ *
+ * 高度な Gmail サービスの `list` は、該当が 0 件だと応答本文が空になり
+ * **戻り値そのものが `null`** で返る。`listed.labels || []` では守れないので、
+ * null になり得るという知識をここ 1 箇所に閉じ込める。
+ */
+function listGmailLabels(): GoogleAppsScript.Gmail.Schema.Label[] {
+  const listed = Gmail.Users!.Labels!.list('me');
+  return (listed && listed.labels) || [];
+}
+
+/**
+ * フィルタ一覧。
+ *
+ * フィルタは真実の源から降格させて凍結する方針なので、0 件は想定内の状態。
+ * そこで落ちないよう `listGmailLabels()` と同じく null を畳む。
+ */
+function listGmailFilters(): GoogleAppsScript.Gmail.Schema.Filter[] {
+  const listed = Gmail.Users!.Settings!.Filters!.list('me');
+  return (listed && listed.filter) || [];
+}
+
 /** メールの主要ヘッダをまとめて読む。 */
 function messageHeaders(messageId: string, names: string[]): Record<string, string> {
   const message = Gmail.Users!.Messages!.get('me', messageId, {
