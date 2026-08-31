@@ -86,6 +86,21 @@ Gmail の検索構文に glob も正規表現も無い。`*` と `\` はただ�
 
 **判断基準: ドメインが 1 社専用なら `from_domain`、共有なら `from`。**
 
+### 5d. 同じドメインの中で `@` の前の名前が系統を表す
+
+| ローカルパート | 系統 | 例 |
+| --- | --- | --- |
+| `orders@` `accounts@` `system@` `inquiry@` `statement@` `auto-confirm@` `shipment-tracking@` | 取引・通知 | Hungry Jack's / Audiostock / TAION / 三井住友 / Amazon |
+| `news@` `member@` `staff@` `store-news@` `point-` `marketing@` `promo` | 販促 | T2 Tea / TAION / Audiostock / Amazon / ぐるなび |
+| `support@` `customerservice@` `cs-` | 問い合わせ | Agoda / Insta360 / スタディサプリ |
+| `security` `no-reply@security.` | セキュリティ | Agoda |
+
+**Agoda は 1 社で 4 系統に割れる**（予約確認 / 問い合わせ / セキュリティ / 販促）。
+現行フィルタの `from: *.agoda-emails.com` はこの 4 つを区別できないどころか、
+ワイルドカードが効かないので何も拾えていなかった。
+
+判定の補助に使えるが、**規則ではなく傾向**。ルールは実際の観測で確定させる。
+
 ### 6. ラベル改名は割り当てを保持するが、統合は再タグ付けが要る
 
 1:1 の改名は `Gmail.Users.Labels.patch` で一瞬。メールの割り当てはそのまま残る。
@@ -103,21 +118,6 @@ Gmail の検索構文に glob も正規表現も無い。`*` と `\` はただ�
 | 任意ヘッダの取得 | `GmailApp` は露出しない | 高度なサービス `Gmail.Users.Messages.get` を使う。1 通 1 コールなので調査系に限る |
 
 ---
-
-### 5d. 同じドメインの中で `@` の前の名前が系統を表す
-
-| ローカルパート | 系統 | 例 |
-| --- | --- | --- |
-| `orders@` `accounts@` `system@` `inquiry@` `statement@` `auto-confirm@` `shipment-tracking@` | 取引・通知 | Hungry Jack's / Audiostock / TAION / 三井住友 / Amazon |
-| `news@` `member@` `staff@` `store-news@` `point-` `marketing@` `promo` | 販促 | T2 Tea / TAION / Audiostock / Amazon / ぐるなび |
-| `support@` `customerservice@` `cs-` | 問い合わせ | Agoda / Insta360 / スタディサプリ |
-| `security` `no-reply@security.` | セキュリティ | Agoda |
-
-**Agoda は 1 社で 4 系統に割れる**（予約確認 / 問い合わせ / セキュリティ / 販促）。
-現行フィルタの `from: *.agoda-emails.com` はこの 4 つを区別できないどころか、
-ワイルドカードが効かないので何も拾えていなかった。
-
-判定の補助に使えるが、**規則ではなく傾向**。ルールは実際の観測で確定させる。
 
 ## 調査上の制約
 
