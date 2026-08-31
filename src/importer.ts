@@ -15,57 +15,124 @@ function importCurrentState(): void {
   const rules = importFilters();
   refreshSenders(startedAt);
 
+  // 再実行では追加が 0 件になるので、内訳を出さないと何が起きたのか分からない。
   activeBook().toast(
-    `ラベル ${labels} 件 / ルール ${rules} 件を取り込みました。rules は全て無効の状態です。`,
+    `ラベル 追加 ${labels.added} / 更新 ${labels.updated} / 消失 ${labels.missing} 件` +
+      ` (未処理 ${labels.skipped} 件) / ルール ${rules} 件を取り込みました。rules は全て無効の状態です。`,
     'gmail-organizer',
     15
   );
 }
 
-/** Gmail のユーザーラベルを labels シートへ投入する。 */
-function importLabels(startedAt: number): number {
+interface LabelImportResult {
+  /** シートに無かったので追記したラベル数。 */
+  added: number;
+  /** 既存行を実態に合わせて書き換えたラベル数。 */
+  updated: number;
+  /** Gmail から消えていたので `状態 = missing` にした行数。 */
+  missing: number;
+  /** 予算切れで今回触れなかったラベル数。 */
+  skipped: number;
+}
+
+/**
+ * Gmail のユーザーラベルを labels シートへ投入する。
+ *
+ * 突き合わせのキーは `gmail_label_id`。Gmail のラベル ID は改名しても変わらないので、
+ * 改名をそのまま追随できる。ラベル名で突き合わせると、移行で改名したラベルが
+ * 「未知のラベル」と判定され、旧名の行を残したまま二重に増える。
+ *
+ * 人が編集する列 (既定_受信トレイ除外 / 既定_既読化 / 説明) は書き換えない。
+ * そこはシート側が正。
+ */
+function importLabels(startedAt: number): LabelImportResult {
   const listed = Gmail.Users!.Labels!.list('me');
   const all = listed.labels || [];
-  const known = existingKeys(SHEET_NAMES.LABELS, 'fullPath');
   const now = new Date();
 
+  const existing: Record<string, Row> = {};
+  for (const row of readRows(SHEET_NAMES.LABELS)) {
+    const id = String(row['gmailLabelId'] || '').trim();
+    if (id !== '') existing[id] = row;
+  }
+
   const rows: Row[] = [];
-  let skipped = 0;
+  const updates: CellUpdate[] = [];
+  const seen: Record<string, boolean> = {};
+  const result: LabelImportResult = { added: 0, updated: 0, missing: 0, skipped: 0 };
 
   for (const label of all) {
     if (label.type !== 'user' || !label.name || !label.id) continue;
-    if (known[label.name]) continue;
 
     // 1 ラベルにつき Labels.get を 1 回呼ぶ。予算を超えたら残りは次の実行に回す。
     if (outOfTime(startedAt)) {
-      skipped += 1;
+      result.skipped += 1;
       continue;
     }
 
+    seen[label.id] = true;
     // messagesTotal は list では返らないので個別に読む。ラベル数は数十なので許容範囲。
     const detail = Gmail.Users!.Labels!.get('me', label.id);
     const parts = splitLabelPath(label.name);
+    const messageCount = detail.messagesTotal || 0;
+    const state = messageCount > 0 ? 'active' : 'archived';
 
-    rows.push({
-      labelKey: label.id,
-      major: parts.major,
-      middle: parts.middle,
-      minor: parts.minor,
-      gmailLabelId: label.id,
-      defaultSkipInbox: false,
-      defaultMarkRead: false,
-      state: (detail.messagesTotal || 0) > 0 ? 'active' : 'archived',
-      description: '',
-      messageCount: detail.messagesTotal || 0,
-      syncedAt: now,
-    });
+    const found = existing[label.id];
+    if (!found) {
+      rows.push({
+        labelKey: label.id,
+        major: parts.major,
+        middle: parts.middle,
+        minor: parts.minor,
+        gmailLabelId: label.id,
+        defaultSkipInbox: false,
+        defaultMarkRead: false,
+        state,
+        description: '',
+        messageCount,
+        syncedAt: now,
+      });
+      result.added += 1;
+      continue;
+    }
+
+    const rowNumber = Number(found['_rowNumber']);
+    updates.push(
+      { rowNumber, key: 'major', value: parts.major },
+      { rowNumber, key: 'middle', value: parts.middle },
+      { rowNumber, key: 'minor', value: parts.minor },
+      { rowNumber, key: 'state', value: state },
+      { rowNumber, key: 'messageCount', value: messageCount },
+      { rowNumber, key: 'syncedAt', value: now }
+    );
+    result.updated += 1;
   }
 
+  // Gmail から消えたラベルの行は削除せず状態だけ落とす。行の削除は巻き戻しが効かない。
+  // 予算切れで走査しきれなかった実行では判定しない。読めなかっただけのラベルを
+  // missing と誤って記録してしまうため。
+  if (result.skipped === 0) {
+    for (const id of Object.keys(existing)) {
+      if (seen[id]) continue;
+      const row = existing[id];
+      if (String(row['state'] || '').trim() === 'missing') continue;
+
+      const rowNumber = Number(row['_rowNumber']);
+      updates.push(
+        { rowNumber, key: 'state', value: 'missing' },
+        { rowNumber, key: 'syncedAt', value: now }
+      );
+      result.missing += 1;
+    }
+  }
+
+  updateCells(SHEET_NAMES.LABELS, updates);
   appendRows(SHEET_NAMES.LABELS, rows);
-  if (skipped > 0) {
-    console.warn(`importLabels: 時間切れで ${skipped} 件を残しました。もう一度実行してください`);
+
+  if (result.skipped > 0) {
+    console.warn(`importLabels: 時間切れで ${result.skipped} 件を残しました。もう一度実行してください`);
   }
-  return rows.length;
+  return result;
 }
 
 /** 既存の Gmail フィルタを rules シートへ下書きとして投入する。 */
