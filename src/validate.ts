@@ -9,8 +9,14 @@
  * 列を足したときに検査側を直し忘れる余地を残さない。
  */
 
-/** 報告する問題の上限。全部並べても読めないので頭だけ出す。 */
-const VALIDATE_MAX_PROBLEMS = 30;
+/**
+ * 集める問題の上限。実行時間が青天井にならないための歯止め。
+ * 直すべき対象が多いときほど全体像が要るので、低く絞りすぎない。
+ */
+const VALIDATE_MAX_PROBLEMS = 300;
+
+/** メールに並べる件数。読める量で切る。集めた数は別に伝える。 */
+const DIGEST_MAX_PROBLEMS = 20;
 
 interface SheetProblem {
   /** `senders!C12` の形。 */
@@ -168,12 +174,15 @@ function preview(value: unknown): string {
 function describeProblems(problems: SheetProblem[]): string[] {
   if (problems.length === 0) return [];
 
-  const lines = [`■ シートの型が合っていないセル ${problems.length} 件`];
-  for (const problem of problems) {
+  const lines = [`■ シートの定義と合っていないセル ${problems.length} 件`];
+  for (const problem of problems.slice(0, DIGEST_MAX_PROBLEMS)) {
     lines.push(`  ${problem.cell} ${problem.header} — ${problem.detail}`);
   }
+  if (problems.length > DIGEST_MAX_PROBLEMS) {
+    lines.push(`  ほか ${problems.length - DIGEST_MAX_PROBLEMS} 件。全件はメニュー「シートを検査する」の実行ログに出ます`);
+  }
   if (problems.length >= VALIDATE_MAX_PROBLEMS) {
-    lines.push(`  (上限 ${VALIDATE_MAX_PROBLEMS} 件まで。直してから再実行すると続きが出ます)`);
+    lines.push(`  (集計の上限 ${VALIDATE_MAX_PROBLEMS} 件に達しました。直してから再実行すると続きが出ます)`);
   }
   lines.push('');
   return lines;
