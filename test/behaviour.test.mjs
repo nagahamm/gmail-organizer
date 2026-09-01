@@ -26,6 +26,8 @@ const {
   percent,
   filterIsTooNarrow,
   isMissingColumnError,
+  isSkipProposable,
+  buildSkipProposal,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -183,6 +185,59 @@ test('シートごと無い場合は列不足ではない', () => {
 
 test('無関係な失敗は列不足ではない', () => {
   assert.equal(isMissingColumnError('Service invoked too many times for one day: gmail.'), false);
+});
+
+// --- 機能: 受信トレイ除外の提案 ---------------------------------------------
+
+/** unmatched の 1 行。 */
+function unmatchedRow(overrides = {}) {
+  return {
+    _rowNumber: 2,
+    from: 'hello@smileie.au',
+    category: 'promotions',
+    count7d: 12,
+    unreadRate: '100%',
+    skipInboxCandidate: true,
+    proposed: false,
+    ...overrides,
+  };
+}
+
+test('除外候補を提案に立てる', () => {
+  assert.equal(isSkipProposable(unmatchedRow()), true);
+});
+
+test('除外候補でないものは提案しない', () => {
+  assert.equal(isSkipProposable(unmatchedRow({ skipInboxCandidate: false })), false);
+});
+
+test('同じ送信元を繰り返し提案しない', () => {
+  assert.equal(isSkipProposable(unmatchedRow({ proposed: true })), false);
+});
+
+test('送信元が空なら提案しない', () => {
+  assert.equal(isSkipProposable(unmatchedRow({ from: '  ' })), false);
+});
+
+test('根拠にカテゴリと件数と未読率が入る', () => {
+  const proposal = buildSkipProposal(unmatchedRow(), 'smileie.au', new Date());
+  assert.match(proposal.rationale, /promotions/);
+  assert.match(proposal.rationale, /12 件/);
+  assert.match(proposal.rationale, /100%/);
+});
+
+test('どのラベルへ入れるかは決めない', () => {
+  const proposal = buildSkipProposal(unmatchedRow(), 'smileie.au', new Date());
+  assert.equal(proposal.label, 'Promotions');
+  assert.match(proposal.comment, /プルダウンで直して/);
+});
+
+test('提案はドメインで引くルールになる', () => {
+  const proposal = buildSkipProposal(unmatchedRow(), 'smileie.au', new Date());
+  assert.equal(proposal.kind, 'inbox_skip');
+  assert.equal(proposal.matchKind, 'from_domain');
+  assert.equal(proposal.pattern, 'smileie.au');
+  assert.equal(proposal.approval, '未確認');
 });
 
 // --- 機能: シートの検査 (フィルタ範囲) --------------------------------------

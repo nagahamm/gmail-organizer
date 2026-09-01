@@ -30,6 +30,8 @@ const EXPORTED = [
   'percent',
   'filterIsTooNarrow',
   'isMissingColumnError',
+  'isSkipProposable',
+  'buildSkipProposal',
 ];
 
 export function load() {

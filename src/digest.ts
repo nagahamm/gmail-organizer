@@ -30,6 +30,9 @@ function runWeeklyDigest(): void {
   const unmatched = collectUnmatched(startedAt);
   replaceRows(SHEET_NAMES.UNMATCHED, unmatched.rows);
 
+  // 未分類の集計ができた直後に立てる。除外候補の印をそのまま提案にする。
+  proposeInboxSkips();
+
   refreshSenders(startedAt);
   proposeAppliedJobs();
 
