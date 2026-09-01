@@ -7,7 +7,7 @@
  * Gmail が解釈しない from: のワイルドカードより桁違いに安定する。
  *
  * このファイルは GAS の API に依存しない純粋関数だけを置く。
- * runMatcherSelfTest() で GAS 上から検証できる。
+ * 純粋関数なので `npm test` で Node から直接検証できる。
  */
 
 interface Rule {
@@ -107,57 +107,4 @@ function loadRules(): Rule[] {
   }
 
   return rules.sort((a, b) => a.priority - b.priority);
-}
-
-/**
- * 照合ロジックの自己テスト。GAS のエディタから実行して結果をログで見る。
- * 外部の実行環境を用意せずに壊れていないことを確認するため。
- */
-function runMatcherSelfTest(): void {
-  const failures: string[] = [];
-
-  const check = (name: string, actual: unknown, expected: unknown): void => {
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-      failures.push(`${name}\n  期待: ${JSON.stringify(expected)}\n  実際: ${JSON.stringify(actual)}`);
-    }
-  };
-
-  check('list_id は list: 演算子になる', buildMatchQuery('list_id', 'news.example.com'), 'list:(news.example.com)');
-  check('from は from: になる', buildMatchQuery('from', 'a@example.com'), 'from:(a@example.com)');
-  check('subject は subject: になる', buildMatchQuery('subject', '認証コード'), 'subject:(認証コード)');
-  check('query は素通し', buildMatchQuery('query', 'has:attachment older_than:1y'), 'has:attachment older_than:1y');
-  check('空パターンは式を作らない', buildMatchQuery('from', '   '), '');
-  check('二重引用符は落とす', buildMatchQuery('subject', 'a"b'), 'subject:(a b)');
-
-  const base: Rule = {
-    rowNumber: 2, ruleId: 'R1', enabled: true, priority: 1, kind: 'list_id',
-    pattern: 'news.example.com', label: 'Promo/Store', location: '', skipInbox: true,
-    markRead: true, star: false, neverSpam: true, frozenAt: null, matchCount: 0,
-  };
-
-  check(
-    '検索式は期間と除外ラベルを含む',
-    buildRuleQuery(base, 'newer_than:2d'),
-    'list:(news.example.com) newer_than:2d -label:"Promo/Store"'
-  );
-
-  const now = new Date('2026-08-19T00:00:00Z');
-  check('有効なルールは適用する', isRuleApplicable(base, now, false), true);
-  check('無効なルールは適用しない', isRuleApplicable({ ...base, enabled: false }, now, false), false);
-  check('パターンが空なら適用しない', isRuleApplicable({ ...base, pattern: '  ' }, now, false), false);
-  check('付与先が無ければ適用しない', isRuleApplicable({ ...base, label: '', location: '' }, now, false), false);
-
-  const frozen = { ...base, frozenAt: new Date('2026-08-01T00:00:00Z') };
-  check('凍結後は新規メールに適用しない', isRuleApplicable(frozen, now, false), false);
-  check('凍結後でも遡及には適用する', isRuleApplicable(frozen, now, true), true);
-
-  const future = { ...base, frozenAt: new Date('2026-12-01T00:00:00Z') };
-  check('凍結日前なら新規メールにも適用する', isRuleApplicable(future, now, false), true);
-
-  if (failures.length === 0) {
-    console.log('runMatcherSelfTest: 全て通過');
-    return;
-  }
-  console.error(`runMatcherSelfTest: ${failures.length} 件失敗\n${failures.join('\n')}`);
-  throw new Error(`照合ロジックの自己テストに失敗しました (${failures.length} 件)`);
 }

@@ -83,10 +83,9 @@ npm run push             # src/ を GAS プロジェクトへ反映
 検証可能な範囲はテストを用意し、通してからコミットする。すべてを先にテストから書く
 厳密な TDD までは求めないが、**テストなしで実装だけのコミットはしない**。
 
-⚠️ 現状は `npm run typecheck` と `runMatcherSelfTest()` (GAS 上でしか動かない) しかなく、
-**Node で回せるテスト基盤が無い**。GAS 用に `import` / `export` を持たないフラットな構成が
-障害になっている。基盤を入れるまで typecheck が代役だが、これは暫定であって規約の免除ではない。
-基盤の設計は `docs/design.md` で決める。
+`npm test` が `docs/requirements.md` のシナリオを Node で検証する。
+仕組みは `docs/design.md` 5.4 にある。GAS API に触れない純粋関数だけが対象で、
+`GmailApp` / `SpreadsheetApp` を呼ぶ層は `npm run typecheck` とシート検査に任せる。
 
 ### AIDD
 

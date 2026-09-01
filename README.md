@@ -52,8 +52,9 @@ npx clasp open
 
 ```bash
 npm run typecheck   # tsc --noEmit
+npm test            # 振る舞いの検証
 npm run push        # clasp push
 ```
 
-照合ロジックはメニューの「照合ロジックの自己テスト」(`runMatcherSelfTest`) から
-GAS 上で検証できる。
+`npm test` は `docs/requirements.md` のシナリオのうち、GAS API に触れずに
+検証できるものを Node で回す。仕組みは `docs/design.md` 5.4 にある。
