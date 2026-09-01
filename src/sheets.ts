@@ -21,6 +21,17 @@ function getSheet(name: string): GoogleAppsScript.Spreadsheet.Sheet {
   return sheet;
 }
 
+/**
+ * 列不足のエラーに入れる目印。
+ * コードが要求する列にシートが追いついていないだけの状態を、他の失敗と区別する。
+ */
+const MISSING_COLUMN_MARK = 'に列がありません';
+
+/** そのエラーが「列がまだ無い」だけのものか。 */
+function isMissingColumnError(message: string): boolean {
+  return message.indexOf(MISSING_COLUMN_MARK) >= 0;
+}
+
 /** 1 行目のヘッダから「spec の key → 0 始まりの列番号」を作る。 */
 function resolveColumns(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
@@ -39,7 +50,9 @@ function resolveColumns(
     else index[column.key] = at;
   }
   if (missing.length > 0) {
-    throw new Error(`シート "${spec.name}" に列がありません: ${missing.join(', ')}。setup() を実行してください。`);
+    throw new Error(
+      `シート "${spec.name}"${MISSING_COLUMN_MARK}: ${missing.join(', ')}。setup() を実行してください。`
+    );
   }
   return index;
 }

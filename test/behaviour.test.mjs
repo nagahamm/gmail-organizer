@@ -25,6 +25,7 @@ const {
   isSkipInboxCandidate,
   percent,
   filterIsTooNarrow,
+  isMissingColumnError,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -167,6 +168,21 @@ test('新着タブも除外候補になりうる', () => {
 test('母数が 0 なら割合は空文字', () => {
   assert.equal(percent(0, 0), '');
   assert.equal(percent(1, 4), '25%');
+});
+
+// --- 機能: 列がまだ無いときの自動回復 ---------------------------------------
+
+test('列不足のエラーを見分ける', () => {
+  const message = 'シート "rules" に列がありません: 受信トレイ保持日数。setup() を実行してください。';
+  assert.equal(isMissingColumnError(message), true);
+});
+
+test('シートごと無い場合は列不足ではない', () => {
+  assert.equal(isMissingColumnError('シート "rules" がありません。setup() を実行してください。'), false);
+});
+
+test('無関係な失敗は列不足ではない', () => {
+  assert.equal(isMissingColumnError('Service invoked too many times for one day: gmail.'), false);
 });
 
 // --- 機能: シートの検査 (フィルタ範囲) --------------------------------------

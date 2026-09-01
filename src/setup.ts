@@ -9,22 +9,33 @@
 const SETUP_ROWS = 2000;
 
 function setup(): void {
-  const book = activeBook();
-  for (const spec of SHEET_SPECS) {
-    ensureSheet(book, spec);
-  }
-  seedConfigDefaults();
+  ensureSheets();
 
   // 定期実行の登録を初期化の一本道に組み込む。メニューの独立項目のままだと、
   // 押し忘れてもエラーが出ずに何も起きないので気づけない。
   // DRY_RUN の既定は TRUE なので、ここで登録してもラベルは変更されない。
   installTriggers();
 
-  book.toast(
+  activeBook().toast(
     'setup 完了。トリガーも登録しました。次に importCurrentState() を実行してください。',
     'gmail-organizer',
     10
   );
+}
+
+/**
+ * シートを定義に合わせる。トリガーには触らない。
+ *
+ * `setup()` から切り出してあるのは、自動実行が列不足で落ちたときに
+ * ここだけを呼んで追いつかせるため。実行中のトリガーを消して作り直すと
+ * 15 分の時計が動いてしまう。
+ */
+function ensureSheets(): void {
+  const book = activeBook();
+  for (const spec of SHEET_SPECS) {
+    ensureSheet(book, spec);
+  }
+  seedConfigDefaults();
 }
 
 function ensureSheet(book: GoogleAppsScript.Spreadsheet.Spreadsheet, spec: SheetSpec): void {

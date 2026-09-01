@@ -6,10 +6,25 @@
 
 /** 15 分おきに呼ばれる本体。トリガー数とクォータを節約するため 1 本にまとめる。 */
 function everyQuarterHour(): void {
-  // 3 つのステップで 1 つの予算を分け合う。ステップごとに数え直すと
-  // 6 分制限を超え、writeLog() に到達せずログにも何も残らない。
-  const startedAt = Date.now();
+  try {
+    runQuarterHourSteps(Date.now());
+    return;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // 列を足すコード変更を push した直後は、人が setup() を押すまでシートが追いつかない。
+    // 無人で回る経路なので、ここだけは自分で追いつかせて一度だけ試し直す。
+    // それ以外の失敗は黙って回復させない。本当に壊れているときに気づけなくなる。
+    if (!isMissingColumnError(message)) throw error;
+    console.warn(`everyQuarterHour: ${message} シートを合わせて再試行します`);
+  }
 
+  ensureSheets();
+  runQuarterHourSteps(Date.now());
+}
+
+/** 15 分ごとの中身。3 つのステップで 1 つの予算を分け合う。 */
+function runQuarterHourSteps(startedAt: number): void {
+  // ステップごとに数え直すと 6 分制限を超え、writeLog() に到達せずログにも何も残らない。
   applyApprovedProposals(startedAt);
   applyToNewMail(startedAt);
   promoteStarredJobs(startedAt);

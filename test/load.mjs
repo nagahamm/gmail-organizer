@@ -29,6 +29,7 @@ const EXPORTED = [
   'isSkipInboxCandidate',
   'percent',
   'filterIsTooNarrow',
+  'isMissingColumnError',
 ];
 
 export function load() {
