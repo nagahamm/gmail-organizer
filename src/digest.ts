@@ -19,17 +19,19 @@ function runWeeklyDigest(): void {
   // importCurrentState() と同じく、続けて回すステップで 1 つの予算を分け合う。
   const startedAt = Date.now();
 
-  const unmatched = collectUnmatched();
+  // 安くて確実に効かせたいものから先に済ませる。
+  // 集計や提案を先に走らせると、予算を使い切って掃除と検査が毎回飛ばされる。
+  const archived = archiveOldLogs();
+  const expired = archiveExpiredInbox(startedAt);
+  const problems = validateSheets(startedAt);
+  const deadRules = findDeadRules();
+
+  // ここから先は重い。残り時間の範囲で拾えるだけ拾う。
+  const unmatched = collectUnmatched(startedAt);
   replaceRows(SHEET_NAMES.UNMATCHED, unmatched.rows);
 
   refreshSenders(startedAt);
   proposeAppliedJobs();
-  const deadRules = findDeadRules();
-  const archived = archiveOldLogs();
-  // 既読にして受信トレイに残したメールの掃除。ログの退避と同じ週次のお掃除。
-  const expired = archiveExpiredInbox(startedAt);
-  // シートは人が直接編集するので、型崩れは週次で必ず目に入るようにする。
-  const problems = validateSheets(startedAt);
 
   sendDigestMail(unmatched, deadRules, archived, expired, problems);
   console.log(
@@ -76,23 +78,38 @@ const SKIP_INBOX_UNREAD_RATE = 0.8;
 interface UnmatchedResult {
   rows: Row[];
   scanned: number;
+  /** 予算切れで見きれなかったカテゴリがあるか。集計を全量として見せないため。 */
+  truncated: boolean;
 }
 
 /**
  * どのユーザーラベルも付いていないメールを送信元ドメイン別に集計する。
  * 未読率が高いものは「読む気がない」= 受信トレイ除外の候補。
  */
-function collectUnmatched(): UnmatchedResult {
+function collectUnmatched(startedAt?: number): UnmatchedResult {
+  const since = budgetStart(startedAt);
   const stats: Record<string, UnmatchedStat> = {};
   let scanned = 0;
+  let truncated = false;
 
   for (const category of UNMATCHED_CATEGORIES) {
+    if (outOfTime(since)) {
+      console.warn(`collectUnmatched: 時間切れで ${category.name} 以降を見ていません`);
+      truncated = true;
+      break;
+    }
+
     const query = `in:inbox has:nouserlabels ${category.query}`;
     const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
     scanned += threads.length;
 
-    for (const thread of threads) {
-      const head = thread.getMessages()[0];
+    // スレッドごとに getMessages() を呼ぶと 1 スレッド 1 コールになる。
+    // まとめて取れる API があるのでそちらを使う。
+    const messages = GmailApp.getMessagesForThreads(threads);
+
+    for (let at = 0; at < threads.length; at += 1) {
+      const thread = threads[at];
+      const head = messages[at] ? messages[at][0] : null;
       if (!head) continue;
 
       const address = extractAddress(head.getFrom());
@@ -139,7 +156,7 @@ function collectUnmatched(): UnmatchedResult {
     };
   });
 
-  return { rows, scanned };
+  return { rows, scanned, truncated };
 }
 
 /**
@@ -236,7 +253,10 @@ function sendDigestMail(
   lines.push('gmail-organizer 週次ダイジェスト');
   lines.push('');
   lines.push(`受信トレイの未読: ${inbox} 通`);
-  lines.push(`受信トレイの未分類スレッド: ${unmatched.scanned} 件`);
+  lines.push(
+    `受信トレイの未分類スレッド: ${unmatched.scanned} 件` +
+      (unmatched.truncated ? ' (時間切れで途中まで。全量ではありません)' : '')
+  );
   lines.push(`ログ退避: ${archived} 行`);
   lines.push(`保持期間を過ぎて受信トレイから外した: ${expired} 件`);
   lines.push('');
