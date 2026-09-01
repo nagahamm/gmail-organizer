@@ -6,7 +6,10 @@
 ## 前提
 
 - **ラベル名は英語**。大項目・中項目は英語、小項目のブランド名のみ原語 (`Rakuten` / `Amazon` / `AWX`)
-- **拠点タグは `@AU` のみ**。ワーホリは終了済みなので凍結扱い
+- **拠点タグは `@AU` のみ**。新着にも付ける。
+  ワーホリは終了したが、有料道路 (Linkt) / NAB / 年金 / Macca's / QLD と
+  **豪州からのメールは今も届く**。年金の還付請求など帰国後も続く関係があるため、
+  一度は凍結したが解除した
 - **`@JP` は作らない**。`@AU` でないものは全部 JP なので、9,000 通以上に無意味なタグが付くだけ
 
 ## 大項目 (14)
@@ -28,9 +31,12 @@
 | `Official` | 行政・税務・ビザ | 残す | しない |
 | `Personal` | 人から届いたメール | 残す | しない |
 
-`Promotions` 以外は全て受信トレイに残し、既読にもしない。
-**除外して既読にしてよいのは販促だけ**という線引きにする。
+**除外してよいのは販促だけ**という線引きにする。
 これを緩めると、Gmail フィルタで起きていた「静かに消える」が再発する。
+
+ただし**既読化は除外と切り離す**。表は大項目の既定で、
+決済の都度通知のように「記録は残したいが毎回開く必要はない」ものは、
+受信トレイに残したまま既読にする (`docs/requirements.md`「機能: 既読化と受信トレイの保持」)。
 
 ## 境界の決め方
 
@@ -82,6 +88,11 @@ Discord は認証コードなので `Security/Codes` に収まる。
 
 `Promotions/Jobs` に次ぐ規模。送信元は 15 以上ある。
 
+`Promotions/English` と送信元が重なるが、**系統が違う**ので分けたままにする。
+`elsa@promo.elsanow.io` や `v-mail@dmm.com` のキャンペーンは `Promotions/English`、
+学習の進捗通知が `Learning/English`。同じ会社が複数系統を出す例
+(`docs/constraints.md` 5b/5d)。
+
 | ラベル | 中身 | 送信元 |
 | --- | --- | --- |
 | `Learning/Certificates` | 修了証・資格認定 | Google Data Analytics Certificate。転職で提示できる実在の資格 |
@@ -89,6 +100,12 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | `Learning/Exams` | 資格試験の申込・受験票・結果 | TOEIC。申込には期限がある |
 | `Learning/English` | 英語学習サービス | Duolingo / ELSA / DMM 英会話 / スタディサプリ / EF |
 | `Learning/Admissions` | 進学・入学相談・オープンキャンパス | 入学相談会の予約確定 |
+
+### Promotions/Books — 書籍
+
+`store-news@amazon.co.jp` の「今日のKindle本お買い得情報」が毎日届く。
+`Promotions/Stores` に混ぜると店舗の販促に埋もれるので分ける。
+`Kindle` はブランド名なので、中項目はジャンルの `Books` にする。
 
 ### Health — 医療
 
@@ -104,6 +121,10 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | --- | --- |
 | `Official/Tax` | 税理士 (`ezytaxsolutionsjapan.com.au`) / Xero (会計ソフト) |
 | `Official` | 福岡市役所 / QLD 交通局 |
+
+Containers for Change (ボトル返却の還付) は `Official` に**入れない**。
+行政手続きではなく、ポイント還元と同じ「使うと戻ってくる」系なので
+`Promotions/Rewards` に入る。
 
 ### Personal — 人から届いたメール
 
