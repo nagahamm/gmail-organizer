@@ -38,17 +38,22 @@ function installTriggers(): void {
     if (managed.indexOf(trigger.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(trigger);
   }
 
+  // GAS の時間主導トリガーは実行時刻を指定できない。`everyMinutes(15)` は
+  // **この関数を実行した時刻を起点**に 15 分間隔で回る。:00 / :15 / :30 / :45 に
+  // 揃えたい場合は、毎時 :00 ちょうどにこの関数を実行し直す。
   ScriptApp.newTrigger('everyQuarterHour').timeBased().everyMinutes(15).create();
   // 月次の取りこぼし回収。applyToNewMail() の対象は newer_than:2d なので、
   // それより長く止まった分やルールを後から足した分はこちらでしか拾えない。
   // applyRetroactive() は引数を取らないので、トリガーのイベントオブジェクトを
   // 誤って受けることがない。そのまま登録してよい。
-  ScriptApp.newTrigger('applyRetroactive').timeBased().onMonthDay(1).atHour(4).create();
+  // 時刻はスクリプトのタイムゾーン (Asia/Tokyo) で解釈される。
+  ScriptApp.newTrigger('applyRetroactive').timeBased().onMonthDay(1).atHour(0).create();
   ScriptApp.newTrigger('runWeeklyDigest').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(7).create();
 
   // シートから実行したときにも登録されたことが見えるようにする。console はシートから見えない。
   const message =
-    'トリガーを登録しました: everyQuarterHour (15 分間隔) / applyRetroactive (毎月 1 日 4 時) / runWeeklyDigest (日曜 7 時)';
+    `トリガーを登録しました: everyQuarterHour (15 分間隔。起点は今の時刻 ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm')}) / ` +
+    'applyRetroactive (毎月 1 日 0 時) / runWeeklyDigest (日曜 7 時)';
   console.log(message);
   activeBook().toast(message, 'gmail-organizer', 10);
 }
