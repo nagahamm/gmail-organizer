@@ -28,6 +28,7 @@ const EXPORTED = [
   'allowedValues',
   'isSkipInboxCandidate',
   'percent',
+  'filterIsTooNarrow',
 ];
 
 export function load() {

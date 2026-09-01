@@ -24,6 +24,7 @@ const {
   allowedValues,
   isSkipInboxCandidate,
   percent,
+  filterIsTooNarrow,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -166,6 +167,24 @@ test('新着タブも除外候補になりうる', () => {
 test('母数が 0 なら割合は空文字', () => {
   assert.equal(percent(0, 0), '');
   assert.equal(percent(1, 4), '25%');
+});
+
+// --- 機能: シートの検査 (フィルタ範囲) --------------------------------------
+
+test('列が増えていればフィルタを作り直す', () => {
+  assert.equal(filterIsTooNarrow(16, 2001, 17, 2001), true);
+});
+
+test('行が足りなければフィルタを作り直す', () => {
+  assert.equal(filterIsTooNarrow(17, 500, 17, 2001), true);
+});
+
+test('範囲が足りていれば作り直さない', () => {
+  assert.equal(filterIsTooNarrow(17, 2001, 17, 2001), false);
+});
+
+test('範囲が広すぎる分には作り直さない', () => {
+  assert.equal(filterIsTooNarrow(20, 3000, 17, 2001), false);
 });
 
 // --- 機能: シートの検査 -----------------------------------------------------

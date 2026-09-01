@@ -114,9 +114,40 @@ function applyFormats(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpec
     }
   }
 
-  if (!sheet.getFilter()) {
-    sheet.getRange(1, 1, SETUP_ROWS + 1, sheet.getLastColumn()).createFilter();
+  ensureFilter(sheet);
+}
+
+/**
+ * 絞り込みフィルタを、今の列数・行数に合わせる。
+ *
+ * 「フィルタが無いときだけ作る」にしていたため、初回に作った範囲のまま固定され、
+ * 後から足した列が範囲の外に取り残されていた。`setup()` は何度実行しても
+ * 同じ結果になるべきなので、狭いときは作り直す。
+ *
+ * 作り直すと利用者が設定していた絞り込み条件は消えるが、狭いときだけなので毎回は消えない。
+ */
+function ensureFilter(sheet: GoogleAppsScript.Spreadsheet.Sheet): void {
+  const columns = sheet.getLastColumn();
+  const rows = SETUP_ROWS + 1;
+  const filter = sheet.getFilter();
+
+  if (filter) {
+    const range = filter.getRange();
+    if (!filterIsTooNarrow(range.getLastColumn(), range.getLastRow(), columns, rows)) return;
+    filter.remove();
   }
+
+  sheet.getRange(1, 1, rows, columns).createFilter();
+}
+
+/** 今のフィルタ範囲が、必要な範囲を覆えていないか。 */
+function filterIsTooNarrow(
+  filterColumns: number,
+  filterRows: number,
+  wantedColumns: number,
+  wantedRows: number
+): boolean {
+  return filterColumns < wantedColumns || filterRows < wantedRows;
 }
 
 function applyValidations(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpec): void {
