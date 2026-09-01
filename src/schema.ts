@@ -94,6 +94,13 @@ const SHEET_SPECS: SheetSpec[] = [
         width: 110,
         note: 'この日以降は新規メールに適用しない。@AU の段階的な終了に使う。',
       },
+      {
+        key: 'inboxDays',
+        header: '受信トレイ保持日数',
+        type: 'number',
+        width: 140,
+        note: '既読にして残したメールを、この日数を過ぎたら受信トレイから外す。空なら外さない。Security には設定しない。',
+      },
       { key: 'memo', header: 'メモ', width: 240 },
       { key: 'createdAt', header: '登録日', type: 'date', width: 110 },
       { key: 'lastMatchedAt', header: '最終マッチ日', type: 'date', width: 120 },

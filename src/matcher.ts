@@ -24,6 +24,8 @@ interface Rule {
   star: boolean;
   neverSpam: boolean;
   frozenAt: Date | null;
+  /** 既読にして受信トレイに残したメールを外すまでの日数。0 なら外さない。 */
+  inboxDays: number;
   matchCount: number;
 }
 
@@ -67,6 +69,23 @@ function buildRuleQuery(rule: Rule, windowQuery: string): string {
 }
 
 /**
+ * 保持期間を過ぎたスレッドを引く検索式。設定が無ければ空文字。
+ *
+ * 既読にして受信トレイに残したメールが、いつまでも溜まらないようにする。
+ * 外すのは受信トレイからだけで、削除はしない。
+ */
+function buildRetentionQuery(rule: Rule): string {
+  if (!rule.enabled) return '';
+  const days = Math.floor(rule.inboxDays);
+  if (days <= 0) return '';
+
+  const label = sanitizeQueryValue(rule.label);
+  if (label === '') return '';
+
+  return `label:"${label}" in:inbox older_than:${days}d`;
+}
+
+/**
  * このルールを今回の実行で使ってよいか。
  *
  * `有効 = FALSE` は完全な停止。`凍結日` は「過去メールへの遡及は許すが
@@ -102,6 +121,7 @@ function loadRules(): Rule[] {
       star: row['star'] === true,
       neverSpam: row['neverSpam'] === true,
       frozenAt: row['frozenAt'] instanceof Date ? (row['frozenAt'] as Date) : null,
+      inboxDays: Number(row['inboxDays']) || 0,
       matchCount: Number(row['matchCount']) || 0,
     });
   }

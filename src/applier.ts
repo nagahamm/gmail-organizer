@@ -93,6 +93,67 @@ function applyRules(windowQuery: string, retroactive: boolean, startedAt?: numbe
 }
 
 /**
+ * 保持期間を過ぎたメールを受信トレイから外す。
+ *
+ * 「記録は残したいが毎回開く必要はない」ものを既読にして残す運用にすると、
+ * そのままでは受信トレイが埋まっていく。日数を設定したルールだけ掃除する。
+ *
+ * 週次で回す。`older_than` の粒度が日なので、15 分ごとに引く意味がない。
+ * ログの退避と同じ「週次のお掃除」に並べる。
+ */
+function archiveExpiredInbox(startedAt?: number): number {
+  const since = budgetStart(startedAt);
+  const runId = newRunId();
+  const dryRun = isDryRun();
+  const entries: LogEntry[] = [];
+
+  for (const rule of loadRules()) {
+    if (outOfTime(since)) {
+      console.warn('archiveExpiredInbox: 時間切れのため残りのルールを飛ばしました');
+      break;
+    }
+
+    const query = buildRetentionQuery(rule);
+    if (query === '') continue;
+
+    const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
+    for (const thread of threads) entries.push(archiveExpiredThread(thread, rule, dryRun));
+  }
+
+  writeLog(runId, entries);
+  return entries.length;
+}
+
+/** 1 スレッドを受信トレイから外し、ログ 1 行分を返す。削除はしない。 */
+function archiveExpiredThread(
+  thread: GoogleAppsScript.Gmail.GmailThread,
+  rule: Rule,
+  dryRun: boolean
+): LogEntry {
+  const head = thread.getMessages()[0];
+
+  const entry: LogEntry = {
+    messageId: head ? head.getId() : thread.getId(),
+    from: head ? extractAddress(head.getFrom()) : '',
+    listId: '',
+    subject: head ? head.getSubject() : thread.getFirstMessageSubject(),
+    ruleId: rule.ruleId || String(rule.rowNumber),
+    appliedLabel: rule.label,
+    action: `受信トレイ除外 (保持 ${rule.inboxDays} 日を経過)`,
+    result: dryRun ? 'dry_run' : 'applied',
+  };
+
+  if (dryRun) return entry;
+
+  try {
+    thread.moveToArchive();
+  } catch (error) {
+    entry.result = `error: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  return entry;
+}
+
+/**
  * 渡されたルールだけを評価して適用する。
  * 承認された提案をその場で遡及適用するときにも使う。
  */

@@ -26,13 +26,15 @@ function runWeeklyDigest(): void {
   proposeAppliedJobs();
   const deadRules = findDeadRules();
   const archived = archiveOldLogs();
+  // 既読にして受信トレイに残したメールの掃除。ログの退避と同じ週次のお掃除。
+  const expired = archiveExpiredInbox(startedAt);
   // シートは人が直接編集するので、型崩れは週次で必ず目に入るようにする。
   const problems = validateSheets(startedAt);
 
-  sendDigestMail(unmatched, deadRules, archived, problems);
+  sendDigestMail(unmatched, deadRules, archived, expired, problems);
   console.log(
     `runWeeklyDigest: 未分類 ${unmatched.rows.length} 件 / 死んだルール ${deadRules.length} 件 / ` +
-      `ログ退避 ${archived} 行 / 型の問題 ${problems.length} 件`
+      `ログ退避 ${archived} 行 / 保持期間切れ ${expired} 件 / 型の問題 ${problems.length} 件`
   );
 }
 
@@ -222,6 +224,7 @@ function sendDigestMail(
   unmatched: UnmatchedResult,
   deadRules: DeadRule[],
   archived: number,
+  expired: number,
   problems: SheetProblem[]
 ): void {
   const to = readConfig('NOTIFY_TO', '') || Session.getActiveUser().getEmail();
@@ -235,6 +238,7 @@ function sendDigestMail(
   lines.push(`受信トレイの未読: ${inbox} 通`);
   lines.push(`受信トレイの未分類スレッド: ${unmatched.scanned} 件`);
   lines.push(`ログ退避: ${archived} 行`);
+  lines.push(`保持期間を過ぎて受信トレイから外した: ${expired} 件`);
   lines.push('');
 
   // 型崩れは他の集計を狂わせるので先頭に出す。

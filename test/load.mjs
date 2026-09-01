@@ -15,6 +15,7 @@ const BUNDLE = 'build/bundle.js';
 const EXPORTED = [
   'isRuleApplicable',
   'buildRuleQuery',
+  'buildRetentionQuery',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',

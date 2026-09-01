@@ -11,6 +11,7 @@ import { load } from './load.mjs';
 const {
   isRuleApplicable,
   buildRuleQuery,
+  buildRetentionQuery,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -43,6 +44,7 @@ function rule(overrides = {}) {
     star: false,
     neverSpam: false,
     frozenAt: null,
+    inboxDays: 0,
     matchCount: 0,
     ...overrides,
   };
@@ -109,6 +111,34 @@ test('パターンが空のルールは検索式にならない', () => {
 
 test('検索式に入る二重引用符と改行は落とす', () => {
   assert.equal(sanitizeQueryValue('a"b\nc'), 'a b c');
+});
+
+// --- 機能: 既読化と受信トレイの保持 -----------------------------------------
+
+test('保持期間を過ぎたスレッドを引く', () => {
+  const query = buildRetentionQuery(rule({ label: 'Finance/Cards/Jcb', inboxDays: 30 }));
+  assert.equal(query, 'label:"Finance/Cards/Jcb" in:inbox older_than:30d');
+});
+
+test('保持期間を設定していなければ何も引かない', () => {
+  assert.equal(buildRetentionQuery(rule({ inboxDays: 0 })), '');
+});
+
+test('無効なルールでは何も引かない', () => {
+  assert.equal(buildRetentionQuery(rule({ enabled: false, inboxDays: 30 })), '');
+});
+
+test('ラベルが無いルールでは何も引かない', () => {
+  assert.equal(buildRetentionQuery(rule({ label: '', location: '@AU', inboxDays: 30 })), '');
+});
+
+test('保持日数は整数に丸める', () => {
+  const query = buildRetentionQuery(rule({ label: 'X', inboxDays: 30.7 }));
+  assert.match(query, /older_than:30d/);
+});
+
+test('負の保持日数は設定なしとして扱う', () => {
+  assert.equal(buildRetentionQuery(rule({ inboxDays: -1 })), '');
 });
 
 // --- 機能: 週次ダイジェスト (受信トレイ除外の候補) --------------------------
