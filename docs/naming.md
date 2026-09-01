@@ -40,6 +40,14 @@
 - **`Utilities`** — 通信・光熱。生活インフラなので解約の判断対象にならない
 - **`Finance/Bills`** — 上記以外の請求・支払い
 
+`Promotions/Vehicles` と `Promotions/Travel` も混ざりやすい。
+
+- **`Vehicles`** — 移動手段そのもの。ライドシェア (Bolt / DiDi)、シェアサイクル (チャリチャリ)
+- **`Travel`** — 旅程を組むもの。**航空会社 (AirAsia / JAL) はこちら**。宿泊 (Agoda / じゃらん)
+
+旧フィルタでは航空会社が `Vehicles` に入っていた。移動に関わるという一点で寄せると、
+「旅行の予定を見返す」ときに航空券だけ別の場所にあることになる。
+
 `Social` は作らない。LinkedIn の中身はスカウトなので `Promotions/Jobs/Agencies`、
 Discord は認証コードなので `Security/Codes` に収まる。
 
