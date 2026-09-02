@@ -34,12 +34,19 @@
 | `Official` | 行政・税務・ビザ | 残す | しない |
 | `Personal` | 人から届いたメール | 残す | しない |
 
-**除外してよいのは販促だけ**という線引きにする。
+⚠️ `Housing` と `Personal` は**まだ Gmail 上に無い**。観測はできているが、
+それを拾うルールをまだ書いていない。枠だけ先に用意しているのはここ 2 つだけ。
+
+**受信トレイから外すのは販促だけ**を既定にする。
 これを緩めると、Gmail フィルタで起きていた「静かに消える」が再発する。
 
-ただし**既読化は除外と切り離す**。表は大項目の既定で、
-決済の都度通知のように「記録は残したいが毎回開く必要はない」ものは、
-受信トレイに残したまま既読にする (`docs/requirements.md`「機能: 既読化と受信トレイの保持」)。
+例外は**送信元と件名で 1 行に特定できる定型通知**に限り、ラベル単位では緩めない
+(`docs/constraints.md` 設計上の制約 1)。表は大項目の既定であって、
+`Utilities/Toll` の通行明細のように行単位で外しているものがある。
+
+**既読化は除外と切り離す**。決済の都度通知のように
+「記録は残したいが毎回開く必要はない」ものは、受信トレイに残したまま既読にする
+(`docs/requirements.md`「機能: 既読化と受信トレイの保持」)。
 
 ## 境界の決め方
 
@@ -52,7 +59,8 @@
 `Promotions/Vehicles` と `Promotions/Travel` も混ざりやすい。
 
 - **`Vehicles`** — 移動手段そのもの。ライドシェア (Bolt / DiDi)、シェアサイクル (チャリチャリ)
-- **`Travel`** — 旅程を組むもの。航空会社 (AirAsia / JAL) もこちらで、`Travel/Flights` に入る
+- **`Travel`** — 旅程を組むもの。航空会社 (AirAsia / JAL) もこちらで、
+  `Promotions/Travel/Flights` に入る
 
 旧フィルタでは航空会社が `Vehicles` に入っていた。移動に関わるという一点で寄せると、
 「旅行の予定を見返す」ときに航空券だけ別の場所にあることになる。
@@ -78,14 +86,20 @@ Discord は認証コードなので `Security/Codes` に収まる。
 ### Subscriptions — 定期課金
 
 通知が販促・未分類・スター付きに散らばっており、
-**使っていないのに払っているものを見つけられない**状態だった。中身が厚いので中項目で割る。
+**使っていないのに払っているものを見つけられない**状態だった。
+
+⚠️ **現状は `Subscriptions` 1 枚で運用している。**中項目には割っていない。
+拾っているのは Anthropic / Stripe / Netflix / vidIQ / Anytime Fitness /
+Google AI Studio / Gemini の 7 行で、一覧で見渡せる量に収まっているため。
+
+厚くなったら次の形で割る。**先に枠を作らない。**
 
 | ラベル | 中身 | 送信元 |
 | --- | --- | --- |
-| `Subscriptions/Dev` | 開発・インフラ | Google Cloud Platform / ngrok / Netlify / Calendly / Anthropic / Stripe / Font Awesome / pdfFiller |
-| `Subscriptions/Media` | 音楽・映像 | Spotify / Netflix / Amazon Music |
-| `Subscriptions/Tools` | 制作・その他 | vidIQ / NordVPN / Google AI Studio / Gemini |
-| `Subscriptions/Fitness` | ジム会員 | Anytime Fitness / Snap Fitness |
+| `Subscriptions/Dev` | 開発・インフラ | Anthropic / Stripe / ngrok / Netlify |
+| `Subscriptions/Media` | 音楽・映像 | Netflix / Spotify |
+| `Subscriptions/Tools` | 制作・その他 | vidIQ / Google AI Studio / Gemini |
+| `Subscriptions/Fitness` | ジム会員 | Anytime Fitness |
 
 ### Utilities — 通信・光熱
 
@@ -115,7 +129,7 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | `Learning/Courses` | 受講中のコース進捗 | Coursera / Udemy / TechTrain |
 | `Learning/Exams` | 資格試験の申込・受験票・結果 | TOEIC。申込には期限がある |
 | `Learning/English` | 英語学習サービス | Duolingo / ELSA / DMM 英会話 / スタディサプリ / EF |
-| `Learning/Admissions` | 進学・入学相談・オープンキャンパス | 入学相談会の予約確定 |
+| `Learning/Admissions` | 進学・入学相談・オープンキャンパス | WILLFU |
 
 ### Finance/Accounts — 口座
 
@@ -152,17 +166,20 @@ Gmail 側でラベルを改名すれば過去分ごと移るので、新しい�
 | ラベル | 中身 | 送信元 |
 | --- | --- | --- |
 | `Schedule/Bookings` | 宿・美容室などの予約確定 | RESERVA (`reserva.be`) |
-| `Schedule/Events` | 参加するイベント | Meetup / Ticketek / ラグビー |
+| `Schedule/Events` | 参加するイベント | Meetup / Ticketek |
 | `Schedule/DMM` | レッスンの予約 | DMM 英会話 |
 
 ⚠️ RESERVA は当初 `Learning/Admissions` に入れていたが、実際は宿と美容室の予約だった。
 **予約システムの提供元でなく、予約の中身で決める**。
 
-### Promotions/Books — 書籍
+### Promotions/Books — 書籍 (未着手)
 
 `store-news@amazon.co.jp` の「今日のKindle本お買い得情報」が毎日届く。
-`Promotions/Stores` に混ぜると店舗の販促に埋もれるので分ける。
+`Promotions/Stores` に混ぜると店舗の販促に埋もれるので分けたい。
 `Kindle` はブランド名なので、中項目はジャンルの `Books` にする。
+
+⚠️ **まだ作っていない。**`store-news@amazon.co.jp` は 1 アドレスで書籍と
+店舗の販促の両方を送るため、件名で割る必要がある。分ける価値が確かめられていない。
 
 ### Health — 医療
 
@@ -180,9 +197,11 @@ Gmail 側でラベルを改名すれば過去分ごと移るので、新しい�
 | `Official/Tax` | 税理士 (`ezytaxsolutionsjapan.com.au`) / Xero (会計ソフト) |
 | `Official` | 福岡市役所 / QLD 交通局 |
 
-Containers for Change (ボトル返却の還付) は `Official` に**入れない**。
-行政手続きではなく、ポイント還元と同じ「使うと戻ってくる」系なので
-`Promotions/Rewards` に入る。
+⚠️ Containers for Change (ボトル返却の還付) は**現状 `Official` に入れている**。
+行政手続きではなくポイント還元と同じ「使うと戻ってくる」系なので
+`Promotions/Rewards` の方が筋という判断もある。**どちらに寄せるか未決。**
+`Promotions` に移すと受信トレイから外れて既読になるので、還付の通知としては
+見落とす側に倒れる。それを許容するかで決まる。
 
 ### Personal — 人から届いたメール
 
