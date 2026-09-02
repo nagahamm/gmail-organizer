@@ -34,8 +34,9 @@
 | `Official` | 行政・税務・ビザ | 残す | しない |
 | `Personal` | 人から届いたメール | 残す | しない |
 
-⚠️ `Housing` と `Personal` は**まだ Gmail 上に無い**。観測はできているが、
-それを拾うルールをまだ書いていない。枠だけ先に用意しているのはここ 2 つだけ。
+⚠️ `Housing` と `Personal` は**まだ Gmail 上に無い**。送信元は観測できている
+(Flatmates / 人からの返信) が、それを拾うルールをまだ書いていない。
+枠だけ先にある大項目はこの 2 つだけ。
 
 **受信トレイから外すのは販促だけ**を既定にする。
 これを緩めると、Gmail フィルタで起きていた「静かに消える」が再発する。
@@ -88,18 +89,10 @@ Discord は認証コードなので `Security/Codes` に収まる。
 通知が販促・未分類・スター付きに散らばっており、
 **使っていないのに払っているものを見つけられない**状態だった。
 
-⚠️ **現状は `Subscriptions` 1 枚で運用している。**中項目には割っていない。
+**中項目には割らず、`Subscriptions` 1 枚で運用している。**
 拾っているのは Anthropic / Stripe / Netflix / vidIQ / Anytime Fitness /
 Google AI Studio / Gemini の 7 行で、一覧で見渡せる量に収まっているため。
-
-厚くなったら次の形で割る。**先に枠を作らない。**
-
-| ラベル | 中身 | 送信元 |
-| --- | --- | --- |
-| `Subscriptions/Dev` | 開発・インフラ | Anthropic / Stripe / ngrok / Netlify |
-| `Subscriptions/Media` | 音楽・映像 | Netflix / Spotify |
-| `Subscriptions/Tools` | 制作・その他 | vidIQ / Google AI Studio / Gemini |
-| `Subscriptions/Fitness` | ジム会員 | Anytime Fitness |
+一覧で見渡せなくなったら割る。
 
 ### Utilities — 通信・光熱
 
@@ -171,15 +164,6 @@ Gmail 側でラベルを改名すれば過去分ごと移るので、新しい�
 
 ⚠️ RESERVA は当初 `Learning/Admissions` に入れていたが、実際は宿と美容室の予約だった。
 **予約システムの提供元でなく、予約の中身で決める**。
-
-### Promotions/Books — 書籍 (未着手)
-
-`store-news@amazon.co.jp` の「今日のKindle本お買い得情報」が毎日届く。
-`Promotions/Stores` に混ぜると店舗の販促に埋もれるので分けたい。
-`Kindle` はブランド名なので、中項目はジャンルの `Books` にする。
-
-⚠️ **まだ作っていない。**`store-news@amazon.co.jp` は 1 アドレスで書籍と
-店舗の販促の両方を送るため、件名で割る必要がある。分ける価値が確かめられていない。
 
 ### Health — 医療
 
