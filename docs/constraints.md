@@ -191,6 +191,33 @@ Amazon が該当する。販促のルールが先に当たると、
 
 スキップされた分は `log` に `skipped: 既に分類済み` として残る。
 
+#### 帰結: ラベルの張り替えは過去メールに効かない
+
+この保護があるため、**行き先を変えたルールは過去メールを移し替えない**。
+旧ラベルが「別の種別ラベル」として判定に引っかかり、そのルール自体がスキップされる。
+
+実測 (2026-09-03 の遡及ドライラン): 張り替えた 6 行はすべて 0 件適用。
+
+| 行 | 旧ラベル → 新ラベル | スキップ |
+| --- | --- | ---: |
+| `info@tokyochuobiyougeka.com` | `Promotions/Fashion` → `Promotions/Beauty` | 378 |
+| `agoda` / `jalan.net` | `Promotions/Travel` → `Promotions/Travel/Accommodations` | 460 |
+| `skyscanner` / `jal` / `airasia` | `Promotions/Travel` → `Promotions/Travel/Flights` | 219 |
+| `reply@e.rugby.com.au` | `Schedule/Events` → `Promotions/Events` | 116 |
+| `tunecore.co.jp` | `Work/Creative` → `Promotions/Creator` | 59 |
+| `qld.containersforchange.com.au` | `Official` → `Promotions/Rewards` | 10 |
+
+**過去分も移したいときは、その行の `受信トレイ除外` と `既読化` を一時的に
+`FALSE` にして遡及する。** 保護は「除外か既読を伴うルール」にしか効かないので、
+ラベルだけなら付く。付いたら Gmail で旧ラベルを外し、チェックを戻す。
+
+移行 (#52) で問題にならなかったのは、旧ラベルを Gmail 側で改名済みで
+「別の種別ラベル」が存在しなかったため。
+
+同じ理由で、**既にラベルが付いた過去メールを後から受信トレイから外すこともできない**。
+`buildRuleQuery()` が `-label:"付与先"` で除くので検索に上がらない。
+受信トレイ除外を後から有効にしても、効くのは新着だけ。
+
 ### 4. ページ送りは「新しいスレッドが取れたか」で決める
 
 ドライランと本適用で分けようとすると必ず片方が壊れる。
