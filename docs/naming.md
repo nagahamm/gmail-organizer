@@ -52,10 +52,23 @@
 `Promotions/Vehicles` と `Promotions/Travel` も混ざりやすい。
 
 - **`Vehicles`** — 移動手段そのもの。ライドシェア (Bolt / DiDi)、シェアサイクル (チャリチャリ)
-- **`Travel`** — 旅程を組むもの。**航空会社 (AirAsia / JAL) はこちら**。宿泊 (Agoda / じゃらん)
+- **`Travel`** — 旅程を組むもの。航空会社 (AirAsia / JAL) もこちらで、`Travel/Flights` に入る
 
 旧フィルタでは航空会社が `Vehicles` に入っていた。移動に関わるという一点で寄せると、
 「旅行の予定を見返す」ときに航空券だけ別の場所にあることになる。
+
+`Travel` は中身が厚いので下位で割る。**小項目は必ずしもブランドではない**
+(`Finance/Cards/Debit` や `Work/AWX/Payslips` と同じ)。
+
+| ラベル | 中身 | 送信元 |
+| --- | --- | --- |
+| `Promotions/Travel/Flights` | 航空券 | JAL / AirAsia / Skyscanner |
+| `Promotions/Travel/Accommodations` | 宿 | Agoda / じゃらん / Expedia |
+| `Promotions/Travel` | 上記以外の旅程 | trip.com / インスタベース |
+
+**`Promotions/Events` は `Promotions` 直下**。イベントは旅行の下位ではない。
+`Schedule/Events` との境界は「**参加が確定した予定**か、**宣伝**か」。
+Team Rugby の案内は後者なので `Promotions/Events`。
 
 `Social` は作らない。LinkedIn の中身はスカウトなので `Promotions/Jobs/Agencies`、
 Discord は認証コードなので `Security/Codes` に収まる。
@@ -158,6 +171,7 @@ Gmail 側でラベルを改名すれば過去分ごと移るので、新しい�
 | `Health/Clinics` | 診察・予約・検査結果 | AGA クリニック / DMM クリニック |
 
 旧フィルタでは美容外科が `Fashion` へ入っていた。診察の連絡が販促と同じ扱いなのは危うい。
+美容外科の**販促**は `Promotions/Beauty` (東京中央美容外科)、**診察の連絡**が `Health/Clinics`。
 
 ### Official — 行政・税務
 
