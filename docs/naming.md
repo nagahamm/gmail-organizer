@@ -6,7 +6,10 @@
 ## 前提
 
 - **ラベル名は英語**。大項目・中項目は英語、小項目のブランド名のみ原語 (`Rakuten` / `Amazon` / `AWX`)
-- **拠点タグは `@AU` のみ**。新着にも付ける。
+- **拠点タグは `@AU` のみ**。新着にも付ける。ルール側は `拠点` 列に `@AU` を入れ、
+  種別ラベルと並べて付与する。判定は**豪州での生活・滞在に紐づくメールか**。
+  送信元が豪州の企業でも、生活と関係なければ付けない (Blackmagic Design は `Work/Creative` のまま)。
+  逆にドメインが `.au` でなくても、豪州で使ったサービスなら付ける (Beam / Meetup)
   ワーホリは終了したが、有料道路 (Linkt) / NAB / 年金 / Macca's / QLD と
   **豪州からのメールは今も届く**。年金の還付請求など帰国後も続く関係があるため、
   一度は凍結したが解除した
@@ -100,6 +103,47 @@ Discord は認証コードなので `Security/Codes` に収まる。
 | `Learning/Exams` | 資格試験の申込・受験票・結果 | TOEIC。申込には期限がある |
 | `Learning/English` | 英語学習サービス | Duolingo / ELSA / DMM 英会話 / スタディサプリ / EF |
 | `Learning/Admissions` | 進学・入学相談・オープンキャンパス | 入学相談会の予約確定 |
+
+### Finance/Accounts — 口座
+
+小項目は銀行のブランド名。**銀行名が変わったらラベル名も変える** (`Sbi` → `Smtb`)。
+Gmail 側でラベルを改名すれば過去分ごと移るので、新しいラベルを作り直さない。
+
+| ラベル | 送信元 |
+| --- | --- |
+| `Finance/Accounts/Smtb` | 住信 SBI ネット銀行 (`netbk.co.jp`)。旧 `Finance/Accounts/Sbi` |
+| `Finance/Accounts/Sony` | ソニー銀行 (`ma.sonybank.jp`) |
+| `Finance/Accounts/Up` | Up (豪州) |
+| `Finance/Accounts/Nab` | NAB (豪州) |
+| `Finance/Accounts/Deposits` | 入金通知。口座ではないが同じ関心 |
+
+デビットカードの都度利用通知は口座ではなく `Finance/Cards/Debit`。
+保持期間はラベル単位で効くので、口座の通知と混ぜると口座メールまで受信トレイから外れる
+(`docs/design.md` の `buildRetentionQuery`)。
+
+### Orders — 注文・領収
+
+小項目は店のブランド名。物理・デジタルで分けない。**買った記録**という一点で揃える。
+
+| ラベル | 送信元 |
+| --- | --- |
+| `Orders/Amazon` | 発送通知 (`shipment-tracking@`) / デジタル注文 (`digital-no-reply@`) |
+| `Orders/Qoo10` | Qoo10 |
+| `Orders/Dmm` | DMM の配信商品購入 (`mail.video.dmm.co.jp`) |
+
+⚠️ `amazon.co.jp` をドメイン一括で拾わない。`store-news@` の販促まで `Orders` に入る。
+送信元アドレス単位で分ける (`docs/constraints.md` 5b)。
+
+### Schedule — 予約・イベント
+
+| ラベル | 中身 | 送信元 |
+| --- | --- | --- |
+| `Schedule/Bookings` | 宿・美容室などの予約確定 | RESERVA (`reserva.be`) |
+| `Schedule/Events` | 参加するイベント | Meetup / Ticketek / ラグビー |
+| `Schedule/DMM` | レッスンの予約 | DMM 英会話 |
+
+⚠️ RESERVA は当初 `Learning/Admissions` に入れていたが、実際は宿と美容室の予約だった。
+**予約システムの提供元でなく、予約の中身で決める**。
 
 ### Promotions/Books — 書籍
 
