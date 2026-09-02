@@ -197,11 +197,12 @@ Gmail 側でラベルを改名すれば過去分ごと移るので、新しい�
 | `Official/Tax` | 税理士 (`ezytaxsolutionsjapan.com.au`) / Xero (会計ソフト) |
 | `Official` | 福岡市役所 / QLD 交通局 |
 
-⚠️ Containers for Change (ボトル返却の還付) は**現状 `Official` に入れている**。
-行政手続きではなくポイント還元と同じ「使うと戻ってくる」系なので
-`Promotions/Rewards` の方が筋という判断もある。**どちらに寄せるか未決。**
-`Promotions` に移すと受信トレイから外れて既読になるので、還付の通知としては
-見落とす側に倒れる。それを許容するかで決まる。
+Containers for Change (ボトル返却の還付) は `Official` に**入れない**。
+行政手続きではなく、ポイント還元と同じ「使うと戻ってくる」系なので
+`Promotions/Rewards` に入れる。
+
+`Promotions` なので受信トレイから外れて既読になる。還付の通知を見落とす側に倒れるが、
+**それを許容する**と決めた。金額が小さく、期限もないため。
 
 ### Personal — 人から届いたメール
 
