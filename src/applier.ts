@@ -18,6 +18,33 @@ interface RetroCursor {
   start: number;
 }
 
+/** 1 ページ読んだあと、次にどこから読むか。 */
+interface PageStep {
+  /** このルールは読み終わったか。 */
+  done: boolean;
+  /** 次の検索の開始位置。 */
+  start: number;
+}
+
+/**
+ * ページ送りの判断。GAS の API に触れないので `npm test` で検証できる。
+ *
+ * Gmail の検索インデックスは、直前に付けたラベルを反映することもしないこともある。
+ * どちらでも進めるように、**新しいスレッドが取れたかどうか**で決める。
+ *
+ * - 取れた: 除外条件で結果が縮んだ可能性がある。位置を進めずに読み直す
+ *   (進めると、縮んだぶんを飛び越して残りに一生到達しない)
+ * - 取れなかった: その窓は読み尽くしている。次の窓へ進む
+ *   (読み直しても同じページが返るだけで前へ進まない)
+ *
+ * 毎回どちらかが起きるので、有限のメールボックスに対して必ず止まる。
+ */
+function planNextPage(start: number, pageLength: number, fresh: number): PageStep {
+  if (pageLength === 0) return { done: true, start: start };
+  if (fresh > 0) return { done: false, start: start };
+  return { done: pageLength < APPLY_PAGE_SIZE, start: start + pageLength };
+}
+
 /** 新着メールへの適用。時間主導トリガーから 15 分おきに呼ぶ。 */
 function applyToNewMail(startedAt?: number): void {
   const processed = applyRules('newer_than:2d', false, budgetStart(startedAt));
@@ -48,6 +75,8 @@ function applyRetroactive(): void {
     let start = index === cursor.ruleIndex ? cursor.start : 0;
     // 累計マッチ数はルール単位で数える。通算の processed を渡すと後ろのルールほど水増しされる。
     let matchedByRule = 0;
+    // このルールで処理済みのスレッド。同じ位置を読み直しても二重に適用しないため。
+    const seen: Record<string, boolean> = {};
 
     for (;;) {
       if (outOfTime(startedAt)) {
@@ -58,17 +87,21 @@ function applyRetroactive(): void {
       }
 
       const threads = GmailApp.search(buildRuleQuery(rule, windowQuery), start, APPLY_PAGE_SIZE);
-      if (threads.length === 0) break;
 
-      for (const thread of threads) entries.push(applyToThread(thread, rule, dryRun));
-      processed += threads.length;
-      matchedByRule += threads.length;
+      let fresh = 0;
+      for (const thread of threads) {
+        const id = thread.getId();
+        if (seen[id]) continue;
+        seen[id] = true;
+        fresh += 1;
+        entries.push(applyToThread(thread, rule, dryRun));
+      }
+      processed += fresh;
+      matchedByRule += fresh;
 
-      // 本適用も含め常に位置を進める。Gmail の検索インデックスは同一実行内で
-      // 直前に付与したラベルを即座には反映しないため、除外条件に頼って同じ位置を
-      // 読み直すと、同じページを繰り返し処理するだけで対象全体に到達できない。
-      start += threads.length;
-      if (threads.length < APPLY_PAGE_SIZE) break;
+      const step = planNextPage(start, threads.length, fresh);
+      start = step.start;
+      if (step.done) break;
     }
 
     if (!dryRun) touchRule(rule, matchedByRule);

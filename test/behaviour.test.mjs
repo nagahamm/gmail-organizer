@@ -12,6 +12,7 @@ const {
   isRuleApplicable,
   buildRuleQuery,
   buildRetentionQuery,
+  planNextPage,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -81,6 +82,30 @@ test('ラベルも拠点も無いルールは適用されない', () => {
 
 test('拠点だけのルールは適用される', () => {
   assert.equal(isRuleApplicable(rule({ label: '', location: '@AU' }), NOW, false), true);
+});
+
+// --- 機能: 過去メールへの遡及適用 (ページ送り) ------------------------------
+
+test('1 ページに収まらないルールでも最後まで進む', () => {
+  // 165 件が対象。1 ページ目の 100 件にラベルが付き、検索結果が 65 件に縮む。
+  const first = planNextPage(0, 100, 100);
+  assert.deepEqual(first, { done: false, start: 0 }, '縮んだぶんを飛び越さないよう位置を進めない');
+
+  const second = planNextPage(0, 65, 65);
+  assert.deepEqual(second, { done: false, start: 0 });
+
+  // 残りが無くなれば 0 件が返り、そこで終わる。
+  assert.deepEqual(planNextPage(0, 0, 0), { done: true, start: 0 });
+});
+
+test('同じページを読み続けない', () => {
+  // 読み直しても新しいスレッドが 1 件も無い = インデックスが未反映。次の窓へ。
+  assert.deepEqual(planNextPage(0, 100, 0), { done: false, start: 100 });
+  assert.deepEqual(planNextPage(100, 100, 0), { done: false, start: 200 });
+});
+
+test('最後の欠けたページを読み尽くしたら終わる', () => {
+  assert.deepEqual(planNextPage(100, 65, 0), { done: true, start: 165 });
 });
 
 // --- 機能: 新着メールの自動振り分け (検索式の組み立て) ----------------------

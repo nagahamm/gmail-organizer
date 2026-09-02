@@ -16,6 +16,7 @@ const EXPORTED = [
   'isRuleApplicable',
   'buildRuleQuery',
   'buildRetentionQuery',
+  'planNextPage',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',
