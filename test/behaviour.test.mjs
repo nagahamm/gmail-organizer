@@ -16,6 +16,7 @@ const {
   planNextPage,
   rollDailyUsage,
   hasDailyBudget,
+  mergeBacklogStat,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -250,6 +251,64 @@ test('張り替えでも行の位置と累計は保つ', () => {
   assert.equal(relaxed.rowNumber, 42);
   assert.equal(relaxed.matchCount, 7);
   assert.equal(relaxed.relabel, true);
+});
+
+// --- 機能: 過去の未分類の洗い出し -------------------------------------------
+
+function stat(overrides = {}) {
+  return {
+    domain: 'example.com',
+    address: 'news@example.com',
+    listId: '',
+    count: 1,
+    firstSeen: new Date('2025-03-01'),
+    lastSeen: new Date('2025-03-01'),
+    sampleSubject: '件名',
+    ...overrides,
+  };
+}
+
+test('初めて見たドメインはそのまま入る', () => {
+  const incoming = stat();
+  assert.deepEqual(mergeBacklogStat(null, incoming), incoming);
+});
+
+test('同じドメインの件数は足し合わせる', () => {
+  const merged = mergeBacklogStat(stat({ count: 10 }), stat({ count: 3 }));
+  assert.equal(merged.count, 13);
+});
+
+test('期間は広がる方へ寄せる', () => {
+  const merged = mergeBacklogStat(
+    stat({ firstSeen: new Date('2025-03-01'), lastSeen: new Date('2025-06-01') }),
+    stat({ firstSeen: new Date('2024-01-01'), lastSeen: new Date('2026-01-01') })
+  );
+  assert.equal(merged.firstSeen.toISOString(), new Date('2024-01-01').toISOString());
+  assert.equal(merged.lastSeen.toISOString(), new Date('2026-01-01').toISOString());
+});
+
+test('期間は狭まらない', () => {
+  const merged = mergeBacklogStat(
+    stat({ firstSeen: new Date('2024-01-01'), lastSeen: new Date('2026-01-01') }),
+    stat({ firstSeen: new Date('2025-03-01'), lastSeen: new Date('2025-06-01') })
+  );
+  assert.equal(merged.firstSeen.toISOString(), new Date('2024-01-01').toISOString());
+  assert.equal(merged.lastSeen.toISOString(), new Date('2026-01-01').toISOString());
+});
+
+test('代表は先に入ったものを残す', () => {
+  // 実行を跨ぐたびに代表が入れ替わると、シートを見ている人が落ち着かない。
+  const merged = mergeBacklogStat(
+    stat({ address: 'first@example.com', sampleSubject: '最初の件名' }),
+    stat({ address: 'later@example.com', sampleSubject: 'あとの件名' })
+  );
+  assert.equal(merged.address, 'first@example.com');
+  assert.equal(merged.sampleSubject, '最初の件名');
+});
+
+test('空だった list_id は後から埋まる', () => {
+  const merged = mergeBacklogStat(stat({ listId: '' }), stat({ listId: 'news.example.com' }));
+  assert.equal(merged.listId, 'news.example.com');
 });
 
 // --- 機能: 週次ダイジェスト (受信トレイ除外の候補) --------------------------

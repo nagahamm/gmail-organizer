@@ -201,6 +201,20 @@ const SHEET_SPECS: SheetSpec[] = [
     ],
   },
   {
+    name: SHEET_NAMES.BACKLOG,
+    note: 'ラベルの付いていない過去メールの棚卸し。unmatched と違い、置き換えずに積み上げる。',
+    columns: [
+      { key: 'domain', header: '送信元ドメイン', width: 220 },
+      { key: 'address', header: '代表アドレス', width: 240 },
+      { key: 'listId', header: 'list_id', width: 200 },
+      { key: 'count', header: '件数', type: 'number', width: 80, note: '目安。走査中にラベルが付くと検索結果が動くため、厳密な数ではない。' },
+      { key: 'firstSeen', header: '最古の受信日', type: 'date', width: 120 },
+      { key: 'lastSeen', header: '最新の受信日', type: 'date', width: 120 },
+      { key: 'sampleSubject', header: '代表件名', width: 320 },
+      { key: 'updatedAt', header: '更新日', type: 'date', width: 110 },
+    ],
+  },
+  {
     name: SHEET_NAMES.PROPOSALS,
     note: 'AI の提案と承認。承認列を「承認」に変えるだけで次回実行が rules へ反映する。',
     columns: [

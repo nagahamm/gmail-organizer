@@ -20,6 +20,7 @@ const EXPORTED = [
   'planNextPage',
   'rollDailyUsage',
   'hasDailyBudget',
+  'mergeBacklogStat',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',

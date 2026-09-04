@@ -31,6 +31,8 @@ function runQuarterHourSteps(startedAt: number): void {
   // 中断した遡及・張り替えの続き。新着より後に置く。
   // 大量の過去メールに予算を先取りされて、今日届いた分が待たされないようにする。
   continueRetroactive(startedAt);
+  // 洗い出しは最後。遡及が残っている間は自分で降りるので、順序で priority を表す。
+  continueBacklog(startedAt);
 }
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */
@@ -83,6 +85,9 @@ function onOpen(): void {
     .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
     .addItem('印を付けた行を張り替える', 'menuApplyRelabel')
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
+    .addSeparator()
+    .addItem('過去の未分類を洗い出す', 'menuSurveyBacklog')
+    .addItem('洗い出しの再開位置を消す', 'resetBacklog')
     .addItem('親ラベルを作る', 'ensureParentLabels')
     .addSeparator()
     .addItem('シートを検査する', 'menuValidateSheets')
@@ -141,4 +146,22 @@ log シートでドライランの結果を確認済みですか?`;
 
   if (ui.alert('張り替え', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   applyRelabel();
+}
+
+/**
+ * 洗い出しは読み取りだけだが、全期間を走査するので日をまたぐ。
+ * 始める前に、遡及を先に終わらせてあるかを確かめる。
+ */
+function menuSurveyBacklog(): void {
+  const ui = SpreadsheetApp.getUi();
+
+  const message =
+    'ラベルの付いていない過去メールを、送信元ドメイン別に backlog シートへ集計します。\n' +
+    'ラベルは変更しません。読み取りだけです。\n\n' +
+    '⚠️ 遡及適用を先に流し切ってください。ラベルが付くたびに検索結果が縮み、走査が取りこぼします。\n' +
+    '1 日の上限に達したら中断し、15 分ごとの自動実行が翌日以降も続きを流します。\n\n' +
+    '開始しますか?';
+
+  if (ui.alert('過去の未分類を洗い出す', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+  surveyBacklog();
 }

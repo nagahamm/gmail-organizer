@@ -63,6 +63,7 @@ const SHEET_NAMES = {
   LOG: 'log',
   LOG_ARCHIVE: 'log_archive',
   UNMATCHED: 'unmatched',
+  BACKLOG: 'backlog',
   PROPOSALS: 'proposals',
   CONFIG: 'config',
 } as const;
