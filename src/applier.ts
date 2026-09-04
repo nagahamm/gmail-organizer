@@ -10,6 +10,13 @@
 /** 遡及実行の再開位置。6 分の実行制限を跨ぐために使う。 */
 const RETRO_CURSOR_KEY = 'RETRO_CURSOR';
 
+/**
+ * 張り替えの再開位置。月次の遡及とは別に持つ。
+ * 共有すると、張り替えの中断が月次の開始位置を狂わせ、
+ * その手前のルールが一度も適用されないまま静かに飛ばされる。
+ */
+const RELABEL_CURSOR_KEY = 'RELABEL_CURSOR';
+
 /** 1 ルールあたり 1 回の検索で取るスレッド数。 */
 const APPLY_PAGE_SIZE = 100;
 
@@ -56,17 +63,51 @@ function applyToNewMail(startedAt?: number): void {
  * 6 分で終わらないので、続きの位置を保存して分割実行する。
  */
 function applyRetroactive(): void {
+  const now = new Date();
+  const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, true));
+  runRetroactive(rules, RETRO_CURSOR_KEY, 'applyRetroactive');
+}
+
+/**
+ * 行き先を変えた行だけを、保護を外して過去メールへ流す。
+ *
+ * `張り替え` に印の付いた行を集め、`受信トレイ除外` と `既読化` を落とした
+ * 複製に対して遡及する。**シートのセルは書き換えない**ので、実行後に
+ * 元へ戻す手順が要らない (docs/constraints.md 設計上の制約 3)。
+ *
+ * 印は消さない。二度目は `-label:` の除外で 0 件になるため再実行は無害。
+ */
+function applyRelabel(): void {
+  const now = new Date();
+  const rules = loadRules()
+    .filter((rule) => rule.relabel && isRuleApplicable(rule, now, true))
+    .map(relaxProtection);
+
+  if (rules.length === 0) {
+    const message = '「張り替え」に印の付いた行がありません。';
+    console.log(`applyRelabel: ${message}`);
+    activeBook().toast(message, 'gmail-organizer', 10);
+    return;
+  }
+
+  runRetroactive(rules, RELABEL_CURSOR_KEY, 'applyRelabel');
+}
+
+/**
+ * 遡及の共通ループ。渡されたルールを順に、対象期間ぶん適用する。
+ *
+ * 6 分の実行制限で終わらないので、中断したら再開位置を `cursorKey` に保存する。
+ * 呼び出し元ごとに鍵を分けるため、キーは引数で受け取る。
+ */
+function runRetroactive(rules: Rule[], cursorKey: string, name: string): void {
   const startedAt = Date.now();
   const runId = newRunId();
-  const now = new Date();
   const dryRun = isDryRun();
   const windowQuery = readConfig('RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW);
-
-  const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, true));
   // ドライランは毎回先頭から独立して検証する。中断してもカーソルを保存・参照しない。
   // 本適用のカーソルと共有すると、ドライランの中断が本適用の開始位置を狂わせ、
   // その前段のルールが一度も適用されないまま静かにスキップされてしまう。
-  const cursor = dryRun ? { ruleIndex: 0, start: 0 } : readCursor();
+  const cursor = dryRun ? { ruleIndex: 0, start: 0 } : readCursor(cursorKey);
   const entries: LogEntry[] = [];
   let processed = 0;
 
@@ -80,9 +121,9 @@ function applyRetroactive(): void {
 
     for (;;) {
       if (outOfTime(startedAt)) {
-        if (!dryRun) writeCursor({ ruleIndex: index, start });
+        if (!dryRun) writeCursor(cursorKey, { ruleIndex: index, start });
         writeLog(runId, entries);
-        console.log(`applyRetroactive: 中断。ルール ${index + 1}/${rules.length}、${processed} スレッド処理`);
+        console.log(`${name}: 中断。ルール ${index + 1}/${rules.length}、${processed} スレッド処理`);
         return;
       }
 
@@ -107,15 +148,16 @@ function applyRetroactive(): void {
     if (!dryRun) touchRule(rule, matchedByRule);
   }
 
-  if (!dryRun) clearCursor();
+  if (!dryRun) clearCursor(cursorKey);
   writeLog(runId, entries);
-  console.log(`applyRetroactive: 完了。${processed} スレッド処理`);
+  console.log(`${name}: 完了。${processed} スレッド処理`);
 }
 
-/** 遡及実行の再開位置を捨てて最初からやり直す。 */
+/** 遡及と張り替えの再開位置を捨てて、どちらも最初からやり直す。 */
 function resetRetroactive(): void {
-  clearCursor();
-  console.log('applyRetroactive の再開位置を消しました');
+  clearCursor(RETRO_CURSOR_KEY);
+  clearCursor(RELABEL_CURSOR_KEY);
+  console.log('遡及適用と張り替えの再開位置を消しました');
 }
 
 /** シートの有効なルールを評価して適用する。戻り値は処理したスレッド数。 */
@@ -355,8 +397,8 @@ function touchRule(rule: Rule, matched: number): void {
   ]);
 }
 
-function readCursor(): RetroCursor {
-  const raw = PropertiesService.getScriptProperties().getProperty(RETRO_CURSOR_KEY);
+function readCursor(key: string): RetroCursor {
+  const raw = PropertiesService.getScriptProperties().getProperty(key);
   if (!raw) return { ruleIndex: 0, start: 0 };
   try {
     const parsed = JSON.parse(raw) as RetroCursor;
@@ -366,10 +408,10 @@ function readCursor(): RetroCursor {
   }
 }
 
-function writeCursor(cursor: RetroCursor): void {
-  PropertiesService.getScriptProperties().setProperty(RETRO_CURSOR_KEY, JSON.stringify(cursor));
+function writeCursor(key: string, cursor: RetroCursor): void {
+  PropertiesService.getScriptProperties().setProperty(key, JSON.stringify(cursor));
 }
 
-function clearCursor(): void {
-  PropertiesService.getScriptProperties().deleteProperty(RETRO_CURSOR_KEY);
+function clearCursor(key: string): void {
+  PropertiesService.getScriptProperties().deleteProperty(key);
 }

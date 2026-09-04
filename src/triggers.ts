@@ -78,6 +78,7 @@ function onOpen(): void {
     .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
     .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
     .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
+    .addItem('印を付けた行を張り替える', 'menuApplyRelabel')
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
     .addItem('親ラベルを作る', 'ensureParentLabels')
     .addSeparator()
@@ -99,4 +100,42 @@ function menuApplyRetroactive(): void {
 
   if (ui.alert('遡及適用', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   applyRetroactive();
+}
+
+/**
+ * 張り替えは保護を外して流すので、何行が対象かを見せてから確認する。
+ *
+ * 対象行数を先に出すのは、印の付け忘れ・付けすぎにここで気づけるようにするため。
+ * 実行してもシートの `受信トレイ除外` と `既読化` は変わらない。
+ */
+function menuApplyRelabel(): void {
+  const ui = SpreadsheetApp.getUi();
+  const dryRun = isDryRun();
+  const window = readConfig('RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW);
+  const marked = loadRules().filter((rule) => rule.relabel && rule.enabled).length;
+
+  if (marked === 0) {
+    ui.alert('張り替え', 'rules の「張り替え」に印の付いた有効な行がありません。', ui.ButtonSet.OK);
+    return;
+  }
+
+  const head = `対象: ${marked} 行
+対象期間: ${window}
+
+実行中だけ「受信トレイ除外」と「既読化」を外して過去メールへ流します。
+シートの設定は書き換えません。旧ラベルも消えません。`;
+  const message = dryRun
+    ? `DRY_RUN が有効です。ラベルは変更せず log に記録するだけです。
+
+${head}
+
+実行しますか?`
+    : `DRY_RUN が無効です。実際にラベルを付けます。
+
+${head}
+
+log シートでドライランの結果を確認済みですか?`;
+
+  if (ui.alert('張り替え', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+  applyRelabel();
 }

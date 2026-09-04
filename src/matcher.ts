@@ -26,7 +26,42 @@ interface Rule {
   frozenAt: Date | null;
   /** 既読にして受信トレイに残したメールを外すまでの日数。0 なら外さない。 */
   inboxDays: number;
+  /** 行き先を変えた行の印。張り替えの実行だけが読む。 */
+  relabel: boolean;
   matchCount: number;
+}
+
+/**
+ * 保護を外した複製を返す。**シートは書き換えない。**
+ *
+ * `受信トレイ除外` か `既読化` を持つルールは、既に別の種別ラベルが付いた
+ * スレッドには適用されない (applyToThread)。行き先を変えた行はこの保護に
+ * 引っかかって過去メールへ届かないので、張り替えのときだけ 2 つを落とす。
+ *
+ * セルを手で `FALSE` にして戻す運用にすると、戻し忘れたときに販促が
+ * 受信トレイへ残り続け、しかも気づく手がかりが無い。複製に対して落とせば
+ * 戻す手順そのものが要らなくなる (docs/constraints.md 設計上の制約 3)。
+ */
+function relaxProtection(rule: Rule): Rule {
+  const relaxed: Rule = {
+    rowNumber: rule.rowNumber,
+    ruleId: rule.ruleId,
+    enabled: rule.enabled,
+    priority: rule.priority,
+    kind: rule.kind,
+    pattern: rule.pattern,
+    label: rule.label,
+    location: rule.location,
+    skipInbox: false,
+    markRead: false,
+    star: rule.star,
+    neverSpam: rule.neverSpam,
+    frozenAt: rule.frozenAt,
+    inboxDays: rule.inboxDays,
+    relabel: rule.relabel,
+    matchCount: rule.matchCount,
+  };
+  return relaxed;
 }
 
 /** 検索式に入れる値を安全にする。二重引用符と改行を落とすだけ。 */
@@ -122,6 +157,7 @@ function loadRules(): Rule[] {
       neverSpam: row['neverSpam'] === true,
       frozenAt: row['frozenAt'] instanceof Date ? (row['frozenAt'] as Date) : null,
       inboxDays: Number(row['inboxDays']) || 0,
+      relabel: row['relabel'] === true,
       matchCount: Number(row['matchCount']) || 0,
     });
   }

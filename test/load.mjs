@@ -14,6 +14,7 @@ const BUNDLE = 'build/bundle.js';
 /** 取り出す関数。ここに無いものはテストから見えない。 */
 const EXPORTED = [
   'isRuleApplicable',
+  'relaxProtection',
   'buildRuleQuery',
   'buildRetentionQuery',
   'planNextPage',

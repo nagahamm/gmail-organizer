@@ -10,6 +10,7 @@ import { load } from './load.mjs';
 
 const {
   isRuleApplicable,
+  relaxProtection,
   buildRuleQuery,
   buildRetentionQuery,
   planNextPage,
@@ -50,6 +51,7 @@ function rule(overrides = {}) {
     neverSpam: false,
     frozenAt: null,
     inboxDays: 0,
+    relabel: false,
     matchCount: 0,
     ...overrides,
   };
@@ -168,6 +170,42 @@ test('保持日数は整数に丸める', () => {
 
 test('負の保持日数は設定なしとして扱う', () => {
   assert.equal(buildRetentionQuery(rule({ inboxDays: -1 })), '');
+});
+
+// --- 機能: 過去メールの張り替え ---------------------------------------------
+
+test('張り替えでは受信トレイから外さず既読にもしない', () => {
+  const relaxed = relaxProtection(rule({ skipInbox: true, markRead: true }));
+  assert.equal(relaxed.skipInbox, false);
+  assert.equal(relaxed.markRead, false);
+});
+
+test('張り替えでもラベルと拠点は変えない', () => {
+  const relaxed = relaxProtection(
+    rule({ skipInbox: true, label: 'Promotions/Travel/Flights', location: '@AU' })
+  );
+  assert.equal(relaxed.label, 'Promotions/Travel/Flights');
+  assert.equal(relaxed.location, '@AU');
+});
+
+test('張り替えは元のルールを書き換えない', () => {
+  const original = rule({ skipInbox: true, markRead: true });
+  relaxProtection(original);
+  assert.equal(original.skipInbox, true);
+  assert.equal(original.markRead, true);
+});
+
+test('保護を外したルールは分類済みのスレッドにも当たる', () => {
+  // 保護は「除外か既読を持つルール」にしか効かない。両方落ちれば判定に入らない。
+  const relaxed = relaxProtection(rule({ skipInbox: true, markRead: true }));
+  assert.equal(relaxed.skipInbox || relaxed.markRead, false);
+});
+
+test('張り替えでも行の位置と累計は保つ', () => {
+  const relaxed = relaxProtection(rule({ rowNumber: 42, matchCount: 7, relabel: true }));
+  assert.equal(relaxed.rowNumber, 42);
+  assert.equal(relaxed.matchCount, 7);
+  assert.equal(relaxed.relabel, true);
 });
 
 // --- 機能: 週次ダイジェスト (受信トレイ除外の候補) --------------------------
