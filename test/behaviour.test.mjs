@@ -172,18 +172,23 @@ test('負の保持日数は設定なしとして扱う', () => {
 
 // --- 機能: 週次ダイジェスト (受信トレイ除外の候補) --------------------------
 
-test('Gmail の分類を受信トレイ除外の根拠にする', () => {
+test('読んでいない送信元を受信トレイ除外の候補にする', () => {
   const stat = { category: 'promotions', count: 10, unread: 10 };
   assert.equal(isSkipInboxCandidate(stat), true);
 });
 
-test('どのタブにも入らないものは除外候補にしない', () => {
+test('メインに入るものも候補にする', () => {
   const stat = { category: '(なし)', count: 10, unread: 10 };
+  assert.equal(isSkipInboxCandidate(stat), true);
+});
+
+test('読んでいるものは候補にしない', () => {
+  const stat = { category: 'promotions', count: 10, unread: 3 };
   assert.equal(isSkipInboxCandidate(stat), false);
 });
 
-test('読んでいるものは除外候補にしない', () => {
-  const stat = { category: 'promotions', count: 10, unread: 3 };
+test('メインでも読んでいるものは候補にしない', () => {
+  const stat = { category: '(なし)', count: 10, unread: 3 };
   assert.equal(isSkipInboxCandidate(stat), false);
 });
 

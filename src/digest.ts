@@ -72,9 +72,6 @@ const UNMATCHED_CATEGORIES: { name: string; query: string }[] = [
   { name: '(なし)', query: '-category:promotions -category:social -category:updates' },
 ];
 
-/** 受信トレイ除外を提案してよいカテゴリ。 */
-const SKIP_INBOX_CATEGORIES = ['promotions', 'social', 'updates'];
-
 /** これ以上読まれていなければ除外候補にする。 */
 const SKIP_INBOX_UNREAD_RATE = 0.8;
 
@@ -165,14 +162,13 @@ function collectUnmatched(startedAt?: number): UnmatchedResult {
 /**
  * 受信トレイ除外を提案してよいか。
  *
- * Gmail がプロモーション / ソーシャル / 新着へ振り分けていて、かつ実際に読んでいない。
- * この 2 つが揃って初めて候補にする。カテゴリだけで決めないのは、`updates` に
- * 請求書や認証コードが混ざるため。機械的に外すと「静かに消える」が再発する。
+ * 判断は**実際に読んでいるか**だけで決める。Gmail のカテゴリは提案の根拠として
+ * 見せるが、条件には使わない。メインにも販促がまとまった量で入り込んでおり、
+ * カテゴリで絞ると拾えないため (docs/constraints.md 設計上の制約 1)。
  *
  * ここで作るのは提案であって適用ではない。承認するかは人が決める。
  */
 function isSkipInboxCandidate(stat: UnmatchedStat): boolean {
-  if (SKIP_INBOX_CATEGORIES.indexOf(stat.category) < 0) return false;
   if (stat.count === 0) return false;
   return stat.unread / stat.count >= SKIP_INBOX_UNREAD_RATE;
 }
