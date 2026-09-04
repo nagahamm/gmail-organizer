@@ -26,6 +26,15 @@ const CONFIG = {
   /** 遡及適用の対象期間。直近 1 年。 */
   RETRO_QUERY_WINDOW: 'newer_than:1y',
 
+  /**
+   * 遡及と張り替えで 1 日に処理してよいスレッド数。超えたら翌日へ持ち越す。
+   *
+   * 1 スレッドで GmailApp をおよそ 4 回呼ぶので、3,000 で約 12,000 操作。
+   * 無料アカウントの上限 (読み書き 20,000 操作 / 日、トリガー総実行 90 分 / 日) の
+   * どちらに対しても余裕を取ってある (docs/constraints.md)。
+   */
+  DAILY_THREAD_BUDGET: 3000,
+
   /** 送信元マスタを更新するときに走査する期間。 */
   SENDER_SCAN_WINDOW: 'newer_than:90d',
 

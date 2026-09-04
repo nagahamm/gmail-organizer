@@ -18,6 +18,8 @@ const EXPORTED = [
   'buildRuleQuery',
   'buildRetentionQuery',
   'planNextPage',
+  'rollDailyUsage',
+  'hasDailyBudget',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',

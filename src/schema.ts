@@ -232,6 +232,11 @@ const SHEET_SPECS: SheetSpec[] = [
 const CONFIG_DEFAULTS: string[][] = [
   ['DRY_RUN', 'TRUE', 'TRUE の間はラベルを変更せず log に dry_run として記録するだけ'],
   ['RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW, '遡及適用の対象期間'],
+  [
+    'DAILY_THREAD_BUDGET',
+    String(CONFIG.DAILY_THREAD_BUDGET),
+    '遡及と張り替えで 1 日に処理してよいスレッド数。超えたら翌日へ持ち越す',
+  ],
   ['NOTIFY_TO', '', '週次ダイジェストの送信先。空なら実行アカウント宛'],
 ];
 

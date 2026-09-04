@@ -14,6 +14,8 @@ const {
   buildRuleQuery,
   buildRetentionQuery,
   planNextPage,
+  rollDailyUsage,
+  hasDailyBudget,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -170,6 +172,48 @@ test('保持日数は整数に丸める', () => {
 
 test('負の保持日数は設定なしとして扱う', () => {
   assert.equal(buildRetentionQuery(rule({ inboxDays: -1 })), '');
+});
+
+// --- 機能: 何日かに分けて流す -----------------------------------------------
+
+test('1 日の上限に達したら止める', () => {
+  const usage = { day: '2026-09-05', threads: 3000 };
+  assert.equal(hasDailyBudget(usage, '2026-09-05', 3000), false);
+});
+
+test('上限に届いていなければ続ける', () => {
+  const usage = { day: '2026-09-05', threads: 2999 };
+  assert.equal(hasDailyBudget(usage, '2026-09-05', 3000), true);
+});
+
+test('日付が変われば予算は戻る', () => {
+  const usage = { day: '2026-09-05', threads: 5000 };
+  assert.equal(hasDailyBudget(usage, '2026-09-06', 3000), true);
+});
+
+test('日付が変われば使用量は 0 から数え直す', () => {
+  const usage = { day: '2026-09-05', threads: 5000 };
+  assert.deepEqual(rollDailyUsage(usage, '2026-09-06', 10), { day: '2026-09-06', threads: 10 });
+});
+
+test('同じ日なら使用量は積み上がる', () => {
+  const usage = { day: '2026-09-05', threads: 100 };
+  assert.deepEqual(rollDailyUsage(usage, '2026-09-05', 10), { day: '2026-09-05', threads: 110 });
+});
+
+test('張り替えと遡及で同じ 1 日分を使う', () => {
+  // 数え場所は 1 つ。張り替えで使ったぶんは遡及の残りから引かれる。
+  const afterRelabel = rollDailyUsage({ day: '', threads: 0 }, '2026-09-05', 2500);
+  const afterRetro = rollDailyUsage(afterRelabel, '2026-09-05', 500);
+  assert.equal(afterRetro.threads, 3000);
+  assert.equal(hasDailyBudget(afterRetro, '2026-09-05', 3000), false);
+});
+
+test('記録の無い状態からでも数え始められる', () => {
+  assert.deepEqual(rollDailyUsage({ day: '', threads: 0 }, '2026-09-05', 5), {
+    day: '2026-09-05',
+    threads: 5,
+  });
 });
 
 // --- 機能: 過去メールの張り替え ---------------------------------------------

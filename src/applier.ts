@@ -20,9 +20,41 @@ const RELABEL_CURSOR_KEY = 'RELABEL_CURSOR';
 /** 1 ルールあたり 1 回の検索で取るスレッド数。 */
 const APPLY_PAGE_SIZE = 100;
 
+/** その日どれだけ処理したか。遡及と張り替えで共有する。 */
+const DAILY_USAGE_KEY = 'RETRO_DAILY_USAGE';
+
 interface RetroCursor {
   ruleIndex: number;
   start: number;
+}
+
+/** 日次の使用量。`day` が変われば数え直す。 */
+interface DailyUsage {
+  /** スクリプトのタイムゾーンでの yyyy-MM-dd。 */
+  day: string;
+  threads: number;
+}
+
+/**
+ * 使用量を進める。日が変わっていればその日のぶんだけにする。
+ *
+ * GAS API に触れないので `npm test` で検証できる。
+ */
+function rollDailyUsage(usage: DailyUsage, today: string, processed: number): DailyUsage {
+  const carried = usage.day === today ? usage.threads : 0;
+  return { day: today, threads: carried + processed };
+}
+
+/**
+ * 今日ぶんの予算が残っているか。
+ *
+ * 上限は Gmail アカウント単位で効くので、遡及と張り替えで同じ数え場所を使う。
+ * 分けて数えると合計で上限を超える。
+ */
+function hasDailyBudget(usage: DailyUsage, today: string, budget: number): boolean {
+  if (budget <= 0) return true;
+  if (usage.day !== today) return true;
+  return usage.threads < budget;
 }
 
 /** 1 ページ読んだあと、次にどこから読むか。 */
@@ -99,11 +131,14 @@ function applyRelabel(): void {
  * 6 分の実行制限で終わらないので、中断したら再開位置を `cursorKey` に保存する。
  * 呼び出し元ごとに鍵を分けるため、キーは引数で受け取る。
  */
-function runRetroactive(rules: Rule[], cursorKey: string, name: string): void {
-  const startedAt = Date.now();
+function runRetroactive(rules: Rule[], cursorKey: string, name: string, since?: number): void {
+  const startedAt = budgetStart(since);
   const runId = newRunId();
   const dryRun = isDryRun();
   const windowQuery = readConfig('RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW);
+  const budget = readDailyBudget();
+  const today = todayKey();
+  let usage = readDailyUsage();
   // ドライランは毎回先頭から独立して検証する。中断してもカーソルを保存・参照しない。
   // 本適用のカーソルと共有すると、ドライランの中断が本適用の開始位置を狂わせ、
   // その前段のルールが一度も適用されないまま静かにスキップされてしまう。
@@ -120,10 +155,19 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string): void {
     const seen: Record<string, boolean> = {};
 
     for (;;) {
-      if (outOfTime(startedAt)) {
-        if (!dryRun) writeCursor(cursorKey, { ruleIndex: index, start });
+      // ドライランは日次予算を消費しない。ラベルを変えず log に書くだけの検証で、
+      // 本適用ぶんの枠をここで削ると、確認したあとに流せなくなる。
+      const spent = !dryRun && !hasDailyBudget(usage, today, budget);
+      if (outOfTime(startedAt) || spent) {
+        if (!dryRun) {
+          writeCursor(cursorKey, { ruleIndex: index, start });
+          writeDailyUsage(usage);
+        }
         writeLog(runId, entries);
-        console.log(`${name}: 中断。ルール ${index + 1}/${rules.length}、${processed} スレッド処理`);
+        const why = spent ? `今日の上限 ${budget} スレッドに達した` : '時間切れ';
+        console.log(
+          `${name}: 中断 (${why})。ルール ${index + 1}/${rules.length}、${processed} スレッド処理`
+        );
         return;
       }
 
@@ -139,6 +183,7 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string): void {
       }
       processed += fresh;
       matchedByRule += fresh;
+      if (!dryRun) usage = rollDailyUsage(usage, today, fresh);
 
       const step = planNextPage(start, threads.length, fresh);
       start = step.start;
@@ -148,9 +193,51 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string): void {
     if (!dryRun) touchRule(rule, matchedByRule);
   }
 
-  if (!dryRun) clearCursor(cursorKey);
+  if (!dryRun) {
+    clearCursor(cursorKey);
+    writeDailyUsage(usage);
+  }
   writeLog(runId, entries);
   console.log(`${name}: 完了。${processed} スレッド処理`);
+}
+
+/**
+ * 中断した遡及・張り替えの続きを流す。15 分ごとのジョブから呼ぶ。
+ *
+ * **再開位置が残っているときだけ動く。** 無ければ何もしない。
+ * これを守らないと、15 分ごとに全期間の遡及が起動して日次クォータを一息で使い切る。
+ *
+ * ドライランはカーソルを保存しないので、ここには乗らない。ドライランは人が結果を
+ * 見るための実行であって、無人で進めるものではない。
+ *
+ * 1 回の実行では片方だけ進める。張り替えを先にするのは、人が印を付けて
+ * 明示的に始めたものだから。月次の遡及は待てる。
+ */
+function continueRetroactive(startedAt?: number): void {
+  const since = budgetStart(startedAt);
+
+  // 前の 3 ステップで予算を使い切っていることは珍しくない。ルールを読む前に降りる。
+  if (outOfTime(since)) return;
+  // 今日のぶんが尽きていれば、シートを読むだけ無駄になる。
+  if (!hasDailyBudget(readDailyUsage(), todayKey(), readDailyBudget())) return;
+
+  const now = new Date();
+
+  if (hasCursor(RELABEL_CURSOR_KEY)) {
+    const rules = loadRules()
+      .filter((rule) => rule.relabel && isRuleApplicable(rule, now, true))
+      .map(relaxProtection);
+    if (rules.length > 0) {
+      runRetroactive(rules, RELABEL_CURSOR_KEY, 'continueRelabel', since);
+      return;
+    }
+    // 印が外された。続きを流す先が無いので位置を捨てる。
+    clearCursor(RELABEL_CURSOR_KEY);
+  }
+
+  if (!hasCursor(RETRO_CURSOR_KEY)) return;
+  const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, true));
+  runRetroactive(rules, RETRO_CURSOR_KEY, 'continueRetroactive', since);
 }
 
 /** 遡及と張り替えの再開位置を捨てて、どちらも最初からやり直す。 */
@@ -414,4 +501,35 @@ function writeCursor(key: string, cursor: RetroCursor): void {
 
 function clearCursor(key: string): void {
   PropertiesService.getScriptProperties().deleteProperty(key);
+}
+
+function hasCursor(key: string): boolean {
+  return PropertiesService.getScriptProperties().getProperty(key) !== null;
+}
+
+/** スクリプトのタイムゾーンでの今日。日付が変われば使用量を数え直す境目。 */
+function todayKey(): string {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+function readDailyBudget(): number {
+  const raw = readConfig('DAILY_THREAD_BUDGET', String(CONFIG.DAILY_THREAD_BUDGET));
+  const value = Number(raw);
+  // 空欄や書き損じで 0 になると上限なしに化ける。既定へ落とす。
+  return isNaN(value) || value <= 0 ? CONFIG.DAILY_THREAD_BUDGET : value;
+}
+
+function readDailyUsage(): DailyUsage {
+  const raw = PropertiesService.getScriptProperties().getProperty(DAILY_USAGE_KEY);
+  if (!raw) return { day: '', threads: 0 };
+  try {
+    const parsed = JSON.parse(raw) as DailyUsage;
+    return { day: String(parsed.day || ''), threads: Number(parsed.threads) || 0 };
+  } catch (error) {
+    return { day: '', threads: 0 };
+  }
+}
+
+function writeDailyUsage(usage: DailyUsage): void {
+  PropertiesService.getScriptProperties().setProperty(DAILY_USAGE_KEY, JSON.stringify(usage));
 }

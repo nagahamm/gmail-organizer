@@ -28,6 +28,9 @@ function runQuarterHourSteps(startedAt: number): void {
   applyApprovedProposals(startedAt);
   applyToNewMail(startedAt);
   promoteStarredJobs(startedAt);
+  // 中断した遡及・張り替えの続き。新着より後に置く。
+  // 大量の過去メールに予算を先取りされて、今日届いた分が待たされないようにする。
+  continueRetroactive(startedAt);
 }
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */
