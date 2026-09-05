@@ -21,6 +21,7 @@ const EXPORTED = [
   'rollDailyUsage',
   'hasDailyBudget',
   'mergeBacklogStat',
+  'describeProgress',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',

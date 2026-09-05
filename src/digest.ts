@@ -263,6 +263,10 @@ function sendDigestMail(
   // 型崩れは他の集計を狂わせるので先頭に出す。
   for (const line of describeProblems(problems)) lines.push(line);
 
+  // 何日もかかる処理は、見に行かなくても届く場所に出す。
+  for (const line of describeProgress(readRunProgress())) lines.push(line);
+  lines.push('');
+
   if (unmatched.rows.length > 0) {
     lines.push(`■ 未分類の送信元 上位 ${unmatched.rows.length} 件`);
     for (const row of unmatched.rows) {

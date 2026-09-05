@@ -17,6 +17,7 @@ const {
   rollDailyUsage,
   hasDailyBudget,
   mergeBacklogStat,
+  describeProgress,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -251,6 +252,56 @@ test('張り替えでも行の位置と累計は保つ', () => {
   assert.equal(relaxed.rowNumber, 42);
   assert.equal(relaxed.matchCount, 7);
   assert.equal(relaxed.relabel, true);
+});
+
+// --- 機能: 実行の状態 -------------------------------------------------------
+
+function progress(overrides = {}) {
+  return {
+    day: '2026-09-05',
+    usedToday: 0,
+    dailyBudget: 3000,
+    retro: null,
+    relabel: null,
+    backlog: null,
+    backlogDomains: 0,
+    ...overrides,
+  };
+}
+
+test('中断中の処理があるか分かる', () => {
+  const lines = describeProgress(progress({ retro: { ruleIndex: 11, start: 300 } }));
+  assert.ok(lines.some((line) => line.indexOf('遡及適用: 中断中') >= 0));
+  assert.ok(lines.some((line) => line.indexOf('12 本目のルール、位置 300') >= 0));
+});
+
+test('今日どれだけ使ったか分かる', () => {
+  const lines = describeProgress(progress({ usedToday: 1234 }));
+  assert.ok(lines.some((line) => line.indexOf('今日の使用量: 1234 / 3000 スレッド') >= 0));
+});
+
+test('何も動いていなければそう分かる', () => {
+  const lines = describeProgress(progress());
+  assert.ok(lines.some((line) => line.indexOf('中断中の処理はありません') >= 0));
+});
+
+test('洗い出しの中断は位置だけを出す', () => {
+  const lines = describeProgress(progress({ backlog: { ruleIndex: 0, start: 2000 } }));
+  assert.ok(lines.some((line) => line.indexOf('洗い出し: 中断中 (位置 2000)') >= 0));
+});
+
+test('中断中が複数あればどちらも出る', () => {
+  const lines = describeProgress(
+    progress({ retro: { ruleIndex: 0, start: 0 }, relabel: { ruleIndex: 2, start: 100 } })
+  );
+  assert.ok(lines.some((line) => line.indexOf('遡及適用: 中断中') >= 0));
+  assert.ok(lines.some((line) => line.indexOf('張り替え: 中断中') >= 0));
+});
+
+test('完了予定は出さない', () => {
+  // 1 日に進む量は対象の密度で変わる。外れた予測は「止まっている」の誤認を生む。
+  const text = describeProgress(progress({ retro: { ruleIndex: 0, start: 0 } })).join('\n');
+  assert.equal(/残り|完了予定|あと[0-9]/.test(text), false);
 });
 
 // --- 機能: 過去の未分類の洗い出し -------------------------------------------

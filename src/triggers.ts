@@ -88,6 +88,7 @@ function onOpen(): void {
     .addSeparator()
     .addItem('過去の未分類を洗い出す', 'menuSurveyBacklog')
     .addItem('洗い出しの再開位置を消す', 'resetBacklog')
+    .addItem('実行の状態を見る', 'menuShowProgress')
     .addItem('親ラベルを作る', 'ensureParentLabels')
     .addSeparator()
     .addItem('シートを検査する', 'menuValidateSheets')
@@ -164,4 +165,10 @@ function menuSurveyBacklog(): void {
 
   if (ui.alert('過去の未分類を洗い出す', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   surveyBacklog();
+}
+
+/** 何日もかかる処理がどこまで進んだかを、その場で確かめる。 */
+function menuShowProgress(): void {
+  const ui = SpreadsheetApp.getUi();
+  ui.alert('実行の状態', describeProgress(readRunProgress()).join('\n'), ui.ButtonSet.OK);
 }
