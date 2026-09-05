@@ -18,7 +18,8 @@ interface RunProgress {
   retro: RetroCursor | null;
   relabel: RetroCursor | null;
   backlog: RetroCursor | null;
-  backlogDomains: number;
+  /** backlog シートがまだ無ければ null。 */
+  backlogDomains: number | null;
 }
 
 /**
@@ -52,7 +53,11 @@ function describeProgress(progress: RunProgress): string[] {
     lines.push('  続きは 15 分ごとの自動実行が流します。');
   }
 
-  lines.push(`  backlog: ${progress.backlogDomains} ドメイン`);
+  lines.push(
+    progress.backlogDomains === null
+      ? '  backlog: 未作成 (メニューの「1. シートを作成 / 更新」を実行してください)'
+      : `  backlog: ${progress.backlogDomains} ドメイン`
+  );
   return lines;
 }
 
@@ -68,8 +73,20 @@ function readRunProgress(): RunProgress {
     retro: readCursorIfAny(RETRO_CURSOR_KEY),
     relabel: readCursorIfAny(RELABEL_CURSOR_KEY),
     backlog: readCursorIfAny(BACKLOG_CURSOR_KEY),
-    backlogDomains: readRows(SHEET_NAMES.BACKLOG).length,
+    backlogDomains: countBacklogDomains(),
   };
+}
+
+/**
+ * backlog に溜まったドメイン数。シートがまだ無ければ null。
+ *
+ * このシートは後から足したので、コードを push しただけの時点では存在しない。
+ * 状態表示のために週次ダイジェスト全体を落とさない。
+ * 「シートが無い」を自動で作り直さないのは既存の判断のままにする (src/sheets.ts)。
+ */
+function countBacklogDomains(): number | null {
+  if (!activeBook().getSheetByName(SHEET_NAMES.BACKLOG)) return null;
+  return readRows(SHEET_NAMES.BACKLOG).length;
 }
 
 /** 中断していれば再開位置、していなければ null。 */

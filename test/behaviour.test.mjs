@@ -298,6 +298,12 @@ test('中断中が複数あればどちらも出る', () => {
   assert.ok(lines.some((line) => line.indexOf('張り替え: 中断中') >= 0));
 });
 
+test('backlog シートがまだ無ければそう出す', () => {
+  // コードを push しただけの時点ではシートが無い。ここで落とすとダイジェストごと死ぬ。
+  const lines = describeProgress(progress({ backlogDomains: null }));
+  assert.ok(lines.some((line) => line.indexOf('backlog: 未作成') >= 0));
+});
+
 test('完了予定は出さない', () => {
   // 1 日に進む量は対象の密度で変わる。外れた予測は「止まっている」の誤認を生む。
   const text = describeProgress(progress({ retro: { ruleIndex: 0, start: 0 } })).join('\n');
