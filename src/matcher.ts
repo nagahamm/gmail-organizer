@@ -64,6 +64,19 @@ function relaxProtection(rule: Rule): Rule {
   return relaxed;
 }
 
+/**
+ * 対象期間を人に見せる文字にする。
+ *
+ * 空欄は「設定し忘れ」ではなく**全期間**の意味なので、そう読めるようにする。
+ * ダイアログに空白が出るだけだと、実行前の確認が確認にならない。
+ *
+ * GAS API に触れないので `npm test` で検証できる。
+ */
+function describeQueryWindow(windowQuery: string): string {
+  const value = String(windowQuery || '').trim();
+  return value === '' ? '全期間' : value;
+}
+
 /** 検索式に入れる値を安全にする。二重引用符と改行を落とすだけ。 */
 function sanitizeQueryValue(value: string): string {
   return String(value || '').replace(/["\n\r]/g, ' ').trim();

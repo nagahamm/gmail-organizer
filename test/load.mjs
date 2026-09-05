@@ -24,6 +24,7 @@ const EXPORTED = [
   'describeProgress',
   'missingConfigDefaults',
   'cursorKeyFor',
+  'describeQueryWindow',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',

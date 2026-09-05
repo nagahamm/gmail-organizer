@@ -107,8 +107,8 @@ function menuApplyRetroactive(): void {
     '\n\n1 日の上限に達したら中断し、15 分ごとの自動実行が翌日以降も続きを流します。\n' +
     '再開位置は DRY_RUN の有無で別に持つので、切り替えても混ざりません。';
   const message = dryRun
-    ? `DRY_RUN が有効です。ラベルは変更せず log に記録するだけです。\n対象期間: ${window}${tail}\n\n実行しますか?`
-    : `DRY_RUN が無効です。実際にラベルを付け替えます。\n対象期間: ${window}${tail}\n\nlog シートでドライランの結果を確認済みですか?`;
+    ? `DRY_RUN が有効です。ラベルは変更せず log に記録するだけです。\n対象期間: ${describeQueryWindow(window)}${tail}\n\n実行しますか?`
+    : `DRY_RUN が無効です。実際にラベルを付け替えます。\n対象期間: ${describeQueryWindow(window)}${tail}\n\nlog シートでドライランの結果を確認済みですか?`;
 
   if (ui.alert('遡及適用', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   applyRetroactive();
@@ -132,7 +132,7 @@ function menuApplyRelabel(): void {
   }
 
   const head = `対象: ${marked} 行
-対象期間: ${window}
+対象期間: ${describeQueryWindow(window)}
 
 実行中だけ「受信トレイ除外」と「既読化」を外して過去メールへ流します。
 シートの設定は書き換えません。旧ラベルも消えません。`;

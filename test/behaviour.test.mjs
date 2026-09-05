@@ -20,6 +20,7 @@ const {
   describeProgress,
   missingConfigDefaults,
   cursorKeyFor,
+  describeQueryWindow,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -254,6 +255,21 @@ test('張り替えでも行の位置と累計は保つ', () => {
   assert.equal(relaxed.rowNumber, 42);
   assert.equal(relaxed.matchCount, 7);
   assert.equal(relaxed.relabel, true);
+});
+
+// --- 機能: 対象期間の表示 ---------------------------------------------------
+
+test('空欄は全期間と読ませる', () => {
+  // 空白のまま出すと、設定し忘れなのか全期間なのか読み手に分からない。
+  assert.equal(describeQueryWindow(''), '全期間');
+});
+
+test('空白だけでも全期間として扱う', () => {
+  assert.equal(describeQueryWindow('   '), '全期間');
+});
+
+test('設定があればそのまま見せる', () => {
+  assert.equal(describeQueryWindow('newer_than:1y'), 'newer_than:1y');
 });
 
 // --- 機能: ドライランの再開位置 ---------------------------------------------
