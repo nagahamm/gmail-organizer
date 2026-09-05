@@ -66,7 +66,7 @@ function surveyBacklog(startedAt?: number): void {
 
   // 中断中の遡及があるうちは動かさない。ラベルが付くたびに検索結果が縮み、
   // 位置で送るこの走査が取りこぼす。先に遡及を終わらせるほど残りが正確になる。
-  if (hasCursor(RETRO_CURSOR_KEY) || hasCursor(RELABEL_CURSOR_KEY)) {
+  if (anyRetroCursor()) {
     console.log('surveyBacklog: 中断中の遡及があります。そちらが終わってから流します');
     return;
   }

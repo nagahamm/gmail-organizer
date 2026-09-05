@@ -23,6 +23,7 @@ const EXPORTED = [
   'mergeBacklogStat',
   'describeProgress',
   'missingConfigDefaults',
+  'cursorKeyFor',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',

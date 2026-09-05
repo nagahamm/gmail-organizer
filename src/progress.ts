@@ -65,13 +65,14 @@ function describeProgress(progress: RunProgress): string[] {
 function readRunProgress(): RunProgress {
   const usage = readDailyUsage();
   const today = todayKey();
+  const dryRun = isDryRun();
 
   return {
     day: usage.day,
     usedToday: usage.day === today ? usage.threads : 0,
     dailyBudget: readDailyBudget(),
-    retro: readCursorIfAny(RETRO_CURSOR_KEY),
-    relabel: readCursorIfAny(RELABEL_CURSOR_KEY),
+    retro: readCursorIfAny(cursorKeyFor(RETRO_CURSOR_KEY, dryRun)),
+    relabel: readCursorIfAny(cursorKeyFor(RELABEL_CURSOR_KEY, dryRun)),
     backlog: readCursorIfAny(BACKLOG_CURSOR_KEY),
     backlogDomains: countBacklogDomains(),
   };

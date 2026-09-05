@@ -103,9 +103,12 @@ function menuApplyRetroactive(): void {
   const dryRun = isDryRun();
   const window = readConfig('RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW);
 
+  const tail =
+    '\n\n1 日の上限に達したら中断し、15 分ごとの自動実行が翌日以降も続きを流します。\n' +
+    '再開位置は DRY_RUN の有無で別に持つので、切り替えても混ざりません。';
   const message = dryRun
-    ? `DRY_RUN が有効です。ラベルは変更せず log に記録するだけです。\n対象期間: ${window}\n実行しますか?`
-    : `DRY_RUN が無効です。実際にラベルを付け替えます。\n対象期間: ${window}\n\nlog シートでドライランの結果を確認済みですか?`;
+    ? `DRY_RUN が有効です。ラベルは変更せず log に記録するだけです。\n対象期間: ${window}${tail}\n\n実行しますか?`
+    : `DRY_RUN が無効です。実際にラベルを付け替えます。\n対象期間: ${window}${tail}\n\nlog シートでドライランの結果を確認済みですか?`;
 
   if (ui.alert('遡及適用', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   applyRetroactive();

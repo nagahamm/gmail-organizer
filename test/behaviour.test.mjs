@@ -19,6 +19,7 @@ const {
   mergeBacklogStat,
   describeProgress,
   missingConfigDefaults,
+  cursorKeyFor,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -253,6 +254,20 @@ test('張り替えでも行の位置と累計は保つ', () => {
   assert.equal(relaxed.rowNumber, 42);
   assert.equal(relaxed.matchCount, 7);
   assert.equal(relaxed.relabel, true);
+});
+
+// --- 機能: ドライランの再開位置 ---------------------------------------------
+
+test('ドライランの中断が本適用の再開位置を汚さない', () => {
+  assert.notEqual(cursorKeyFor('RETRO_CURSOR', true), cursorKeyFor('RETRO_CURSOR', false));
+});
+
+test('本適用は素の鍵を使う', () => {
+  assert.equal(cursorKeyFor('RETRO_CURSOR', false), 'RETRO_CURSOR');
+});
+
+test('張り替えと遡及でも鍵は分かれる', () => {
+  assert.notEqual(cursorKeyFor('RETRO_CURSOR', true), cursorKeyFor('RELABEL_CURSOR', true));
 });
 
 // --- 機能: 設定の追随 -------------------------------------------------------

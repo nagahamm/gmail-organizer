@@ -17,6 +17,19 @@ const RETRO_CURSOR_KEY = 'RETRO_CURSOR';
  */
 const RELABEL_CURSOR_KEY = 'RELABEL_CURSOR';
 
+/**
+ * 実際に使う再開位置の鍵。ドライランは別に持つ。
+ *
+ * 共有すると、ドライランの中断が本適用の開始位置を狂わせ、その手前のルールが
+ * 一度も適用されないまま静かに飛ばされる。分けたうえでドライランにも位置を持たせると、
+ * 全期間のように 1 回で終わらない対象でもドライランを最後まで通せる。
+ *
+ * GAS API に触れないので `npm test` で検証できる。
+ */
+function cursorKeyFor(baseKey: string, dryRun: boolean): string {
+  return dryRun ? `${baseKey}_DRY` : baseKey;
+}
+
 /** 1 ルールあたり 1 回の検索で取るスレッド数。 */
 const APPLY_PAGE_SIZE = 100;
 
@@ -139,10 +152,9 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string, since?: 
   const budget = readDailyBudget();
   const today = todayKey();
   let usage = readDailyUsage();
-  // ドライランは毎回先頭から独立して検証する。中断してもカーソルを保存・参照しない。
-  // 本適用のカーソルと共有すると、ドライランの中断が本適用の開始位置を狂わせ、
-  // その前段のルールが一度も適用されないまま静かにスキップされてしまう。
-  const cursor = dryRun ? { ruleIndex: 0, start: 0 } : readCursor(cursorKey);
+  // ドライランも Gmail を読む。ラベルを書かないだけで読み取りクォータは同じだけ使う。
+  const key = cursorKeyFor(cursorKey, dryRun);
+  const cursor = readCursor(key);
   const entries: LogEntry[] = [];
   let processed = 0;
 
@@ -155,14 +167,10 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string, since?: 
     const seen: Record<string, boolean> = {};
 
     for (;;) {
-      // ドライランは日次予算を消費しない。ラベルを変えず log に書くだけの検証で、
-      // 本適用ぶんの枠をここで削ると、確認したあとに流せなくなる。
-      const spent = !dryRun && !hasDailyBudget(usage, today, budget);
+      const spent = !hasDailyBudget(usage, today, budget);
       if (outOfTime(startedAt) || spent) {
-        if (!dryRun) {
-          writeCursor(cursorKey, { ruleIndex: index, start });
-          writeDailyUsage(usage);
-        }
+        writeCursor(key, { ruleIndex: index, start });
+        writeDailyUsage(usage);
         writeLog(runId, entries);
         const why = spent ? `今日の上限 ${budget} スレッドに達した` : '時間切れ';
         console.log(
@@ -183,7 +191,7 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string, since?: 
       }
       processed += fresh;
       matchedByRule += fresh;
-      if (!dryRun) usage = rollDailyUsage(usage, today, fresh);
+      usage = rollDailyUsage(usage, today, fresh);
 
       const step = planNextPage(start, threads.length, fresh);
       start = step.start;
@@ -193,10 +201,8 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string, since?: 
     if (!dryRun) touchRule(rule, matchedByRule);
   }
 
-  if (!dryRun) {
-    clearCursor(cursorKey);
-    writeDailyUsage(usage);
-  }
+  clearCursor(key);
+  writeDailyUsage(usage);
   writeLog(runId, entries);
   console.log(`${name}: 完了。${processed} スレッド処理`);
 }
@@ -221,9 +227,12 @@ function continueRetroactive(startedAt?: number): void {
   // 今日のぶんが尽きていれば、シートを読むだけ無駄になる。
   if (!hasDailyBudget(readDailyUsage(), todayKey(), readDailyBudget())) return;
 
+  // 今の DRY_RUN に対応する位置だけを見る。切り替えた直後に、
+  // もう一方のモードで途中まで進んだ位置を拾ってしまわないため。
+  const dryRun = isDryRun();
   const now = new Date();
 
-  if (hasCursor(RELABEL_CURSOR_KEY)) {
+  if (hasCursor(cursorKeyFor(RELABEL_CURSOR_KEY, dryRun))) {
     const rules = loadRules()
       .filter((rule) => rule.relabel && isRuleApplicable(rule, now, true))
       .map(relaxProtection);
@@ -232,19 +241,36 @@ function continueRetroactive(startedAt?: number): void {
       return;
     }
     // 印が外された。続きを流す先が無いので位置を捨てる。
-    clearCursor(RELABEL_CURSOR_KEY);
+    clearCursor(cursorKeyFor(RELABEL_CURSOR_KEY, dryRun));
   }
 
-  if (!hasCursor(RETRO_CURSOR_KEY)) return;
+  if (!hasCursor(cursorKeyFor(RETRO_CURSOR_KEY, dryRun))) return;
   const rules = loadRules().filter((rule) => isRuleApplicable(rule, now, true));
   runRetroactive(rules, RETRO_CURSOR_KEY, 'continueRetroactive', since);
 }
 
-/** 遡及と張り替えの再開位置を捨てて、どちらも最初からやり直す。 */
+/** 遡及と張り替えの再開位置を捨てて、どちらも最初からやり直す。ドライランのぶんも消す。 */
 function resetRetroactive(): void {
-  clearCursor(RETRO_CURSOR_KEY);
-  clearCursor(RELABEL_CURSOR_KEY);
-  console.log('遡及適用と張り替えの再開位置を消しました');
+  for (const key of retroCursorKeys()) clearCursor(key);
+  console.log('遡及適用と張り替えの再開位置を消しました (ドライランのぶんも含む)');
+}
+
+/** 遡及と張り替えが使う再開位置の鍵をすべて返す。本適用とドライランの両方。 */
+function retroCursorKeys(): string[] {
+  return [
+    cursorKeyFor(RETRO_CURSOR_KEY, false),
+    cursorKeyFor(RETRO_CURSOR_KEY, true),
+    cursorKeyFor(RELABEL_CURSOR_KEY, false),
+    cursorKeyFor(RELABEL_CURSOR_KEY, true),
+  ];
+}
+
+/** 遡及か張り替えが中断中か。モードを問わず見る。 */
+function anyRetroCursor(): boolean {
+  for (const key of retroCursorKeys()) {
+    if (hasCursor(key)) return true;
+  }
+  return false;
 }
 
 /** シートの有効なルールを評価して適用する。戻り値は処理したスレッド数。 */
