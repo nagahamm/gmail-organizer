@@ -22,6 +22,7 @@ const EXPORTED = [
   'hasDailyBudget',
   'mergeBacklogStat',
   'describeProgress',
+  'missingConfigDefaults',
   'buildMatchQuery',
   'sanitizeQueryValue',
   'splitLabelPath',

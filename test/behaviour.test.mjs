@@ -18,6 +18,7 @@ const {
   hasDailyBudget,
   mergeBacklogStat,
   describeProgress,
+  missingConfigDefaults,
   buildMatchQuery,
   sanitizeQueryValue,
   splitLabelPath,
@@ -252,6 +253,44 @@ test('張り替えでも行の位置と累計は保つ', () => {
   assert.equal(relaxed.rowNumber, 42);
   assert.equal(relaxed.matchCount, 7);
   assert.equal(relaxed.relabel, true);
+});
+
+// --- 機能: 設定の追随 -------------------------------------------------------
+
+const configDefaults = [
+  ['DRY_RUN', 'TRUE', '説明'],
+  ['RETRO_QUERY_WINDOW', 'newer_than:1y', '説明'],
+  ['DAILY_THREAD_BUDGET', '3000', '説明'],
+];
+
+test('あとから増えた設定だけを足す', () => {
+  const missing = missingConfigDefaults(['DRY_RUN', 'RETRO_QUERY_WINDOW'], configDefaults);
+  assert.deepEqual(missing.map((row) => row[0]), ['DAILY_THREAD_BUDGET']);
+});
+
+test('すべて揃っていれば何も足さない', () => {
+  const present = ['DRY_RUN', 'RETRO_QUERY_WINDOW', 'DAILY_THREAD_BUDGET'];
+  assert.deepEqual(missingConfigDefaults(present, configDefaults), []);
+});
+
+test('見に覚えのない設定があっても足す判断は変わらない', () => {
+  // SAMPLE_LIMIT のように、使われなくなって残っている行がある。
+  const present = ['DRY_RUN', 'SAMPLE_LIMIT'];
+  assert.deepEqual(missingConfigDefaults(present, configDefaults).map((row) => row[0]), [
+    'RETRO_QUERY_WINDOW',
+    'DAILY_THREAD_BUDGET',
+  ]);
+});
+
+test('空のシートには全部足す', () => {
+  assert.equal(missingConfigDefaults([], configDefaults).length, 3);
+});
+
+test('前後の空白があっても同じキーとみなす', () => {
+  assert.deepEqual(missingConfigDefaults([' DRY_RUN '], configDefaults).map((row) => row[0]), [
+    'RETRO_QUERY_WINDOW',
+    'DAILY_THREAD_BUDGET',
+  ]);
 });
 
 // --- 機能: 実行の状態 -------------------------------------------------------

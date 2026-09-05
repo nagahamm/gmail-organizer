@@ -243,8 +243,38 @@ function applyFormulas(sheet: GoogleAppsScript.Spreadsheet.Sheet, spec: SheetSpe
 /** config シートが空のときだけ既定値を入れる。 */
 function seedConfigDefaults(): void {
   const sheet = getSheet(SHEET_NAMES.CONFIG);
-  if (sheet.getLastRow() >= 2) return;
-  sheet.getRange(2, 1, CONFIG_DEFAULTS.length, 3).setValues(CONFIG_DEFAULTS);
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    sheet.getRange(2, 1, CONFIG_DEFAULTS.length, 3).setValues(CONFIG_DEFAULTS);
+    return;
+  }
+
+  // 既に行がある場合は、あとから増えた既定値だけを足す。
+  // 値は決して上書きしない。利用者が変えた設定を setup() が戻したら事故になる。
+  const present = sheet.getRange(2, 1, lastRow - 1, 1).getValues().map((row) => String(row[0]));
+  const missing = missingConfigDefaults(present, CONFIG_DEFAULTS);
+  if (missing.length === 0) return;
+
+  sheet.getRange(lastRow + 1, 1, missing.length, 3).setValues(missing);
+  console.log(`seedConfigDefaults: ${missing.length} 件の設定を追加しました (${missing.map((row) => row[0]).join(', ')})`);
+}
+
+/**
+ * まだシートに無い既定値だけを返す。
+ *
+ * 列は ensureHeaders() が後から足せるのに、行には同じ手当てが無かった。
+ * 設定がシートに出てこないと、利用者は存在を知ることも調整することもできない
+ * (CLAUDE.md「真実の源はスプレッドシート」)。
+ *
+ * GAS API に触れないので `npm test` で検証できる。
+ */
+function missingConfigDefaults(present: string[], defaults: string[][]): string[][] {
+  // 手で編集されたシートを読むので、前後の空白はここで吸収する。
+  const known: Record<string, boolean> = {};
+  for (const key of present) known[String(key).trim()] = true;
+
+  return defaults.filter((row) => !known[String(row[0]).trim()]);
 }
 
 /** config シートの値を読む。無ければ既定値を返す。 */
