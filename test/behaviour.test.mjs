@@ -158,8 +158,18 @@ test('保持期間を過ぎたスレッドを引く', () => {
   assert.equal(query, 'label:"Finance/Cards/Jcb" in:inbox older_than:30d');
 });
 
-test('保持期間を設定していなければ何も引かない', () => {
-  assert.equal(buildRetentionQuery(rule({ inboxDays: 0 })), '');
+test('保持期間を設定していなければ何も引かない (Promotions 以外)', () => {
+  assert.equal(buildRetentionQuery(rule({ label: 'Finance/Cards/Jcb', inboxDays: 0 })), '');
+});
+
+test('Promotions は保持期間を設定していなくても既定の 90 日で引く', () => {
+  const query = buildRetentionQuery(rule({ label: 'Promotions/Stores', inboxDays: 0 }));
+  assert.equal(query, 'label:"Promotions/Stores" in:inbox older_than:90d');
+});
+
+test('Promotions でも明示した保持期間があればそちらを使う', () => {
+  const query = buildRetentionQuery(rule({ label: 'Promotions/Rewards', inboxDays: 30 }));
+  assert.equal(query, 'label:"Promotions/Rewards" in:inbox older_than:30d');
 });
 
 test('無効なルールでは何も引かない', () => {
@@ -175,8 +185,8 @@ test('保持日数は整数に丸める', () => {
   assert.match(query, /older_than:30d/);
 });
 
-test('負の保持日数は設定なしとして扱う', () => {
-  assert.equal(buildRetentionQuery(rule({ inboxDays: -1 })), '');
+test('負の保持日数は設定なしとして扱う (Promotions 以外)', () => {
+  assert.equal(buildRetentionQuery(rule({ label: 'Finance/Cards/Jcb', inboxDays: -1 })), '');
 });
 
 // --- 機能: 何日かに分けて流す -----------------------------------------------

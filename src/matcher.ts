@@ -116,19 +116,32 @@ function buildRuleQuery(rule: Rule, windowQuery: string): string {
   return parts.join(' ');
 }
 
+/** Promotions 配下が保持期間を設定していないときの既定日数 (docs/constraints.md 設計上の制約 8)。 */
+const PROMOTIONS_DEFAULT_RETENTION_DAYS = 90;
+
+/** ラベルが `Promotions` 自身か、その配下か。 */
+function isPromotionsLabel(label: string): boolean {
+  return label === 'Promotions' || label.startsWith('Promotions/');
+}
+
 /**
  * 保持期間を過ぎたスレッドを引く検索式。設定が無ければ空文字。
  *
  * 既読にして受信トレイに残したメールが、いつまでも溜まらないようにする。
  * 外すのは受信トレイからだけで、削除はしない。
+ *
+ * `Promotions` 配下だけは、行に保持期間が無くても既定の 90 日を使う。
+ * クーポンやキャンペーンは概ね 3 ヶ月で効力を失うため。行に明示した値があればそちらを優先する。
  */
 function buildRetentionQuery(rule: Rule): string {
   if (!rule.enabled) return '';
-  const days = Math.floor(rule.inboxDays);
-  if (days <= 0) return '';
 
   const label = sanitizeQueryValue(rule.label);
   if (label === '') return '';
+
+  const explicitDays = Math.floor(rule.inboxDays);
+  const days = explicitDays > 0 ? explicitDays : isPromotionsLabel(rule.label) ? PROMOTIONS_DEFAULT_RETENTION_DAYS : 0;
+  if (days <= 0) return '';
 
   return `label:"${label}" in:inbox older_than:${days}d`;
 }
