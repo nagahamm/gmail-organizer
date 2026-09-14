@@ -41,6 +41,8 @@ const EXPORTED = [
   'isMissingColumnError',
   'isSkipProposable',
   'buildSkipProposal',
+  'renderDigestHtml',
+  'escapeHtml',
 ];
 
 export function load() {

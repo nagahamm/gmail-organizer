@@ -247,6 +247,25 @@ function sendDigestMail(
   if (!to) return;
 
   const inbox = GmailApp.getInboxUnreadCount();
+  const lines = buildDigestLines(inbox, unmatched, deadRules, archived, expired, problems);
+
+  GmailApp.sendEmail(
+    to,
+    `[gmail-organizer] 週次ダイジェスト 未分類 ${unmatched.rows.length} 件`,
+    lines.join('\n'),
+    { htmlBody: renderDigestHtml(lines) }
+  );
+}
+
+/** メール本文の行を組み立てる。HTML 版もこれをそのまま整形し直すので、内容はここだけに書く。 */
+function buildDigestLines(
+  inbox: number,
+  unmatched: UnmatchedResult,
+  deadRules: DeadRule[],
+  archived: number,
+  expired: number,
+  problems: SheetProblem[]
+): string[] {
   const lines: string[] = [];
 
   lines.push('gmail-organizer 週次ダイジェスト');
@@ -300,6 +319,76 @@ function sendDigestMail(
   }
 
   lines.push('詳細は unmatched シートと senders シートを参照。提案は proposals シートへ書き込まれます。');
+  return lines;
+}
 
-  GmailApp.sendEmail(to, `[gmail-organizer] 週次ダイジェスト 未分類 ${unmatched.rows.length} 件`, lines.join('\n'));
+const DIGEST_HTML_STYLE = {
+  body: "font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;color:#1a1a1a;line-height:1.6;",
+  h2: 'font-size:18px;margin:0 0 12px;',
+  h3: 'font-size:15px;margin:20px 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px;',
+  ul: 'margin:0 0 12px;padding-left:20px;',
+  li: 'margin:2px 0;',
+  p: 'margin:4px 0;',
+};
+
+/**
+ * `buildDigestLines()` の行を HTML に整形し直す。**内容は変えない。**
+ *
+ * 行頭の記法をそのまま見出し・箇条書きに読み替える。
+ * - 先頭行 → 表題
+ * - `■ ` で始まる行 → 見出し
+ * - 2 マス下げた行 → 箇条書き
+ * - 空行 → 区切り
+ * - それ以外 → 段落
+ *
+ * GAS API に触れないので `npm test` で検証できる。
+ */
+function renderDigestHtml(lines: string[]): string {
+  if (lines.length === 0) return '';
+
+  const html: string[] = [`<div style="${DIGEST_HTML_STYLE.body}">`];
+  html.push(`<h2 style="${DIGEST_HTML_STYLE.h2}">${escapeHtml(lines[0])}</h2>`);
+
+  let listOpen = false;
+  const closeList = (): void => {
+    if (listOpen) {
+      html.push('</ul>');
+      listOpen = false;
+    }
+  };
+
+  for (const line of lines.slice(1)) {
+    if (line === '') {
+      closeList();
+      continue;
+    }
+    if (line.startsWith('■ ')) {
+      closeList();
+      html.push(`<h3 style="${DIGEST_HTML_STYLE.h3}">${escapeHtml(line.slice(2))}</h3>`);
+      continue;
+    }
+    if (line.startsWith('  ')) {
+      if (!listOpen) {
+        html.push(`<ul style="${DIGEST_HTML_STYLE.ul}">`);
+        listOpen = true;
+      }
+      html.push(`<li style="${DIGEST_HTML_STYLE.li}">${escapeHtml(line.trim())}</li>`);
+      continue;
+    }
+    closeList();
+    html.push(`<p style="${DIGEST_HTML_STYLE.p}">${escapeHtml(line)}</p>`);
+  }
+  closeList();
+  html.push('</div>');
+  return html.join('\n');
+}
+
+/** メールに埋め込む前に、件名や送信元由来の文字列をエスケープする。 */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

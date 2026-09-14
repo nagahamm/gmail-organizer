@@ -37,6 +37,8 @@ const {
   isMissingColumnError,
   isSkipProposable,
   buildSkipProposal,
+  renderDigestHtml,
+  escapeHtml,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -546,6 +548,41 @@ test('提案はドメインで引くルールになる', () => {
   assert.equal(proposal.matchKind, 'from_domain');
   assert.equal(proposal.pattern, 'smileie.au');
   assert.equal(proposal.approval, '未確認');
+});
+
+// --- 機能: 週次ダイジェスト (HTML 整形) ---------------------------------------
+
+test('先頭行は表題になる', () => {
+  const html = renderDigestHtml(['gmail-organizer 週次ダイジェスト']);
+  assert.match(html, /<h2[^>]*>gmail-organizer 週次ダイジェスト<\/h2>/);
+});
+
+test('■ で始まる行は見出しになる', () => {
+  const html = renderDigestHtml(['表題', '■ 未分類の送信元 上位 3 件']);
+  assert.match(html, /<h3[^>]*>未分類の送信元 上位 3 件<\/h3>/);
+});
+
+test('2 マス下げた行は箇条書きになる', () => {
+  const html = renderDigestHtml(['表題', '■ 見出し', '  1 行目', '  2 行目']);
+  assert.match(html, /<ul[^>]*><li[^>]*>1 行目<\/li>\n<li[^>]*>2 行目<\/li><\/ul>|<li[^>]*>1 行目<\/li>/);
+  assert.match(html, /<li[^>]*>2 行目<\/li>/);
+});
+
+test('空行で箇条書きが区切られる', () => {
+  const html = renderDigestHtml(['表題', '■ 見出し', '  項目', '', '次の段落']);
+  const listEnd = html.indexOf('</ul>');
+  const paragraph = html.indexOf('<p');
+  assert.ok(listEnd > 0 && paragraph > listEnd);
+});
+
+test('件数は間引かれず全件そのまま出る', () => {
+  const rows = Array.from({ length: 30 }, (_, i) => `  行 ${i + 1}`);
+  const html = renderDigestHtml(['表題', '■ 未分類の送信元 上位 30 件', ...rows]);
+  for (const row of rows) assert.match(html, new RegExp(`<li[^>]*>${row.trim()}</li>`));
+});
+
+test('件名などに含まれる記号はエスケープする', () => {
+  assert.equal(escapeHtml('<script>&"\''), '&lt;script&gt;&amp;&quot;&#39;');
 });
 
 // --- 機能: シートの検査 (フィルタ範囲) --------------------------------------
