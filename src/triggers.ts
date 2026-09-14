@@ -37,7 +37,7 @@ function runQuarterHourSteps(startedAt: number): void {
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */
 function installTriggers(): void {
-  const managed = ['everyQuarterHour', 'applyRetroactive', 'runWeeklyDigest'];
+  const managed = ['everyQuarterHour', 'applyRetroactive', 'runWeeklyDigest', 'proposeFromReplyMail'];
 
   for (const trigger of ScriptApp.getProjectTriggers()) {
     if (managed.indexOf(trigger.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(trigger);
@@ -54,11 +54,14 @@ function installTriggers(): void {
   // 時刻はスクリプトのタイムゾーン (Asia/Tokyo) で解釈される。
   ScriptApp.newTrigger('applyRetroactive').timeBased().onMonthDay(1).atHour(0).create();
   ScriptApp.newTrigger('runWeeklyDigest').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(7).create();
+  // Claude の週次 Routine は runWeeklyDigest (日曜 7 時) の後、日曜のうちに中継メールを送る想定。
+  // 月曜の朝にすればどちらも確実に間に合う (docs/design.md 5.6)。
+  ScriptApp.newTrigger('proposeFromReplyMail').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(8).create();
 
   // シートから実行したときにも登録されたことが見えるようにする。console はシートから見えない。
   const message =
     `トリガーを登録しました: everyQuarterHour (15 分間隔。起点は今の時刻 ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm')}) / ` +
-    'applyRetroactive (毎月 1 日 0 時) / runWeeklyDigest (日曜 7 時)';
+    'applyRetroactive (毎月 1 日 0 時) / runWeeklyDigest (日曜 7 時) / proposeFromReplyMail (月曜 8 時)';
   console.log(message);
   activeBook().toast(message, 'gmail-organizer', 10);
 }
@@ -81,6 +84,7 @@ function onOpen(): void {
     .addItem('送信元マスタを更新する', 'refreshSenders')
     .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
     .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
+    .addItem('返信メールの提案を取り込む', 'proposeFromReplyMail')
     .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
     .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
     .addItem('印を付けた行を張り替える', 'menuApplyRelabel')

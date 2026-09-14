@@ -39,6 +39,10 @@ const {
   buildSkipProposal,
   renderDigestHtml,
   escapeHtml,
+  parseRelayProposals,
+  buildReplyProposal,
+  buildProposalId,
+  isDuplicateProposal,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -548,6 +552,89 @@ test('提案はドメインで引くルールになる', () => {
   assert.equal(proposal.matchKind, 'from_domain');
   assert.equal(proposal.pattern, 'smileie.au');
   assert.equal(proposal.approval, '未確認');
+});
+
+// --- 機能: 返信メールによるルール提案 -------------------------------------------
+
+function relayBody(items) {
+  return [
+    '本文の前置き',
+    'GMAIL_ORGANIZER_PROPOSALS_BEGIN',
+    JSON.stringify(items),
+    'GMAIL_ORGANIZER_PROPOSALS_END',
+    '本文の後書き',
+  ].join('\n');
+}
+
+test('返信の自由文がルール提案になる', () => {
+  const body = relayBody([
+    {
+      matchKind: 'from',
+      pattern: 'test@gmail.com',
+      label: 'Promotions/A',
+      rationale: '返信より',
+      summary: 'test@gmail.com → Promotions/A',
+      sourceQuote: 'test@gmail.comはpromotion/aへ',
+    },
+  ]);
+
+  const [parsed] = parseRelayProposals(body);
+  const proposal = buildReplyProposal(parsed, new Date());
+
+  assert.equal(proposal.kind, 'new_rule');
+  assert.equal(proposal.matchKind, 'from');
+  assert.equal(proposal.pattern, 'test@gmail.com');
+  assert.equal(proposal.label, 'Promotions/A');
+  assert.equal(proposal.approval, '未確認');
+  assert.match(proposal.comment, /test@gmail\.comはpromotion\/aへ/);
+});
+
+test('rationale/summary/sourceQuote が空でも提案は作れる', () => {
+  const body = relayBody([{ matchKind: 'from_domain', pattern: 'example.com', label: 'Promotions' }]);
+  const [parsed] = parseRelayProposals(body);
+  const proposal = buildReplyProposal(parsed, new Date());
+
+  assert.equal(proposal.rationale, '返信メールでの指示');
+  assert.match(proposal.summary, /example\.com/);
+  assert.match(proposal.comment, /起票しました/);
+});
+
+test('ルールとして読み取れない返信は無視する', () => {
+  assert.deepEqual(parseRelayProposals('雑談だけの本文です'), []);
+});
+
+test('境界だけあって中身が壊れている場合も無視する', () => {
+  assert.deepEqual(parseRelayProposals(relayBody('{ 壊れた json')), []);
+});
+
+test('配列内の不備な要素だけを個別に落とす', () => {
+  const body = relayBody([
+    { matchKind: 'from', pattern: 'ok@example.com', label: 'Promotions/A' },
+    { matchKind: 'no_such_kind', pattern: 'bad@example.com', label: 'Promotions/B' },
+    { matchKind: 'from', pattern: '', label: 'Promotions/C' },
+    { matchKind: 'from', pattern: 'no-label@example.com' },
+  ]);
+
+  const parsed = parseRelayProposals(body);
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].pattern, 'ok@example.com');
+});
+
+test('同じ指示からは毎回同じ提案IDが作られる', () => {
+  const proposal = { matchKind: 'from', pattern: 'test@gmail.com', label: 'Promotions/A' };
+  assert.equal(buildProposalId(proposal), buildProposalId({ ...proposal }));
+});
+
+test('同じ返信を二重に取り込まない', () => {
+  const proposal = { matchKind: 'from', pattern: 'test@gmail.com', label: 'Promotions/A' };
+  const existingIds = [buildProposalId(proposal)];
+  assert.equal(isDuplicateProposal(existingIds, proposal), true);
+});
+
+test('別の指示は二重とみなさない', () => {
+  const proposal = { matchKind: 'from', pattern: 'test@gmail.com', label: 'Promotions/A' };
+  const other = { matchKind: 'from', pattern: 'other@example.com', label: 'Promotions/A' };
+  assert.equal(isDuplicateProposal([buildProposalId(other)], proposal), false);
 });
 
 // --- 機能: 週次ダイジェスト (HTML 整形) ---------------------------------------

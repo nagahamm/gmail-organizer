@@ -43,6 +43,10 @@ const EXPORTED = [
   'buildSkipProposal',
   'renderDigestHtml',
   'escapeHtml',
+  'parseRelayProposals',
+  'buildReplyProposal',
+  'buildProposalId',
+  'isDuplicateProposal',
 ];
 
 export function load() {
