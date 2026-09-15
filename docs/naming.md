@@ -122,7 +122,12 @@ Google AI Studio / Gemini の 7 行で、一覧で見渡せる量に収まって
 | `Learning/Courses` | 受講中のコース進捗 | Coursera / Udemy / TechTrain |
 | `Learning/Exams` | 資格試験の申込・受験票・結果 | TOEIC。申込には期限がある |
 | `Learning/English` | 英語学習サービス | Duolingo / ELSA / DMM 英会話 / スタディサプリ / EF |
-| `Learning/Admissions` | 進学・入学相談・オープンキャンパス | WILLFU |
+| `Learning/Admissions` | 進学・入学相談・オープンキャンパス。買い切り型の自己投資・オンラインコミュニティもここ | WILLFU / わんらび / FIGO / KNCT |
+
+自己投資系のオンラインコミュニティ・スクールは、支払い方法で `Learning` と `Subscriptions`
+に分かれる。**買い切り (WILLFU の 50 万円一括のような単発の高額決済) は `Learning/Admissions`**。
+「解約すべきか」を判断し続ける必要が無いため。**月額課金のオンラインサロンなら `Subscriptions`**
+(「自己投資系」という新しいラベルの箱は作らない。支払い方法という既存の軸で足りる)。
 
 ### Finance/Accounts — 口座
 
