@@ -52,6 +52,7 @@ const EXPORTED = [
   'coerceRowTypes',
   'buildDevUpdates',
   'extractDevMailPayload',
+  'isGmailQuotaExceeded',
   'sheetNameFromSubject',
   'compareField',
   'compareLabelRows',

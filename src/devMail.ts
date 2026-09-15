@@ -115,6 +115,7 @@ function importDevUpdateFromMail(): void {
 
 /** メニューからの実行。 */
 function menuImportDevMail(): void {
+  assertGmailQuotaAvailable();
   importDevSeedFromMail();
   importDevUpdateFromMail();
   SpreadsheetApp.getUi().alert(

@@ -6,6 +6,7 @@
 
 /** 15 分おきに呼ばれる本体。トリガー数とクォータを節約するため 1 本にまとめる。 */
 function everyQuarterHour(): void {
+  assertGmailQuotaAvailable();
   try {
     runQuarterHourSteps(Date.now());
     return;

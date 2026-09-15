@@ -106,6 +106,7 @@ function buildReplyProposal(proposal: RelayProposal, at: Date): Row {
  * 同じ内容が違うスレッドで再送された場合を防げないため)。
  */
 function proposeFromReplyMail(): number {
+  assertGmailQuotaAvailable();
   const threads = GmailApp.search(
     `subject:"${RELAY_SUBJECT}" -label:${RELAY_PROCESSED_LABEL}`,
     0,

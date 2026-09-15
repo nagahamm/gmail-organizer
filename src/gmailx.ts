@@ -8,6 +8,37 @@
  */
 
 /**
+ * GAS の Gmail 割り当て超過が例外メッセージに含む、既知の文言を検出する。
+ *
+ * GAS には「残り割り当てを事前に確認する」API がGmailの読み取り系には無い
+ * (送信系だけ `MailApp.getRemainingDailyQuota()` がある)。実行中に超過するのは
+ * 避けられないが、**既に超過している状態で実行を始めた場合**は、関数の先頭で
+ * 安価な呼び出しを 1 回試すことで即座に検出できる (`assertGmailQuotaAvailable`)。
+ * 深いところで初めて失敗して原因が分かりにくくなるのを防ぐ。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function isGmailQuotaExceeded(message: string): boolean {
+  return /service invoked too many times|quota|rate limit/i.test(message);
+}
+
+/**
+ * Gmail 操作を多く行う関数の先頭で呼ぶ。安価な呼び出しを 1 回試し、
+ * 既に割り当てを超えていればここで即座に、分かりやすいメッセージで失敗させる。
+ */
+function assertGmailQuotaAvailable(): void {
+  try {
+    GmailApp.getInboxUnreadCount();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (isGmailQuotaExceeded(message)) {
+      throw new Error(`Gmail APIの割り当てを超えています。時間を置いてから再実行してください: ${message}`);
+    }
+    throw error;
+  }
+}
+
+/**
  * ラベル一覧。
  *
  * 高度な Gmail サービスの `list` は、該当が 0 件だと応答本文が空になり

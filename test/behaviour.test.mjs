@@ -48,6 +48,7 @@ const {
   coerceRowTypes,
   buildDevUpdates,
   extractDevMailPayload,
+  isGmailQuotaExceeded,
   sheetNameFromSubject,
   compareField,
   compareSenderRows,
@@ -1038,4 +1039,18 @@ test('件名の前後の空白は落とす', () => {
     sheetNameFromSubject('[gmail-organizer] dev-update:   senders  ', '[gmail-organizer] dev-update:'),
     'senders'
   );
+});
+
+// --- Gmail割り当ての事前検出 --------------------------------------------------
+
+test('GASの割り当て超過メッセージを検出する', () => {
+  assert.equal(isGmailQuotaExceeded('Service invoked too many times for one day: gmail.'), true);
+});
+
+test('quotaを含むメッセージも検出する', () => {
+  assert.equal(isGmailQuotaExceeded('User-rate limit exceeded. quota exhausted'), true);
+});
+
+test('無関係なエラーは検出しない', () => {
+  assert.equal(isGmailQuotaExceeded('シート "labels" が空です。setup() を実行してください。'), false);
 });
