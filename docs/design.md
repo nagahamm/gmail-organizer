@@ -448,9 +448,13 @@ Routine は `proposals` に直接書けない (Google Drive のコネクタが�
 **中継メールの形式:**
 
 - 件名は固定: `[gmail-organizer] メール提案中継`
-- 本文に `GMAIL_ORGANIZER_PROPOSALS_BEGIN` と `GMAIL_ORGANIZER_PROPOSALS_END` で
+- `body` (プレーンテキスト) に `GMAIL_ORGANIZER_PROPOSALS_BEGIN` と `GMAIL_ORGANIZER_PROPOSALS_END` で
   挟んだ JSON 配列を 1 つ置く。要素は `{matchKind, pattern, label, rationale, summary, sourceQuote}`
 - `matchKind` は `rules.種別` と同じ語彙 (`list_id` / `from` / `from_domain` / `subject` / `query`)
+- GAS がパースするのは `body` だけだが、`htmlBody` も必ず用意する。**メールである以上、
+  人の受信トレイに届いて人の目に触れる**ので、「機械向けだから見た目は気にしない」は誤り。
+  `<pre>` タグでJSONをそのまま表示し、冒頭に「人が読む必要はない内部メール」と断るだけで、
+  壊れて見える状態にはしない
 
 **GAS がやること:**
 
