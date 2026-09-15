@@ -352,7 +352,7 @@ function renormalizeSenderDisplayNames(): void {
   console.log(`renormalizeSenderDisplayNames: ${plan.length} 件の表示名を直しました`);
 }
 
-/** メニューからの実行。変更点のプレビューを見せてから確認する。 */
+/** 使い切りの復旧処理。メニューには登録しない。Apps Scriptエディタから直接実行する。変更点のプレビューを見せてから確認する。 */
 function menuRenormalizeSenderDisplayNames(): void {
   const ui = SpreadsheetApp.getUi();
   const plan = planDisplayNameRenormalization(readRows(SHEET_NAMES.SENDERS));
@@ -375,7 +375,7 @@ function menuRenormalizeSenderDisplayNames(): void {
   ui.alert('表示名の再正規化', `${plan.length} 件を直しました。`, ui.ButtonSet.OK);
 }
 
-/** メニューからの実行。対象件数を見せてから確認する。 */
+/** 使い切りの復旧処理。メニューには登録しない。Apps Scriptエディタから直接実行する。対象件数を見せてから確認する。 */
 function menuDedupeSenders(): void {
   const ui = SpreadsheetApp.getUi();
   const plan = planSenderDedup(readRows(SHEET_NAMES.SENDERS));
@@ -440,7 +440,7 @@ function cleanupSenderGarbage(): void {
   console.log(`cleanupSenderGarbage: ${plan.length} 件のセルを空にしました`);
 }
 
-/** メニューからの実行。対象件数を見せてから確認する。 */
+/** 使い切りの復旧処理。メニューには登録しない。Apps Scriptエディタから直接実行する。対象件数を見せてから確認する。 */
 function menuCleanupSenderGarbage(): void {
   const ui = SpreadsheetApp.getUi();
   const plan = planSenderGarbageCleanup(readRows(SHEET_NAMES.SENDERS));

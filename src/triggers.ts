@@ -122,9 +122,6 @@ function onOpen(): void {
     // 週次でまとめて回すとき
     .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
     .addItem('送信元マスタを更新する', 'refreshSenders')
-    .addItem('送信元の重複を統合する', 'menuDedupeSenders')
-    .addItem('送信元の表示名を今のルールで直す', 'menuRenormalizeSenderDisplayNames')
-    .addItem('送信元のGmail追跡URLを除去する', 'menuCleanupSenderGarbage')
     .addItem('返信メールの提案を取り込む', 'proposeFromReplyMail')
     .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
     .addItem('スター付き求人を昇格する', 'promoteStarredJobs')
