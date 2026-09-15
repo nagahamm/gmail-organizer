@@ -41,7 +41,7 @@ interface SheetSpec {
 
 /** `labels.full_path` を B/C/D 列から組み立てる。3 階層のうち空の段は詰める。 */
 const FULL_PATH_FORMULA =
-  '=ARRAYFORMULA(IF($B2:$B="","",$B2:$B&IF($C2:$C="","","/"&$C2:$C)&IF($D2:$D="","","/"&$D2:$D)))';
+  '=ARRAYFORMULA(IF($A2:$A="","",$A2:$A&IF($B2:$B="","","/"&$B2:$B)&IF($C2:$C="","","/"&$C2:$C)))';
 
 const SHEET_SPECS: SheetSpec[] = [
   {
