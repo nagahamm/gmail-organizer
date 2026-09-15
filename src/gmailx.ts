@@ -134,28 +134,50 @@ function extractDisplayName(from: string): string {
 }
 
 /**
+ * 英数字の直後にこれが続く場合だけスペースを入れる。部署・窓口の切れ目であり、
+ * ブランド名の一部ではないと判断できる語に限る。
+ *
+ * 「SBI証券」「楽天証券」「松井証券」のように、証券・銀行などはブランド名
+ * そのものの一部なのでスペースを入れない。「povo2.0運営事務局」
+ * 「スタディサプリENGLISHお問い合わせ窓口」はサービス名+部署なので入れる。
+ */
+const DISPLAY_NAME_DEPARTMENT_SUFFIXES = [
+  '運営事務局',
+  'お問い合わせ窓口',
+  'カスタマーサポート',
+  'サポートセンター',
+  '事務局',
+  '窓口',
+  'センター',
+];
+
+/**
  * 表示名の見た目を整える。
  *
  * - 全角の欧字・括弧・スペースを半角に揃える (NFKC)。`Uber Eats` や `freee` のような
  *   元から半角の会社名は対象になる文字が無いので、これだけでは変わらない
  * - 装飾の＜＞【】で囲われた部分はタグとして剥がす
  * - 「株式会社」「(株)」は法人格の表記ゆれなので落とす
- * - 半角英数字の直後に日本語が続く境界にスペースを入れる (`povo2.0運営事務局` →
- *   `povo2.0 運営事務局`)。逆向き (日本語の直後に英字) は対象にしない。
- *   `スタディサプリENGLISH` のような合成語をそのまま残すため
+ * - 半角英数字の直後に `DISPLAY_NAME_DEPARTMENT_SUFFIXES` が続く境界にだけ
+ *   スペースを入れる (`povo2.0運営事務局` → `povo2.0 運営事務局`)。
+ *   それ以外の英数字+日本語の境界 (`SBI証券` など) はブランド名の一部として
+ *   スペースを入れない
  *
  * 「SBI証券」を「SBI」にするような、ブランド名を短縮する判断はしない。
  * それは `senders.運営元` / `senders.サービス` が本来担う役割 (docs/constraints.md 5b)。
  */
 function normalizeDisplayName(name: string): string {
-  return name
+  let result = name
     .normalize('NFKC')
     .replace(/^[<【]\s*/, '')
     .replace(/\s*[>】]$/, '')
-    .replace(/株式会社|\(株\)/g, '')
-    .replace(/([a-zA-Z0-9.])([\u3040-\u30ff\u4e00-\u9fff])/g, '$1 $2')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/株式会社|\(株\)/g, '');
+
+  for (const suffix of DISPLAY_NAME_DEPARTMENT_SUFFIXES) {
+    result = result.replace(new RegExp(`([a-zA-Z0-9.])(${suffix})`, 'g'), '$1 $2');
+  }
+
+  return result.replace(/\s+/g, ' ').trim();
 }
 
 /** 送信元アドレスからドメインを取り出す。 */

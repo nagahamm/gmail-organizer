@@ -802,7 +802,7 @@ test('装飾記号が無い表示名はそのまま', () => {
 });
 
 test('全角英字は半角に揃える', () => {
-  assert.equal(extractDisplayName('ＳＢＩ証券 <info@sbisec.co.jp>'), 'SBI 証券');
+  assert.equal(extractDisplayName('ＳＢＩ証券 <info@sbisec.co.jp>'), 'SBI証券');
 });
 
 test('全角スペースは半角に揃える', () => {
@@ -810,10 +810,15 @@ test('全角スペースは半角に揃える', () => {
 });
 
 test('株式会社は法人格の表記ゆれとして落とす', () => {
-  assert.equal(extractDisplayName('株式会社ＳＢＩ証券 <info@sbisec.co.jp>'), 'SBI 証券');
+  assert.equal(extractDisplayName('株式会社ＳＢＩ証券 <info@sbisec.co.jp>'), 'SBI証券');
 });
 
-test('半角英数字の直後に日本語が続く場合はスペースを入れる', () => {
+test('証券・銀行などブランド名の一部にはスペースを入れない', () => {
+  assert.equal(extractDisplayName('楽天証券 <service@rakuten-sec.co.jp>'), '楽天証券');
+  assert.equal(extractDisplayName('松井証券 <info@matsui.co.jp>'), '松井証券');
+});
+
+test('部署・窓口を表す語尾の前にはスペースを入れる', () => {
   assert.equal(extractDisplayName('povo2.0運営事務局 <info@povo.jp>'), 'povo2.0 運営事務局');
 });
 
@@ -988,7 +993,7 @@ test('今のルールで変わる表示名だけ計画に含める', () => {
   assert.equal(plan.length, 1);
   assert.equal(plan[0].rowNumber, 2);
   assert.equal(plan[0].before, '株式会社ＳＢＩ証券');
-  assert.equal(plan[0].after, 'SBI 証券');
+  assert.equal(plan[0].after, 'SBI証券');
 });
 
 test('空欄の表示名は計画に含めない', () => {
