@@ -58,6 +58,7 @@ const EXPORTED = [
   'compareLabelRows',
   'compareSenderRows',
   'extractDisplayName',
+  'planSenderDedup',
 ];
 
 export function load() {

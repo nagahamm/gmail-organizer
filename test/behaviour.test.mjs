@@ -54,6 +54,7 @@ const {
   compareSenderRows,
   compareLabelRows,
   extractDisplayName,
+  planSenderDedup,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -895,6 +896,80 @@ test('運営元が未入力の行は空文字として先頭にまとまる', ()
   assert.ok(
     compareSenderRows(senderSortRow({ operator: '' }), senderSortRow({ operator: 'DMM' })) < 0
   );
+});
+
+// --- 機能: 送信元の重複統合 --------------------------------------------------
+
+function dedupRow(overrides = {}) {
+  return {
+    address: 'a@example.com',
+    displayName: '',
+    operator: '',
+    service: '',
+    kind: '',
+    listId: '',
+    recentCount: 0,
+    firstSeen: new Date('2026-01-01'),
+    lastSeen: new Date('2026-01-01'),
+    state: 'active',
+    ...overrides,
+  };
+}
+
+test('重複が無ければそのまま全行を返す', () => {
+  const rows = [dedupRow({ address: 'a@example.com' }), dedupRow({ address: 'b@example.com' })];
+  const plan = planSenderDedup(rows);
+  assert.equal(plan.mergedCount, 0);
+  assert.equal(plan.droppedCount, 0);
+  assert.equal(plan.merged.length, 2);
+});
+
+test('大文字小文字が違うだけの同じアドレスも重複として統合する', () => {
+  const rows = [dedupRow({ address: 'A@Example.com' }), dedupRow({ address: 'a@example.com' })];
+  const plan = planSenderDedup(rows);
+  assert.equal(plan.mergedCount, 1);
+  assert.equal(plan.droppedCount, 1);
+  assert.equal(plan.merged.length, 1);
+});
+
+test('片方が空欄ならもう片方の運営元・サービスで埋める', () => {
+  const rows = [
+    dedupRow({ address: 'a@example.com', operator: '' }),
+    dedupRow({ address: 'a@example.com', operator: '楽天', service: '楽天マガジン' }),
+  ];
+  const plan = planSenderDedup(rows);
+  assert.equal(plan.merged[0].operator, '楽天');
+  assert.equal(plan.merged[0].service, '楽天マガジン');
+});
+
+test('既に運営元が入っていれば他方の値で上書きしない', () => {
+  const rows = [
+    dedupRow({ address: 'a@example.com', operator: 'DMM' }),
+    dedupRow({ address: 'a@example.com', operator: '楽天' }),
+  ];
+  const plan = planSenderDedup(rows);
+  assert.equal(plan.merged[0].operator, 'DMM');
+});
+
+test('初回受信は最も早く、最終受信は最も遅く、直近90日は最大を採用する', () => {
+  const rows = [
+    dedupRow({
+      address: 'a@example.com',
+      recentCount: 10,
+      firstSeen: new Date('2026-03-01'),
+      lastSeen: new Date('2026-03-10'),
+    }),
+    dedupRow({
+      address: 'a@example.com',
+      recentCount: 30,
+      firstSeen: new Date('2026-01-01'),
+      lastSeen: new Date('2026-02-01'),
+    }),
+  ];
+  const plan = planSenderDedup(rows);
+  assert.equal(plan.merged[0].firstSeen.getTime(), new Date('2026-01-01').getTime());
+  assert.equal(plan.merged[0].lastSeen.getTime(), new Date('2026-03-10').getTime());
+  assert.equal(plan.merged[0].recentCount, 30);
 });
 
 // --- 開発用データ投入 -------------------------------------------------------

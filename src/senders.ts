@@ -28,48 +28,61 @@ interface SenderObservation {
  * `運営元` / `サービス` / `備考` など人が育てた列には触れない。
  */
 function refreshSenders(startedAt?: number): void {
-  // 呼び出し元が別のステップと予算を分け合う場合は、その開始時刻を受け取る。
-  const since = budgetStart(startedAt);
-  const window = readConfig('SENDER_SCAN_WINDOW', CONFIG.SENDER_SCAN_WINDOW);
-  const scan = scanSenders(window, since);
-  const observed = scan.observed;
-
-  const rows = readRows(SHEET_NAMES.SENDERS);
-  const known: Record<string, Row> = {};
-  for (const row of rows) {
-    const address = String(row['address'] || '').trim().toLowerCase();
-    if (address !== '') known[address] = row;
+  // 手動メニューと週次ダイジェストの両方から呼ばれるため、同時に走ると
+  // 互いに「まだ追加されていない」古い known を見て同じ送信元を二重に
+  // appendRows してしまう。ロックで直列化し、既に走っていれば諦めて次回に譲る。
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(0)) {
+    console.warn('refreshSenders: 別の実行が進行中のため、今回はスキップします');
+    return;
   }
 
-  const added: Row[] = [];
-  const updates: CellUpdate[] = [];
-  let updated = 0;
+  try {
+    // 呼び出し元が別のステップと予算を分け合う場合は、その開始時刻を受け取る。
+    const since = budgetStart(startedAt);
+    const window = readConfig('SENDER_SCAN_WINDOW', CONFIG.SENDER_SCAN_WINDOW);
+    const scan = scanSenders(window, since);
+    const observed = scan.observed;
 
-  for (const address of Object.keys(observed)) {
-    const seen = observed[address];
-    const existing = known[address];
-
-    if (!existing) {
-      added.push(buildSenderRow(seen));
-      continue;
+    const rows = readRows(SHEET_NAMES.SENDERS);
+    const known: Record<string, Row> = {};
+    for (const row of rows) {
+      const address = String(row['address'] || '').trim().toLowerCase();
+      if (address !== '') known[address] = row;
     }
-    for (const update of senderUpdates(existing, seen, scan.complete)) updates.push(update);
-    updated += 1;
+
+    const added: Row[] = [];
+    const updates: CellUpdate[] = [];
+    let updated = 0;
+
+    for (const address of Object.keys(observed)) {
+      const seen = observed[address];
+      const existing = known[address];
+
+      if (!existing) {
+        added.push(buildSenderRow(seen));
+        continue;
+      }
+      for (const update of senderUpdates(existing, seen, scan.complete)) updates.push(update);
+      updated += 1;
+    }
+
+    // 打ち切られた走査では「observed に無い」と「まだ見ていない」が区別できない。
+    // 見ていないものを休眠と断定しない。
+    if (scan.complete) {
+      for (const update of dormantUpdates(rows, observed)) updates.push(update);
+    }
+
+    // 追記より先に流す。追記で行が増えても既存行の行番号は変わらないが、
+    // 読み取り済みの行番号を使う以上、間に他の書き込みを挟まない方が追いやすい。
+    updateCells(SHEET_NAMES.SENDERS, updates);
+    appendRows(SHEET_NAMES.SENDERS, added);
+
+    const note = scan.complete ? '' : ' (時間切れで途中まで。直近90日と休眠判定は据え置き)';
+    console.log(`refreshSenders: 新規 ${added.length} 件 / 更新 ${updated} 件${note}`);
+  } finally {
+    lock.releaseLock();
   }
-
-  // 打ち切られた走査では「observed に無い」と「まだ見ていない」が区別できない。
-  // 見ていないものを休眠と断定しない。
-  if (scan.complete) {
-    for (const update of dormantUpdates(rows, observed)) updates.push(update);
-  }
-
-  // 追記より先に流す。追記で行が増えても既存行の行番号は変わらないが、
-  // 読み取り済みの行番号を使う以上、間に他の書き込みを挟まない方が追いやすい。
-  updateCells(SHEET_NAMES.SENDERS, updates);
-  appendRows(SHEET_NAMES.SENDERS, added);
-
-  const note = scan.complete ? '' : ' (時間切れで途中まで。直近90日と休眠判定は据え置き)';
-  console.log(`refreshSenders: 新規 ${added.length} 件 / 更新 ${updated} 件${note}`);
 }
 
 /** 走査の結果。`complete` が false なら観測は途中までしかない。 */
@@ -204,4 +217,117 @@ function summarizeByOperator(): Record<string, { services: number; count: number
     totals[operator].count += Number(row['recentCount']) || 0;
   }
   return totals;
+}
+
+/** 重複統合の計画。 */
+interface SenderDedupPlan {
+  merged: Row[];
+  mergedCount: number;
+  droppedCount: number;
+}
+
+/**
+ * 同じ送信元アドレスが複数行に分かれている場合、1 行に統合する計画を立てる。
+ *
+ * `refreshSenders()` が同時に 2 回走ると、互いに古い「まだ追加されていない」
+ * 状態を見て同じ送信元を二重に追記することがある (`LockService` で再発は防ぐ)。
+ * 既に増えてしまった重複はこちらで統合する。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function planSenderDedup(rows: Row[]): SenderDedupPlan {
+  const order: string[] = [];
+  const groups: Record<string, Row[]> = {};
+
+  for (const row of rows) {
+    const address = String(row['address'] || '').trim().toLowerCase();
+    if (address === '') continue;
+    if (!groups[address]) {
+      groups[address] = [];
+      order.push(address);
+    }
+    groups[address].push(row);
+  }
+
+  const merged: Row[] = [];
+  let mergedCount = 0;
+  let droppedCount = 0;
+
+  for (const address of order) {
+    const group = groups[address];
+    if (group.length === 1) {
+      merged.push(group[0]);
+      continue;
+    }
+    merged.push(mergeSenderRows(group));
+    mergedCount += 1;
+    droppedCount += group.length - 1;
+  }
+
+  return { merged, mergedCount, droppedCount };
+}
+
+/**
+ * 同一アドレスの複数行を 1 行にまとめる。
+ * 空欄は他の行の値で埋め、初回受信は最も早く・最終受信は最も遅く・
+ * 直近90日は最大を採用する (走査ウィンドウが重なった二重観測を足し合わせて
+ * 水増ししないため)。
+ */
+function mergeSenderRows(group: Row[]): Row {
+  const merged: Row = { ...group[0] };
+
+  for (const key of ['displayName', 'operator', 'service', 'kind', 'listId']) {
+    if (String(merged[key] || '').trim() !== '') continue;
+    for (const row of group.slice(1)) {
+      const candidate = String(row[key] || '').trim();
+      if (candidate !== '') {
+        merged[key] = candidate;
+        break;
+      }
+    }
+  }
+
+  const firstSeens = group.filter((row) => row['firstSeen'] instanceof Date).map((row) => row['firstSeen'] as Date);
+  const lastSeens = group.filter((row) => row['lastSeen'] instanceof Date).map((row) => row['lastSeen'] as Date);
+  if (firstSeens.length > 0) {
+    merged['firstSeen'] = new Date(Math.min(...firstSeens.map((d) => d.getTime())));
+  }
+  if (lastSeens.length > 0) {
+    merged['lastSeen'] = new Date(Math.max(...lastSeens.map((d) => d.getTime())));
+  }
+
+  merged['recentCount'] = Math.max(...group.map((row) => Number(row['recentCount']) || 0));
+  if (group.some((row) => String(row['state']) === 'active')) merged['state'] = 'active';
+
+  return merged;
+}
+
+/** 送信元の重複を実際に統合する。 */
+function dedupeSenders(): void {
+  const plan = planSenderDedup(readRows(SHEET_NAMES.SENDERS));
+  if (plan.droppedCount === 0) {
+    console.log('dedupeSenders: 重複しているアドレスはありませんでした');
+    return;
+  }
+  replaceRows(SHEET_NAMES.SENDERS, plan.merged);
+  console.log(`dedupeSenders: ${plan.mergedCount} 件のアドレスを統合し、${plan.droppedCount} 行を削除しました`);
+}
+
+/** メニューからの実行。対象件数を見せてから確認する。 */
+function menuDedupeSenders(): void {
+  const ui = SpreadsheetApp.getUi();
+  const plan = planSenderDedup(readRows(SHEET_NAMES.SENDERS));
+
+  if (plan.droppedCount === 0) {
+    ui.alert('送信元の重複統合', '重複しているアドレスはありませんでした。', ui.ButtonSet.OK);
+    return;
+  }
+
+  const message =
+    `${plan.mergedCount} 件のアドレスが重複しています。統合すると ${plan.droppedCount} 行を削除します。\n` +
+    '空欄は他方の値で埋め、初回受信・最終受信・直近90日は矛盾しないよう幅を広げる方向で統合します。\n\n実行しますか?';
+  if (ui.alert('送信元の重複統合', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+
+  replaceRows(SHEET_NAMES.SENDERS, plan.merged);
+  ui.alert('送信元の重複統合', `${plan.mergedCount} 件のアドレスを統合しました。`, ui.ButtonSet.OK);
 }
