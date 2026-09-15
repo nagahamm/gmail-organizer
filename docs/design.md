@@ -318,7 +318,7 @@ Gmail のカテゴリ (`promotions` / `social` / `updates`) は既に分類さ�
 | 制約 | 対処 |
 | --- | --- |
 | 実行 6 分 / 回 | 遡及適用は `PropertiesService` にカーソルを保存する「続きから」方式で分割実行 |
-| `GmailApp` 日次クォータ (読み取り系 20,000 操作 / 日 程度) | 実行時間の 6 分でまず先に頭打ちになるため、クォータ監視は入れていない。ぶつかったら入れる |
+| `GmailApp` 日次クォータ (読み取り系 20,000 操作 / 日 程度) | `assertGmailQuotaAvailable()` が関数の先頭で安価な呼び出しを1回試し、既に超過していれば早期に失敗させる。超過を検知した日付は記録し、`everyQuarterHour` は同日中の再試行を打ち切ってスキップする (`src/gmailx.ts`)。実行中に超過する場合までは検知できない |
 | `GmailApp.search()` の 1 回あたり件数 | 遡及は 100 件ずつ (`APPLY_PAGE_SIZE`)、新着は 500 件 (`SEARCH_PAGE_SIZE`) |
 
 ### 5.3 Claude Routine の未検証点 (正直に記載)
