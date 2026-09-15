@@ -47,6 +47,7 @@ const {
   rowsFromTable,
   coerceRowTypes,
   buildDevUpdates,
+  buildDevOverwrites,
   extractDevMailPayload,
   isGmailQuotaExceeded,
   sheetNameFromSubject,
@@ -1146,6 +1147,33 @@ test('CSV側の値が空なら更新しない', () => {
 
 test('データ行が無ければ空になる', () => {
   assert.deepEqual(buildDevUpdates([['address', 'operator']], [senderRow()], 'address'), []);
+});
+
+test('buildDevOverwritesは既に値が入っているセルもCSV側の値で上書きする', () => {
+  const table = [
+    ['address', 'operator'],
+    ['a@example.com', 'KEAN Health'],
+  ];
+  const updates = buildDevOverwrites(table, [senderRow({ operator: '株式会社KEAN Health' })], 'address');
+  assert.deepEqual(updates, [{ rowNumber: 2, key: 'operator', value: 'KEAN Health' }]);
+});
+
+test('buildDevOverwritesはCSV側が空文字なら空欄に上書きする', () => {
+  const table = [
+    ['address', 'service'],
+    ['a@example.com', ''],
+  ];
+  const updates = buildDevOverwrites(table, [senderRow({ service: 'Rakuten ID' })], 'address');
+  assert.deepEqual(updates, [{ rowNumber: 2, key: 'service', value: '' }]);
+});
+
+test('buildDevOverwritesは値が変わらないセルには更新指示を出さない', () => {
+  const table = [
+    ['address', 'operator'],
+    ['a@example.com', '楽天'],
+  ];
+  const updates = buildDevOverwrites(table, [senderRow({ operator: '楽天' })], 'address');
+  assert.deepEqual(updates, []);
 });
 
 // --- 開発用データ (メール経由) ------------------------------------------------

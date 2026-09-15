@@ -14,6 +14,12 @@ const DEV_MAIL_SEED_PREFIX = '[gmail-organizer] dev-seed:';
 /** 件名の接頭辞。`[gmail-organizer] dev-update: <シート名>` の形を探す。 */
 const DEV_MAIL_UPDATE_PREFIX = '[gmail-organizer] dev-update:';
 
+/**
+ * 件名の接頭辞。`[gmail-organizer] dev-overwrite: <シート名>` の形を探す。
+ * dev-update と違い、既に値が入っているセルもCSV側の値で上書きする。
+ */
+const DEV_MAIL_OVERWRITE_PREFIX = '[gmail-organizer] dev-overwrite:';
+
 /** 本文に埋め込まれた CSV を取り出す境界。 */
 const DEV_MAIL_BEGIN = 'GMAIL_ORGANIZER_DEV_DATA_BEGIN';
 const DEV_MAIL_END = 'GMAIL_ORGANIZER_DEV_DATA_END';
@@ -113,11 +119,35 @@ function importDevUpdateFromMail(): void {
   }
 }
 
+/**
+ * メール経由の直値上書き。既に値が入っているセルもCSV側の値で上書きする。
+ * 運営元・サービス・表示名など、人が見て直したメタデータの反映に使う。
+ */
+function importDevOverwriteFromMail(): void {
+  const targets = findDevMailThreads(DEV_MAIL_OVERWRITE_PREFIX);
+  if (targets.length === 0) {
+    console.log('importDevOverwriteFromMail: 取り込み対象のメールが見つかりませんでした');
+    return;
+  }
+
+  const processedLabel = getOrCreateLabel(DEV_MAIL_PROCESSED_LABEL);
+  for (const { thread, sheetName, body } of targets) {
+    const table = parseDevMailCsv(body);
+    if (table.length === 0) continue;
+    const existingRows = readRows(sheetName);
+    const updates = buildDevOverwrites(table, existingRows, table[0][0]);
+    updateCells(sheetName, updates);
+    thread.addLabel(processedLabel);
+    console.log(`importDevOverwriteFromMail: ${sheetName} へ ${updates.length} セルを上書きしました`);
+  }
+}
+
 /** メニューからの実行。 */
 function menuImportDevMail(): void {
   assertGmailQuotaAvailable();
   importDevSeedFromMail();
   importDevUpdateFromMail();
+  importDevOverwriteFromMail();
   SpreadsheetApp.getUi().alert(
     '開発用データ (メール経由)',
     '取り込みを実行しました。詳細はログを確認してください。',

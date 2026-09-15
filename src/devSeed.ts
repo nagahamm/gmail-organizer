@@ -193,6 +193,42 @@ function buildDevUpdates(table: string[][], existingRows: Row[], keyColumn: stri
   return updates;
 }
 
+/**
+ * `buildDevUpdates()` と同じ形だが、既に値が入っているセルも
+ * CSV側の値で上書きする。運営元・表示名など、一度入力した内容を
+ * 人が見直して直す場合に使う。ルーティングに関わる列 (rules/labels) には使わない。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function buildDevOverwrites(table: string[][], existingRows: Row[], keyColumn: string): CellUpdate[] {
+  if (table.length < 2) return [];
+  const header = table[0].map((cell) => String(cell || '').trim());
+  const keyIndex = header.indexOf(keyColumn);
+  if (keyIndex < 0) return [];
+
+  const rowByKey: Record<string, Row> = {};
+  for (const row of existingRows) {
+    const key = String(row[keyColumn] || '').trim();
+    if (key !== '') rowByKey[key] = row;
+  }
+
+  const updates: CellUpdate[] = [];
+  for (const cols of table.slice(1)) {
+    const key = String(cols[keyIndex] || '').trim();
+    const existing = rowByKey[key];
+    if (!existing) continue;
+
+    header.forEach((column, i) => {
+      if (i === keyIndex || column === '') return;
+      const value = cols[i];
+      if (value === undefined) return;
+      if (String(existing[column] || '') === value) return;
+      updates.push({ rowNumber: Number(existing['_rowNumber']), key: column, value });
+    });
+  }
+  return updates;
+}
+
 /** Drive の dev-update-*.csv を取り込み、既存行の空セルだけ埋める。取り込んだファイルはゴミ箱へ送る。 */
 function importDevUpdate(targets?: DevSeedFile[]): void {
   const list = targets || findDevUpdateFiles();

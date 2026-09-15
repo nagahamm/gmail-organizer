@@ -472,9 +472,13 @@ JSON の形式チェックはするが、ラベルが実在するか・妥当か
 
 Claude はスプレッドシートのセルを直接書けない (5.3)。開発中にテストデータや
 一括投入したいデータがあるときのために、2 つの経路を用意した。どちらも
-新規行の追記 (`dev-seed-*`) と、既存行の空セルだけ埋める更新 (`dev-update-*`)
-の 2 種類がある (`src/devSeed.ts`)。既に値が入っているセルには触れない
-(「人と週次AIが育てる列」を一括投入で上書きしないため)。
+新規行の追記 (`dev-seed-*`)、既存行の空セルだけ埋める更新 (`dev-update-*`)、
+既存セルもCSV側の値で上書きする (`dev-overwrite-*`) の 3 種類がある
+(`src/devSeed.ts`)。`dev-update` は既に値が入っているセルには触れない
+(「人と週次AIが育てる列」を一括投入で上書きしないため)。人がレビューして
+値そのものを直したい場合は `dev-overwrite` を使う。対象は運営元・サービス・
+表示名などのメタデータ列に限り、`rules`/`labels` のようなルーティングに
+関わる列には使わない。
 
 **経路 A: Drive 経由**
 
@@ -487,11 +491,12 @@ Claude はスプレッドシートのセルを直接書けない (5.3)。開発�
 **経路 B: メール経由 (`src/devMail.ts`)**
 
 - Drive の認可が使えないときの代替。`GmailApp` は既に認可済みのことが多い
-- 件名を `[gmail-organizer] dev-seed: <シート名>` / `[gmail-organizer] dev-update: <シート名>` に固定し、
+- 件名を `[gmail-organizer] dev-seed: <シート名>` / `[gmail-organizer] dev-update: <シート名>` /
+  `[gmail-organizer] dev-overwrite: <シート名>` に固定し、
   本文に `GMAIL_ORGANIZER_DEV_DATA_BEGIN` / `END` で挟んだ CSV を入れて送る
   (メールなので htmlBody も付ける。CLAUDE.md「メールを送るときは必ず HTML」)
 - メニューの「[開発用] メールのデータを取り込む」から手動実行する
-- パース・変換ロジック (`rowsFromTable` / `coerceRowTypes` / `buildDevUpdates`) は経路 A と共通
+- パース・変換ロジック (`rowsFromTable` / `coerceRowTypes` / `buildDevUpdates` / `buildDevOverwrites`) は経路 A と共通
 
 **どちらも自動トリガーには載せない使い捨てツール。** 取り込んだ後は処理済みの印を付けて
 二重取り込みを防ぐ (Drive はゴミ箱へ、メールは処理済みラベル)。

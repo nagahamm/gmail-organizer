@@ -51,6 +51,7 @@ const EXPORTED = [
   'rowsFromTable',
   'coerceRowTypes',
   'buildDevUpdates',
+  'buildDevOverwrites',
   'extractDevMailPayload',
   'isGmailQuotaExceeded',
   'sheetNameFromSubject',
