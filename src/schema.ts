@@ -239,15 +239,26 @@ const SHEET_SPECS: SheetSpec[] = [
 
 /** `config` シートの初期値。setup() が空のときだけ投入する。 */
 const CONFIG_DEFAULTS: string[][] = [
-  ['DRY_RUN', 'TRUE', 'TRUE の間はラベルを変更せず log に dry_run として記録するだけ'],
-  ['RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW, '遡及適用の対象期間'],
+  ['DRY_RUN', 'TRUE', '[TRUE/FALSE] TRUE の間はラベルを変更せず log に dry_run として記録するだけ'],
+  ['RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW, '[文字列: Gmail 検索クエリ] 遡及適用の対象期間。例: newer_than:1y'],
   [
     'DAILY_THREAD_BUDGET',
     String(CONFIG.DAILY_THREAD_BUDGET),
-    '遡及と張り替えで 1 日に処理してよいスレッド数。超えたら翌日へ持ち越す',
+    '[整数] 遡及と張り替えで 1 日に処理してよいスレッド数。超えたら翌日へ持ち越す',
   ],
-  ['NOTIFY_TO', '', '週次ダイジェストの送信先。空なら実行アカウント宛'],
+  ['NOTIFY_TO', '', '[文字列: メールアドレス、空可] 週次ダイジェストの送信先。空なら実行アカウント宛'],
 ];
+
+/**
+ * `config.値` は行ごとに型が違うキー・バリュー表なので、列単位の `validation` では
+ * 表現できない。キーごとに個別の入力規則を貼るための対応表 (setup.ts が使う)。
+ */
+const CONFIG_KINDS: Record<string, 'boolean' | 'number' | 'text'> = {
+  DRY_RUN: 'boolean',
+  RETRO_QUERY_WINDOW: 'text',
+  DAILY_THREAD_BUDGET: 'number',
+  NOTIFY_TO: 'text',
+};
 
 /**
  * 退避先は log と同じ列にする。列定義を二度書かないよう複製して名前だけ変える。

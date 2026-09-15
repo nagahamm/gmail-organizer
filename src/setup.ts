@@ -36,6 +36,7 @@ function ensureSheets(): void {
     ensureSheet(book, spec);
   }
   seedConfigDefaults();
+  applyConfigValidations();
 }
 
 function ensureSheet(book: GoogleAppsScript.Spreadsheet.Spreadsheet, spec: SheetSpec): void {
@@ -275,6 +276,38 @@ function missingConfigDefaults(present: string[], defaults: string[][]): string[
   for (const key of present) known[String(key).trim()] = true;
 
   return defaults.filter((row) => !known[String(row[0]).trim()]);
+}
+
+/**
+ * config.値 は行ごとに型が違うため、列全体には貼れない。行のキーを見て
+ * 1 セルずつ入力規則を貼り直す (`CONFIG_KINDS` が対応表)。
+ *
+ * DRY_RUN はプルダウンで TRUE/FALSE しか選べなくする。数値の設定は
+ * 数値以外を弾く。文字列の設定 (Gmail 検索クエリ・メールアドレス) は
+ * 形式が自由なので規則を貼らず、説明列に期待する型を書くだけにする。
+ */
+function applyConfigValidations(): void {
+  const sheet = getSheet(SHEET_NAMES.CONFIG);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const keys = sheet.getRange(2, 1, lastRow - 1, 1).getValues().map((row) => String(row[0]).trim());
+  const valueRange = sheet.getRange(2, 2, lastRow - 1, 1);
+  const rules = keys.map((key) => buildConfigValidation(CONFIG_KINDS[key]));
+  valueRange.setDataValidations(rules.map((rule) => [rule]));
+}
+
+/** キーの型に応じた入力規則。自由記述の型は規則を貼らない (null)。 */
+function buildConfigValidation(
+  kind: 'boolean' | 'number' | 'text' | undefined
+): GoogleAppsScript.Spreadsheet.DataValidation | null {
+  if (kind === 'boolean') {
+    return SpreadsheetApp.newDataValidation().requireValueInList(['TRUE', 'FALSE'], true).setAllowInvalid(false).build();
+  }
+  if (kind === 'number') {
+    return SpreadsheetApp.newDataValidation().requireNumberGreaterThanOrEqualTo(0).setAllowInvalid(false).build();
+  }
+  return null;
 }
 
 /** config シートの値を読む。無ければ既定値を返す。 */
