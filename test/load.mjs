@@ -51,6 +51,8 @@ const EXPORTED = [
   'rowsFromTable',
   'coerceRowTypes',
   'buildDevUpdates',
+  'extractDevMailPayload',
+  'sheetNameFromSubject',
   'compareField',
   'compareLabelRows',
   'compareSenderRows',

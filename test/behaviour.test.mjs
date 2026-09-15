@@ -47,6 +47,8 @@ const {
   rowsFromTable,
   coerceRowTypes,
   buildDevUpdates,
+  extractDevMailPayload,
+  sheetNameFromSubject,
   compareField,
   compareSenderRows,
   compareLabelRows,
@@ -1007,4 +1009,33 @@ test('CSV側の値が空なら更新しない', () => {
 
 test('データ行が無ければ空になる', () => {
   assert.deepEqual(buildDevUpdates([['address', 'operator']], [senderRow()], 'address'), []);
+});
+
+// --- 開発用データ (メール経由) ------------------------------------------------
+
+function devMailBody(csv) {
+  return ['本文の前置き', 'GMAIL_ORGANIZER_DEV_DATA_BEGIN', csv, 'GMAIL_ORGANIZER_DEV_DATA_END', '後書き'].join('\n');
+}
+
+test('境界内のCSV文字列を取り出す', () => {
+  assert.equal(extractDevMailPayload(devMailBody('address,operator\na@example.com,楽天')), 'address,operator\na@example.com,楽天');
+});
+
+test('境界が無ければ空文字になる', () => {
+  assert.equal(extractDevMailPayload('境界の無い本文です'), '');
+});
+
+test('境界内が空でも空文字になる', () => {
+  assert.equal(extractDevMailPayload(devMailBody('')), '');
+});
+
+test('件名からシート名を取り出す', () => {
+  assert.equal(sheetNameFromSubject('[gmail-organizer] dev-seed: rules', '[gmail-organizer] dev-seed:'), 'rules');
+});
+
+test('件名の前後の空白は落とす', () => {
+  assert.equal(
+    sheetNameFromSubject('[gmail-organizer] dev-update:   senders  ', '[gmail-organizer] dev-update:'),
+    'senders'
+  );
 });
