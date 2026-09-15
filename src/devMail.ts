@@ -54,6 +54,16 @@ function sheetNameFromSubject(subject: string, prefix: string): string {
   return subject.slice(prefix.length).trim();
 }
 
+/**
+ * 取り込み済みの印を付けて受信トレイから片付ける。
+ * ラベルだけで二重取り込みは防げるが、機械可読メールが受信トレイに溜まり続けるのを防ぐため
+ * アーカイブする (ゴミ箱は30日で自動削除されるため、送った内容の履歴を残せるこちらにする)。
+ */
+function markDevMailProcessed(thread: GoogleAppsScript.Gmail.GmailThread, processedLabel: GoogleAppsScript.Gmail.GmailLabel): void {
+  thread.addLabel(processedLabel);
+  thread.moveToArchive();
+}
+
 /** 件名が固定の開発用メールを検索し、シート名ごとに { thread, sheetName, body } へ束ねる。 */
 function findDevMailThreads(
   subjectPrefix: string
@@ -94,7 +104,7 @@ function importDevSeedFromMail(): void {
     const spec = findSheetSpec(sheetName);
     const rows = rowsFromTable(parseDevMailCsv(body)).map((row) => coerceRowTypes(row, spec));
     appendRows(sheetName, rows);
-    thread.addLabel(processedLabel);
+    markDevMailProcessed(thread, processedLabel);
     console.log(`importDevSeedFromMail: ${sheetName} へ ${rows.length} 行取り込みました`);
   }
 }
@@ -114,7 +124,7 @@ function importDevUpdateFromMail(): void {
     const existingRows = readRows(sheetName);
     const updates = buildDevUpdates(table, existingRows, table[0][0]);
     updateCells(sheetName, updates);
-    thread.addLabel(processedLabel);
+    markDevMailProcessed(thread, processedLabel);
     console.log(`importDevUpdateFromMail: ${sheetName} へ ${updates.length} セルを更新しました`);
   }
 }
@@ -137,7 +147,7 @@ function importDevOverwriteFromMail(): void {
     const existingRows = readRows(sheetName);
     const updates = buildDevOverwrites(table, existingRows, table[0][0]);
     updateCells(sheetName, updates);
-    thread.addLabel(processedLabel);
+    markDevMailProcessed(thread, processedLabel);
     console.log(`importDevOverwriteFromMail: ${sheetName} へ ${updates.length} セルを上書きしました`);
   }
 }
