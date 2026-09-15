@@ -47,7 +47,7 @@ const EXPORTED = [
   'buildReplyProposal',
   'buildProposalId',
   'isDuplicateProposal',
-  'isKnownSheet',
+  'hasSheetSpec',
   'rowsFromTable',
 ];
 

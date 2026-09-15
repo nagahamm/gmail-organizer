@@ -246,8 +246,12 @@ function seedConfigDefaults(): void {
   const sheet = getSheet(SHEET_NAMES.CONFIG);
   const lastRow = sheet.getLastRow();
 
+  // シートには key/value/description の 3 列だけを書く。4 列目 (kind) は
+  // setup.ts が入力規則を貼るときだけ読む、コード側だけの情報。
+  const sheetRows = (rows: string[][]) => rows.map((row) => row.slice(0, 3));
+
   if (lastRow < 2) {
-    sheet.getRange(2, 1, CONFIG_DEFAULTS.length, 3).setValues(CONFIG_DEFAULTS);
+    sheet.getRange(2, 1, CONFIG_DEFAULTS.length, 3).setValues(sheetRows(CONFIG_DEFAULTS));
     return;
   }
 
@@ -257,7 +261,7 @@ function seedConfigDefaults(): void {
   const missing = missingConfigDefaults(present, CONFIG_DEFAULTS);
   if (missing.length === 0) return;
 
-  sheet.getRange(lastRow + 1, 1, missing.length, 3).setValues(missing);
+  sheet.getRange(lastRow + 1, 1, missing.length, 3).setValues(sheetRows(missing));
   console.log(`seedConfigDefaults: ${missing.length} 件の設定を追加しました (${missing.map((row) => row[0]).join(', ')})`);
 }
 
@@ -280,7 +284,7 @@ function missingConfigDefaults(present: string[], defaults: string[][]): string[
 
 /**
  * config.値 は行ごとに型が違うため、列全体には貼れない。行のキーを見て
- * 1 セルずつ入力規則を貼り直す (`CONFIG_KINDS` が対応表)。
+ * 1 セルずつ入力規則を貼り直す (`CONFIG_DEFAULTS` の 4 列目が対応表を兼ねる)。
  *
  * DRY_RUN はプルダウンで TRUE/FALSE しか選べなくする。数値の設定は
  * 数値以外を弾く。文字列の設定 (Gmail 検索クエリ・メールアドレス) は
@@ -291,16 +295,17 @@ function applyConfigValidations(): void {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return;
 
+  const kindByKey: Record<string, string> = {};
+  for (const row of CONFIG_DEFAULTS) kindByKey[row[0]] = row[3];
+
   const keys = sheet.getRange(2, 1, lastRow - 1, 1).getValues().map((row) => String(row[0]).trim());
   const valueRange = sheet.getRange(2, 2, lastRow - 1, 1);
-  const rules = keys.map((key) => buildConfigValidation(CONFIG_KINDS[key]));
+  const rules = keys.map((key) => buildConfigValidation(kindByKey[key]));
   valueRange.setDataValidations(rules.map((rule) => [rule]));
 }
 
 /** キーの型に応じた入力規則。自由記述の型は規則を貼らない (null)。 */
-function buildConfigValidation(
-  kind: 'boolean' | 'number' | 'text' | undefined
-): GoogleAppsScript.Spreadsheet.DataValidation | null {
+function buildConfigValidation(kind: string | undefined): GoogleAppsScript.Spreadsheet.DataValidation | null {
   if (kind === 'boolean') {
     return SpreadsheetApp.newDataValidation().requireValueInList(['TRUE', 'FALSE'], true).setAllowInvalid(false).build();
   }

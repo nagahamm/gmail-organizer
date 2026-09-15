@@ -237,28 +237,29 @@ const SHEET_SPECS: SheetSpec[] = [
   },
 ];
 
-/** `config` シートの初期値。setup() が空のときだけ投入する。 */
+/**
+ * `config` シートの初期値。setup() が空のときだけ投入する。
+ *
+ * 4 列目 (kind) はシートには書かない。`config.値` は行ごとに型が違うキー・バリュー表なので、
+ * 列単位の `validation` では表現できず、setup.ts がキーごとに入力規則を貼るときだけ参照する。
+ * 別の対応表に分けると片方の更新を忘れても気づけないので、既定値と同じ配列に持たせる。
+ */
 const CONFIG_DEFAULTS: string[][] = [
-  ['DRY_RUN', 'TRUE', '[TRUE/FALSE] TRUE の間はラベルを変更せず log に dry_run として記録するだけ'],
-  ['RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW, '[文字列: Gmail 検索クエリ] 遡及適用の対象期間。例: newer_than:1y'],
+  ['DRY_RUN', 'TRUE', '[TRUE/FALSE] TRUE の間はラベルを変更せず log に dry_run として記録するだけ', 'boolean'],
+  [
+    'RETRO_QUERY_WINDOW',
+    CONFIG.RETRO_QUERY_WINDOW,
+    '[文字列: Gmail 検索クエリ] 遡及適用の対象期間。例: newer_than:1y',
+    'text',
+  ],
   [
     'DAILY_THREAD_BUDGET',
     String(CONFIG.DAILY_THREAD_BUDGET),
     '[整数] 遡及と張り替えで 1 日に処理してよいスレッド数。超えたら翌日へ持ち越す',
+    'number',
   ],
-  ['NOTIFY_TO', '', '[文字列: メールアドレス、空可] 週次ダイジェストの送信先。空なら実行アカウント宛'],
+  ['NOTIFY_TO', '', '[文字列: メールアドレス、空可] 週次ダイジェストの送信先。空なら実行アカウント宛', 'text'],
 ];
-
-/**
- * `config.値` は行ごとに型が違うキー・バリュー表なので、列単位の `validation` では
- * 表現できない。キーごとに個別の入力規則を貼るための対応表 (setup.ts が使う)。
- */
-const CONFIG_KINDS: Record<string, 'boolean' | 'number' | 'text'> = {
-  DRY_RUN: 'boolean',
-  RETRO_QUERY_WINDOW: 'text',
-  DAILY_THREAD_BUDGET: 'number',
-  NOTIFY_TO: 'text',
-};
 
 /**
  * 退避先は log と同じ列にする。列定義を二度書かないよう複製して名前だけ変える。
@@ -280,4 +281,9 @@ function findSheetSpec(name: string): SheetSpec {
     if (spec.name === name) return spec;
   }
   throw new Error(`未定義のシートです: ${name}`);
+}
+
+/** 定義済みのシート名か。存在しない名前を例外無しで確かめたい場所で使う。 */
+function hasSheetSpec(name: string): boolean {
+  return SHEET_SPECS.some((spec) => spec.name === name);
 }

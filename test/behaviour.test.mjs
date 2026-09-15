@@ -43,7 +43,7 @@ const {
   buildReplyProposal,
   buildProposalId,
   isDuplicateProposal,
-  isKnownSheet,
+  hasSheetSpec,
   rowsFromTable,
 } = load();
 
@@ -781,8 +781,8 @@ test('List-Id から識別子だけを取り出す', () => {
 // --- 開発用データ投入 -------------------------------------------------------
 
 test('定義済みのシート名だけ取り込む', () => {
-  assert.equal(isKnownSheet('proposals'), true);
-  assert.equal(isKnownSheet('no_such_sheet'), false);
+  assert.equal(hasSheetSpec('proposals'), true);
+  assert.equal(hasSheetSpec('no_such_sheet'), false);
 });
 
 test('CSVのヘッダをkeyにしてRowへ変換する', () => {

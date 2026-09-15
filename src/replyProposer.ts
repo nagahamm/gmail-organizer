@@ -106,7 +106,11 @@ function buildReplyProposal(proposal: RelayProposal, at: Date): Row {
  * 同じ内容が違うスレッドで再送された場合を防げないため)。
  */
 function proposeFromReplyMail(): number {
-  const threads = GmailApp.search(`subject:"${RELAY_SUBJECT}" -label:${RELAY_PROCESSED_LABEL}`, 0, 20);
+  const threads = GmailApp.search(
+    `subject:"${RELAY_SUBJECT}" -label:${RELAY_PROCESSED_LABEL}`,
+    0,
+    CONFIG.SEARCH_PAGE_SIZE
+  );
   if (threads.length === 0) return 0;
 
   const existingIds = readRows(SHEET_NAMES.PROPOSALS).map((row) => String(row['proposalId'] || ''));
