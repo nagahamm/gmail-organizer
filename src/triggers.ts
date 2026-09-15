@@ -74,33 +74,46 @@ function uninstallTriggers(): void {
 
 /** スプレッドシートを開いたときのメニュー。 */
 function onOpen(): void {
-  SpreadsheetApp.getUi()
-    .createMenu('gmail-organizer')
-    .addItem('1. シートを作成 / 更新', 'setup')
-    .addItem('2. 現在のラベルとフィルタを取り込む', 'importCurrentState')
-    .addSeparator()
-    .addItem('新着に適用する', 'applyToNewMail')
-    .addItem('スター付き求人を昇格する', 'promoteStarredJobs')
-    .addItem('送信元マスタを更新する', 'refreshSenders')
-    .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
-    .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
-    .addItem('返信メールの提案を取り込む', 'proposeFromReplyMail')
-    .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
-    .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
-    .addItem('印を付けた行を張り替える', 'menuApplyRelabel')
+  const ui = SpreadsheetApp.getUi();
+
+  // 滅多に使わない (復旧・診断・開発用) はサブメニューに畳んで、
+  // 日常的に使う項目だけをトップレベルで見渡せるようにする。
+  const maintenance = ui
+    .createMenu('メンテナンス・復旧用')
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
-    .addSeparator()
-    .addItem('過去の未分類を洗い出す', 'menuSurveyBacklog')
     .addItem('洗い出しの再開位置を消す', 'resetBacklog')
     .addItem('実行の状態を見る', 'menuShowProgress')
     .addItem('親ラベルを作る', 'ensureParentLabels')
-    .addItem('labelsを並べ替える', 'menuSortLabelsSheet')
-    .addSeparator()
     .addItem('シートを検査する', 'menuValidateSheets')
     .addItem('トリガーを登録する', 'installTriggers')
     .addItem('トリガーを全て外す', 'uninstallTriggers')
     .addSeparator()
-    .addItem('[開発用] Driveのseedデータを取り込む', 'menuImportDevSeed')
+    .addItem('[開発用] Driveのseedデータを取り込む', 'menuImportDevSeed');
+
+  ui.createMenu('gmail-organizer')
+    .addItem('1. シートを作成 / 更新', 'setup')
+    .addItem('2. 現在のラベルとフィルタを取り込む', 'importCurrentState')
+    .addSeparator()
+    // すぐに効果を確認したいとき
+    .addItem('新着に適用する', 'applyToNewMail')
+    .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
+    .addItem('印を付けた行を張り替える', 'menuApplyRelabel')
+    .addSeparator()
+    // 週次でまとめて回すとき
+    .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
+    .addItem('送信元マスタを更新する', 'refreshSenders')
+    .addItem('返信メールの提案を取り込む', 'proposeFromReplyMail')
+    .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
+    .addItem('スター付き求人を昇格する', 'promoteStarredJobs')
+    .addSeparator()
+    // 過去メール全体への一括操作
+    .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
+    .addItem('過去の未分類を洗い出す', 'menuSurveyBacklog')
+    .addSeparator()
+    // 見た目の整理
+    .addItem('labelsを並べ替える', 'menuSortLabelsSheet')
+    .addSeparator()
+    .addSubMenu(maintenance)
     .addToUi();
 }
 
