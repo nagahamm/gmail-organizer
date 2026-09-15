@@ -47,7 +47,8 @@ const {
   rowsFromTable,
   coerceRowTypes,
   buildDevUpdates,
-  compareLabelField,
+  compareField,
+  compareSenderRows,
   compareLabelRows,
   extractDisplayName,
 } = load();
@@ -856,7 +857,41 @@ test('完全に同じ組み合わせなら0を返す', () => {
 });
 
 test('空欄も文字列として比較できる', () => {
-  assert.equal(compareLabelField(undefined, ''), 0);
+  assert.equal(compareField(undefined, ''), 0);
+});
+
+function senderSortRow(overrides = {}) {
+  return { operator: '', service: '', address: '', ...overrides };
+}
+
+test('運営元のABC順で比較する', () => {
+  assert.ok(
+    compareSenderRows(senderSortRow({ operator: 'DMM' }), senderSortRow({ operator: '楽天' })) < 0
+  );
+});
+
+test('運営元が同じならサービスで比較する', () => {
+  assert.ok(
+    compareSenderRows(
+      senderSortRow({ operator: '楽天', service: 'じゃらん' }),
+      senderSortRow({ operator: '楽天', service: '楽天カード' })
+    ) < 0
+  );
+});
+
+test('運営元・サービスが同じなら送信元アドレスで比較する', () => {
+  assert.ok(
+    compareSenderRows(
+      senderSortRow({ operator: '楽天', service: '楽天マガジン', address: 'a@rakuten.co.jp' }),
+      senderSortRow({ operator: '楽天', service: '楽天マガジン', address: 'b@rakuten.co.jp' })
+    ) < 0
+  );
+});
+
+test('運営元が未入力の行は空文字として先頭にまとまる', () => {
+  assert.ok(
+    compareSenderRows(senderSortRow({ operator: '' }), senderSortRow({ operator: 'DMM' })) < 0
+  );
 });
 
 // --- 開発用データ投入 -------------------------------------------------------

@@ -51,8 +51,9 @@ const EXPORTED = [
   'rowsFromTable',
   'coerceRowTypes',
   'buildDevUpdates',
-  'compareLabelField',
+  'compareField',
   'compareLabelRows',
+  'compareSenderRows',
   'extractDisplayName',
 ];
 

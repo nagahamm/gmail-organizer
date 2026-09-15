@@ -113,6 +113,7 @@ function onOpen(): void {
     .addSeparator()
     // 見た目の整理
     .addItem('labelsを並べ替える', 'menuSortLabelsSheet')
+    .addItem('sendersを並べ替える', 'menuSortSendersSheet')
     .addSeparator()
     .addSubMenu(maintenance)
     .addToUi();

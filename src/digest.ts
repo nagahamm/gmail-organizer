@@ -35,6 +35,7 @@ function runWeeklyDigest(): void {
   proposeInboxSkips();
 
   refreshSenders(startedAt);
+  sortSendersSheet();
   proposeAppliedJobs();
 
   sendDigestMail(unmatched, deadRules, archived, expired, problems);
