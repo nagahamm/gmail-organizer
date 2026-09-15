@@ -173,33 +173,23 @@ Claude が Watching の傾向を学習し、似た求人を次から拾うルー
 
 ## 3. アーキテクチャ
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Google スプレッドシート  "Gmail Label DB"   ← 真実の源   │
-│  labels / rules / senders / log (+ 過去分の log_N)         │
-│  unmatched / proposals / config                          │
-└───────────┬─────────────────────────────▲───────────────┘
-            │ 読む                          │ 書く
-            ▼                              │
-┌─────────────────────────────┐            │
-│  Google Apps Script          │            │
-│  ・15分ごと: 新着に適用       │            │
-│  ・週次:    集計 → unmatched │────────────┘
-│  ・月次:    遡及の取りこぼし回収 │
-└───────────┬─────────────────┘
-            │ GmailApp
-            ▼
-      ┌───────────┐        ┌──────────────────────────┐
-      │  Gmail    │        │  Claude 週次 Routine      │
-      └───────────┘        │  unmatched を読む         │
-                           │  → proposals に提案を書く  │
-                           └──────────────────────────┘
-                                        │
-                                   人間が承認列を
-                                   プルダウンで変更
-                                        │
-                                        ▼
-                             次回 GAS 実行が rules に反映
+```mermaid
+flowchart TB
+    Sheet["Google スプレッドシート 'Gmail Label DB' ← 真実の源\nlabels / rules / senders / log (+ 過去分の log_N)\nunmatched / proposals / config"]
+    GAS["Google Apps Script\n・15分ごと: 新着に適用\n・週次: 集計 → unmatched\n・月次: 遡及の取りこぼし回収"]
+    Gmail["Gmail"]
+    Routine["Claude 週次 Routine\nunmatched を読む\n→ proposals に提案を書く"]
+    Human["人間が承認列をプルダウンで変更"]
+    Apply["次回 GAS 実行が rules に反映"]
+
+    Sheet -- 読む --> GAS
+    GAS -- 書く --> Sheet
+    GAS -- GmailApp --> Gmail
+    Sheet -.-> Routine
+    Routine -- 提案を書く --> Sheet
+    Routine --> Human
+    Human --> Apply
+    Apply --> Sheet
 ```
 
 **承認ループがこの設計の要**です。「登録が面倒」という課題に対して、
