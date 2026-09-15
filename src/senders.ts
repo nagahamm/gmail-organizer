@@ -393,3 +393,72 @@ function menuDedupeSenders(): void {
   replaceRows(SHEET_NAMES.SENDERS, plan.merged);
   ui.alert('送信元の重複統合', `${plan.mergedCount} 件のアドレスを統合しました。`, ui.ButtonSet.OK);
 }
+
+/** Gmail 上でリンク化されたテキストをコピーすると付いてくる、クリック追跡用のURL。 */
+function isGmailTrackingUrl(value: string): boolean {
+  return value.trim().indexOf('https://www.google.com/url?q=') === 0;
+}
+
+/** 1 セルぶんの除去対象。 */
+interface SenderGarbageCell {
+  rowNumber: number;
+  key: 'operator' | 'service';
+  before: string;
+}
+
+/**
+ * `運営元` / `サービス` に Gmail のクリック追跡URLが紛れ込んでいる行を洗い出す。
+ *
+ * 「Amazon.co.jp」のようなリンク化された表示名をコピーすると、見た目の文字列
+ * ではなく裏側の追跡URLがセルに入ることがある。1 箇所に入ったこれをオートフィルで
+ * 他の行にも広げてしまうと、同じURLが何行にも渡って複製される。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function planSenderGarbageCleanup(rows: Row[]): SenderGarbageCell[] {
+  const plan: SenderGarbageCell[] = [];
+  for (const row of rows) {
+    for (const key of ['operator', 'service'] as const) {
+      const value = String(row[key] || '');
+      if (value !== '' && isGmailTrackingUrl(value)) {
+        plan.push({ rowNumber: Number(row['_rowNumber']), key, before: value });
+      }
+    }
+  }
+  return plan;
+}
+
+/** 洗い出した対象のセルを実際に空にする。 */
+function cleanupSenderGarbage(): void {
+  const plan = planSenderGarbageCleanup(readRows(SHEET_NAMES.SENDERS));
+  if (plan.length === 0) {
+    console.log('cleanupSenderGarbage: Gmailの追跡URLは見つかりませんでした');
+    return;
+  }
+  const updates: CellUpdate[] = plan.map((cell) => ({ rowNumber: cell.rowNumber, key: cell.key, value: '' }));
+  updateCells(SHEET_NAMES.SENDERS, updates);
+  console.log(`cleanupSenderGarbage: ${plan.length} 件のセルを空にしました`);
+}
+
+/** メニューからの実行。対象件数を見せてから確認する。 */
+function menuCleanupSenderGarbage(): void {
+  const ui = SpreadsheetApp.getUi();
+  const plan = planSenderGarbageCleanup(readRows(SHEET_NAMES.SENDERS));
+
+  if (plan.length === 0) {
+    ui.alert('Gmail追跡URLの除去', 'Gmailの追跡URLは見つかりませんでした。', ui.ButtonSet.OK);
+    return;
+  }
+
+  const preview = plan
+    .slice(0, 10)
+    .map((cell) => `行${cell.rowNumber} (${cell.key === 'operator' ? '運営元' : 'サービス'})`)
+    .join('\n');
+  const more = plan.length > 10 ? `\n...他 ${plan.length - 10} 件` : '';
+  const message = `${plan.length} 件のセルにGmailのクリック追跡URLが紛れ込んでいます。空欄にします。\n\n${preview}${more}\n\n実行しますか?`;
+  if (ui.alert('Gmail追跡URLの除去', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+
+  const updates: CellUpdate[] = plan.map((cell) => ({ rowNumber: cell.rowNumber, key: cell.key, value: '' }));
+  updateCells(SHEET_NAMES.SENDERS, updates);
+  ui.alert('Gmail追跡URLの除去', `${plan.length} 件を空にしました。`, ui.ButtonSet.OK);
+}

@@ -56,6 +56,8 @@ const {
   extractDisplayName,
   planSenderDedup,
   planDisplayNameRenormalization,
+  planSenderGarbageCleanup,
+  isGmailTrackingUrl,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -1005,6 +1007,30 @@ test('英数字と日本語の間にスペースが無い古い表示名を直�
   const plan = planDisplayNameRenormalization([displayNameRow(2, 'yagish運営事務局')]);
   assert.equal(plan.length, 1);
   assert.equal(plan[0].after, 'yagish 運営事務局');
+});
+
+// --- 機能: Gmail追跡URLの除去 ------------------------------------------------
+
+test('Gmailのクリック追跡URLを検出する', () => {
+  assert.ok(
+    isGmailTrackingUrl('https://www.google.com/url?q=http://Amazon.co.jp&source=gmail&ust=123&sa=E')
+  );
+});
+
+test('通常の値は追跡URLとして検出しない', () => {
+  assert.equal(isGmailTrackingUrl('Amazon'), false);
+  assert.equal(isGmailTrackingUrl(''), false);
+});
+
+test('運営元・サービスに追跡URLが入っている行を洗い出す', () => {
+  const rows = [
+    { _rowNumber: 2, operator: 'Amazon', service: 'https://www.google.com/url?q=http://Amazon.co.jp' },
+    { _rowNumber: 3, operator: 'Amazon', service: '' },
+  ];
+  const plan = planSenderGarbageCleanup(rows);
+  assert.equal(plan.length, 1);
+  assert.equal(plan[0].rowNumber, 2);
+  assert.equal(plan[0].key, 'service');
 });
 
 // --- 開発用データ投入 -------------------------------------------------------

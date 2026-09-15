@@ -60,6 +60,8 @@ const EXPORTED = [
   'extractDisplayName',
   'planSenderDedup',
   'planDisplayNameRenormalization',
+  'planSenderGarbageCleanup',
+  'isGmailTrackingUrl',
 ];
 
 export function load() {
