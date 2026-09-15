@@ -129,3 +129,104 @@ function menuImportDevSeed(): void {
   if (ui.alert('開発用データ投入', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
   importDevSeed(targets);
 }
+
+/** 取り込み対象とするファイル名の接頭辞。`dev-update-<シート名>.csv` の形を探す。新規行の追記ではなく、既存行の空セルだけ埋める。 */
+const DEV_UPDATE_PREFIX = 'dev-update-';
+
+/**
+ * Drive の dev-update-*.csv を探す。findDevSeedFiles() と同じ理由で 1 箇所にまとめる。
+ */
+function findDevUpdateFiles(): DevSeedFile[] {
+  const files = DriveApp.searchFiles(`title contains '${DEV_UPDATE_PREFIX}' and trashed = false`);
+  const found: DevSeedFile[] = [];
+
+  while (files.hasNext()) {
+    const file = files.next();
+    const name = file.getName();
+    if (name.indexOf(DEV_UPDATE_PREFIX) !== 0) continue;
+
+    const sheetName = name.slice(DEV_UPDATE_PREFIX.length).replace(/\.csv$/i, '');
+    if (!hasSheetSpec(sheetName)) {
+      console.warn(`findDevUpdateFiles: 未知のシート名です。取り込みません: ${sheetName} (${name})`);
+      continue;
+    }
+    found.push({ file, sheetName });
+  }
+  return found;
+}
+
+/**
+ * CSV の 1 列目をキーにして、既存行のうち空セルだけを埋める更新指示を作る。
+ *
+ * 既に値が入っているセルには触れない。「人と週次AIが育てる列」(senders.運営元など) を
+ * 一括投入で上書きしてしまわないための安全策。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function buildDevUpdates(table: string[][], existingRows: Row[], keyColumn: string): CellUpdate[] {
+  if (table.length < 2) return [];
+  const header = table[0].map((cell) => String(cell || '').trim());
+  const keyIndex = header.indexOf(keyColumn);
+  if (keyIndex < 0) return [];
+
+  const rowByKey: Record<string, Row> = {};
+  for (const row of existingRows) {
+    const key = String(row[keyColumn] || '').trim();
+    if (key !== '') rowByKey[key] = row;
+  }
+
+  const updates: CellUpdate[] = [];
+  for (const cols of table.slice(1)) {
+    const key = String(cols[keyIndex] || '').trim();
+    const existing = rowByKey[key];
+    if (!existing) continue;
+
+    header.forEach((column, i) => {
+      if (i === keyIndex || column === '') return;
+      const current = existing[column];
+      if (current !== undefined && current !== null && String(current).trim() !== '') return;
+      const value = cols[i];
+      if (value === undefined || value === '') return;
+      updates.push({ rowNumber: Number(existing['_rowNumber']), key: column, value });
+    });
+  }
+  return updates;
+}
+
+/** Drive の dev-update-*.csv を取り込み、既存行の空セルだけ埋める。取り込んだファイルはゴミ箱へ送る。 */
+function importDevUpdate(targets?: DevSeedFile[]): void {
+  const list = targets || findDevUpdateFiles();
+  if (list.length === 0) {
+    console.log('importDevUpdate: 取り込み対象の dev-update-*.csv が見つかりませんでした');
+    return;
+  }
+
+  for (const { file, sheetName } of list) {
+    const table = Utilities.parseCsv(file.getBlob().getDataAsString('UTF-8'));
+    if (table.length === 0) continue;
+    const existingRows = readRows(sheetName);
+    const updates = buildDevUpdates(table, existingRows, table[0][0]);
+    updateCells(sheetName, updates);
+    file.setTrashed(true);
+    console.log(
+      `importDevUpdate: ${sheetName} へ ${updates.length} セルを更新し、"${file.getName()}" をゴミ箱へ送りました`
+    );
+  }
+}
+
+/** メニューからの実行。取り込み前に対象ファイルを確認させる。 */
+function menuImportDevUpdate(): void {
+  const ui = SpreadsheetApp.getUi();
+  const targets = findDevUpdateFiles();
+
+  if (targets.length === 0) {
+    ui.alert('開発用データ更新', 'Drive に dev-update-*.csv が見つかりません。', ui.ButtonSet.OK);
+    return;
+  }
+
+  const names = targets.map((t) => t.file.getName());
+  const message =
+    `次のファイルで、既存行の空セルだけ埋めます。取り込んだ後はゴミ箱へ送ります。\n\n${names.join('\n')}\n\n実行しますか?`;
+  if (ui.alert('開発用データ更新', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+  importDevUpdate(targets);
+}

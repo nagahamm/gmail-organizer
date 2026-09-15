@@ -50,6 +50,7 @@ const EXPORTED = [
   'hasSheetSpec',
   'rowsFromTable',
   'coerceRowTypes',
+  'buildDevUpdates',
   'compareLabelField',
   'compareLabelRows',
   'extractDisplayName',

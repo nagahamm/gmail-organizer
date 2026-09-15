@@ -46,6 +46,7 @@ const {
   hasSheetSpec,
   rowsFromTable,
   coerceRowTypes,
+  buildDevUpdates,
   compareLabelField,
   compareLabelRows,
   extractDisplayName,
@@ -926,4 +927,49 @@ test('空文字は変換せずそのまま残す', () => {
   const row = coerceRowTypes({ enabled: '', priority: '', pattern: '' }, fixtureSpec());
   assert.equal(row.enabled, '');
   assert.equal(row.priority, '');
+});
+
+function senderRow(overrides = {}) {
+  return { _rowNumber: 2, address: 'a@example.com', displayName: '', operator: '', service: '', ...overrides };
+}
+
+test('キー列で引いた既存行の空セルだけ更新指示にする', () => {
+  const table = [
+    ['address', 'operator', 'service'],
+    ['a@example.com', '楽天', '楽天マガジン'],
+  ];
+  const updates = buildDevUpdates(table, [senderRow()], 'address');
+  assert.deepEqual(updates, [
+    { rowNumber: 2, key: 'operator', value: '楽天' },
+    { rowNumber: 2, key: 'service', value: '楽天マガジン' },
+  ]);
+});
+
+test('既に値が入っているセルは上書きしない', () => {
+  const table = [
+    ['address', 'operator'],
+    ['a@example.com', '楽天'],
+  ];
+  const updates = buildDevUpdates(table, [senderRow({ operator: '既存の値' })], 'address');
+  assert.deepEqual(updates, []);
+});
+
+test('キーに一致する既存行が無ければ何もしない', () => {
+  const table = [
+    ['address', 'operator'],
+    ['no-such@example.com', '楽天'],
+  ];
+  assert.deepEqual(buildDevUpdates(table, [senderRow()], 'address'), []);
+});
+
+test('CSV側の値が空なら更新しない', () => {
+  const table = [
+    ['address', 'operator'],
+    ['a@example.com', ''],
+  ];
+  assert.deepEqual(buildDevUpdates(table, [senderRow()], 'address'), []);
+});
+
+test('データ行が無ければ空になる', () => {
+  assert.deepEqual(buildDevUpdates([['address', 'operator']], [senderRow()], 'address'), []);
 });

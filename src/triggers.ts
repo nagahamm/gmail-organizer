@@ -88,7 +88,8 @@ function onOpen(): void {
     .addItem('トリガーを登録する', 'installTriggers')
     .addItem('トリガーを全て外す', 'uninstallTriggers')
     .addSeparator()
-    .addItem('[開発用] Driveのseedデータを取り込む', 'menuImportDevSeed');
+    .addItem('[開発用] Driveのseedデータを取り込む', 'menuImportDevSeed')
+    .addItem('[開発用] Driveの更新データで空セルを埋める', 'menuImportDevUpdate');
 
   ui.createMenu('gmail-organizer')
     .addItem('1. シートを作成 / 更新', 'setup')
