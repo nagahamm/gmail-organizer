@@ -54,7 +54,7 @@
 | TRUE | 12 | `from_domain` | `paidy.com` | `Finance/Payments` | FALSE | FALSE | 未分類。後払い決済 |
 | TRUE | 13 | `from_domain` | `jcb.co.jp` | `Finance/Cards/Jcb` | FALSE | FALSE | `CreditCards` の 100%。**2 サブドメインのうち片方は未分類だった** |
 | TRUE | 14 | `from_domain` | `coincheck.com` | `Finance/Crypto/Coincheck` | FALSE | FALSE | `Accounts` の 8 割 |
-| TRUE | 15 | `from_domain` | `netbk.co.jp` | `Finance/Accounts/Sbi` | FALSE | FALSE | 住信 SBI |
+| TRUE | 15 | `from_domain` | `netbk.co.jp` | `Finance/Accounts/Smtb` | FALSE | FALSE | 住信 SBI ネット銀行 (現ドコモSMTBネット銀行) |
 | TRUE | 16 | `from_domain` | `mail.caresuper.com.au` | `Finance/Superannuation` | FALSE | FALSE | 豪州年金。**帰国後に還付請求できる**のに未分類・未読だった |
 
 ## Orders — Amazon の 2 系統を割る

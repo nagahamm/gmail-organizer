@@ -162,7 +162,7 @@ Gmail の「配信を管理」画面には**表示名**が出る。これで**�
 | 楽天証券 | `service@rakuten-sec.co.jp` | transactional | `Finance/Investments/Rakuten` |
 | Coincheck | `support@coincheck.com` | transactional | `Finance/Crypto/Coincheck` |
 | ソニー銀行 | `banking@ma.sonybank.jp` / `banking@sonybank.net` | transactional | `Finance/Accounts/Sony` |
-| 住信 SBI ネット銀行 | `prom@netbk.co.jp` / `post_master@netbk.co.jp` | transactional | `Finance/Accounts/Sbi` |
+| 住信 SBI ネット銀行 (現ドコモSMTBネット銀行) | `prom@netbk.co.jp` / `post_master@netbk.co.jp` | transactional | `Finance/Accounts/Smtb` |
 | UP (AU) | `whats@up.com.au` | transactional | `Finance/Accounts/Up` |
 | NAB (AU) | `nab@updates.nab.com.au` | transactional | `Finance/Accounts/Nab` |
 | Paidy | `noreply@paidy.com` | transactional | `Finance/Payments` |
