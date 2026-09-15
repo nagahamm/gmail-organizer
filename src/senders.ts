@@ -136,16 +136,11 @@ function buildSenderRow(seen: SenderObservation): Row {
     operator: '',
     service: '',
     kind: '',
-    label: '',
     listId: lookupListId(seen.messageId),
-    location: '',
-    cadence: '',
     recentCount: seen.count,
     firstSeen: seen.firstSeen,
     lastSeen: seen.lastSeen,
     state: 'active',
-    unsubscribe: false,
-    memo: '',
   };
 }
 
