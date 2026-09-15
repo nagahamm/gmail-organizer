@@ -873,8 +873,8 @@ test('運営元のABC順で比較する', () => {
 test('運営元が同じならサービスで比較する', () => {
   assert.ok(
     compareSenderRows(
-      senderSortRow({ operator: '楽天', service: 'じゃらん' }),
-      senderSortRow({ operator: '楽天', service: '楽天カード' })
+      senderSortRow({ operator: '楽天', service: '楽天カード' }),
+      senderSortRow({ operator: '楽天', service: '楽天マガジン' })
     ) < 0
   );
 });
