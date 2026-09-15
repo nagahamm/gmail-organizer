@@ -49,6 +49,7 @@ const EXPORTED = [
   'isDuplicateProposal',
   'hasSheetSpec',
   'rowsFromTable',
+  'coerceRowTypes',
   'compareLabelField',
   'compareLabelRows',
   'extractDisplayName',

@@ -41,6 +41,28 @@ function rowsFromTable(table: string[][]): Row[] {
 }
 
 /**
+ * CSV は値をすべて文字列で読むため、`"TRUE"` という文字列のままではチェックボックス
+ * 列に書いても実際の真偽値にならない。数値列も同様。schema.ts の列定義 (`type`) を見て、
+ * その列に限って本来の型へ直す。
+ *
+ * GAS API に触れないので npm test で検証できる (`spec` は schema.ts の SheetSpec)。
+ */
+function coerceRowTypes(row: Row, spec: SheetSpec): Row {
+  const coerced: Row = { ...row };
+  for (const column of spec.columns) {
+    const value = coerced[column.key];
+    if (value === undefined || value === null || value === '') continue;
+
+    if (column.type === 'checkbox') {
+      coerced[column.key] = String(value).trim().toUpperCase() === 'TRUE';
+    } else if (column.type === 'number') {
+      coerced[column.key] = Number(value);
+    }
+  }
+  return coerced;
+}
+
+/**
  * Drive の dev-seed-*.csv を探す。
  *
  * メニューの確認ダイアログと実際の取り込みが同じファイル集合を見るように、
@@ -81,7 +103,10 @@ function importDevSeed(targets?: DevSeedFile[]): void {
   }
 
   for (const { file, sheetName } of list) {
-    const rows = rowsFromTable(Utilities.parseCsv(file.getBlob().getDataAsString('UTF-8')));
+    const spec = findSheetSpec(sheetName);
+    const rows = rowsFromTable(Utilities.parseCsv(file.getBlob().getDataAsString('UTF-8'))).map((row) =>
+      coerceRowTypes(row, spec)
+    );
     appendRows(sheetName, rows);
     file.setTrashed(true);
     console.log(`importDevSeed: ${sheetName} へ ${rows.length} 行取り込み、"${file.getName()}" をゴミ箱へ送りました`);

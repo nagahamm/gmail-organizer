@@ -45,6 +45,7 @@ const {
   isDuplicateProposal,
   hasSheetSpec,
   rowsFromTable,
+  coerceRowTypes,
   compareLabelField,
   compareLabelRows,
   extractDisplayName,
@@ -886,4 +887,43 @@ test('空のヘッダ列は無視する', () => {
     ['seed-1', 'メモ書き', 'Promotions/A'],
   ]);
   assert.deepEqual(rows, [{ proposalId: 'seed-1', label: 'Promotions/A' }]);
+});
+
+function fixtureSpec() {
+  return {
+    name: 'fixture',
+    note: '',
+    columns: [
+      { key: 'enabled', header: '有効', type: 'checkbox' },
+      { key: 'priority', header: '優先度', type: 'number' },
+      { key: 'pattern', header: 'パターン' },
+    ],
+  };
+}
+
+test('CSVの"TRUE"/"FALSE"文字列をチェックボックス列では真偽値にする', () => {
+  const row = coerceRowTypes({ enabled: 'TRUE', priority: '50', pattern: 'a@example.com' }, fixtureSpec());
+  assert.equal(row.enabled, true);
+});
+
+test('小文字のfalseも真偽値にする', () => {
+  const row = coerceRowTypes({ enabled: 'false', priority: '50', pattern: 'a@example.com' }, fixtureSpec());
+  assert.equal(row.enabled, false);
+});
+
+test('数値列の文字列は数値にする', () => {
+  const row = coerceRowTypes({ enabled: 'TRUE', priority: '50', pattern: 'a@example.com' }, fixtureSpec());
+  assert.equal(row.priority, 50);
+  assert.equal(typeof row.priority, 'number');
+});
+
+test('typeが無い列(文字列)は変換しない', () => {
+  const row = coerceRowTypes({ enabled: 'TRUE', priority: '50', pattern: 'a@example.com' }, fixtureSpec());
+  assert.equal(row.pattern, 'a@example.com');
+});
+
+test('空文字は変換せずそのまま残す', () => {
+  const row = coerceRowTypes({ enabled: '', priority: '', pattern: '' }, fixtureSpec());
+  assert.equal(row.enabled, '');
+  assert.equal(row.priority, '');
 });
