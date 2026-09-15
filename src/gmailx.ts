@@ -22,16 +22,42 @@ function isGmailQuotaExceeded(message: string): boolean {
   return /service invoked too many times|quota|rate limit/i.test(message);
 }
 
+/** GAS の Gmail サービス日次上限は Pacific Time の暦日でリセットされる。 */
+const GMAIL_QUOTA_TIMEZONE = 'America/Los_Angeles';
+
+/** 上限に達した Pacific Time の日付を覚えておくプロパティキー。 */
+const GMAIL_QUOTA_EXHAUSTED_PROPERTY = 'gmailQuotaExhaustedDate';
+
+function todayInGmailQuotaTimezone(): string {
+  return Utilities.formatDate(new Date(), GMAIL_QUOTA_TIMEZONE, 'yyyy-MM-dd');
+}
+
+/** 今日 (Pacific Time) すでに上限に達したと分かっているか。 */
+function isGmailQuotaKnownExhaustedToday(): boolean {
+  const stored = PropertiesService.getScriptProperties().getProperty(GMAIL_QUOTA_EXHAUSTED_PROPERTY);
+  return stored === todayInGmailQuotaTimezone();
+}
+
+/** 今日 (Pacific Time) 上限に達したと記録する。次にこの日付が変わるまで有効。 */
+function markGmailQuotaExhaustedToday(): void {
+  PropertiesService.getScriptProperties().setProperty(GMAIL_QUOTA_EXHAUSTED_PROPERTY, todayInGmailQuotaTimezone());
+}
+
 /**
- * Gmail 操作を多く行う関数の先頭で呼ぶ。安価な呼び出しを 1 回試し、
- * 既に割り当てを超えていればここで即座に、分かりやすいメッセージで失敗させる。
+ * Gmail 操作を多く行う関数の先頭で呼ぶ。すでに今日の上限到達を記録済みなら
+ * API を呼ばずに即座に失敗させる。未記録なら安価な呼び出しを 1 回試し、
+ * そこで超過が判明すれば記録した上で分かりやすいメッセージで失敗させる。
  */
 function assertGmailQuotaAvailable(): void {
+  if (isGmailQuotaKnownExhaustedToday()) {
+    throw new Error('Gmail APIの割り当てを本日すでに使い切っています。日付が変わるまで(Pacific Time基準)再実行できません。');
+  }
   try {
     GmailApp.getInboxUnreadCount();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (isGmailQuotaExceeded(message)) {
+      markGmailQuotaExhaustedToday();
       throw new Error(`Gmail APIの割り当てを超えています。時間を置いてから再実行してください: ${message}`);
     }
     throw error;

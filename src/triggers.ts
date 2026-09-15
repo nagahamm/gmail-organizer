@@ -6,21 +6,38 @@
 
 /** 15 分おきに呼ばれる本体。トリガー数とクォータを節約するため 1 本にまとめる。 */
 function everyQuarterHour(): void {
-  assertGmailQuotaAvailable();
-  try {
-    runQuarterHourSteps(Date.now());
+  // 今日すでに Gmail の日次上限に達したと分かっているなら、API を叩かずに
+  // 即座に諦める。上限は 1 日中変わらないので、リセットされるまで毎回
+  // 同じ例外を出し続けても無駄なだけ (docs/design.md)。
+  if (isGmailQuotaKnownExhaustedToday()) {
+    console.log('everyQuarterHour: 本日は Gmail の日次上限に達しているため、実行をスキップします');
     return;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    // 列を足すコード変更を push した直後は、人が setup() を押すまでシートが追いつかない。
-    // 無人で回る経路なので、ここだけは自分で追いつかせて一度だけ試し直す。
-    // それ以外の失敗は黙って回復させない。本当に壊れているときに気づけなくなる。
-    if (!isMissingColumnError(message)) throw error;
-    console.warn(`everyQuarterHour: ${message} シートを合わせて再試行します`);
   }
 
-  ensureSheets();
-  runQuarterHourSteps(Date.now());
+  try {
+    assertGmailQuotaAvailable();
+    try {
+      runQuarterHourSteps(Date.now());
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // 列を足すコード変更を push した直後は、人が setup() を押すまでシートが追いつかない。
+      // 無人で回る経路なので、ここだけは自分で追いつかせて一度だけ試し直す。
+      // それ以外の失敗は黙って回復させない。本当に壊れているときに気づけなくなる。
+      if (!isMissingColumnError(message)) throw error;
+      console.warn(`everyQuarterHour: ${message} シートを合わせて再試行します`);
+    }
+
+    ensureSheets();
+    runQuarterHourSteps(Date.now());
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // 上限超過が assertGmailQuotaAvailable の外、実行の途中で判明した場合も
+    // ここで記録し、この日は以後スキップさせる。1 回だけは例外として表に出し、
+    // 気づけるようにしてから終える。
+    if (isGmailQuotaExceeded(message)) markGmailQuotaExhaustedToday();
+    throw error;
+  }
 }
 
 /** 15 分ごとの中身。3 つのステップで 1 つの予算を分け合う。 */
