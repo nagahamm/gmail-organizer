@@ -47,6 +47,8 @@ const EXPORTED = [
   'buildReplyProposal',
   'buildProposalId',
   'isDuplicateProposal',
+  'isKnownSheet',
+  'rowsFromTable',
 ];
 
 export function load() {

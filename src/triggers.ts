@@ -98,6 +98,8 @@ function onOpen(): void {
     .addItem('シートを検査する', 'menuValidateSheets')
     .addItem('トリガーを登録する', 'installTriggers')
     .addItem('トリガーを全て外す', 'uninstallTriggers')
+    .addSeparator()
+    .addItem('[開発用] Driveのseedデータを取り込む', 'menuImportDevSeed')
     .addToUi();
 }
 

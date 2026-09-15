@@ -43,6 +43,8 @@ const {
   buildReplyProposal,
   buildProposalId,
   isDuplicateProposal,
+  isKnownSheet,
+  rowsFromTable,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -774,4 +776,35 @@ test('送信元からドメインを取り出す', () => {
 
 test('List-Id から識別子だけを取り出す', () => {
   assert.equal(normalizeListId('Example News <news.example.com>'), 'news.example.com');
+});
+
+// --- 開発用データ投入 -------------------------------------------------------
+
+test('定義済みのシート名だけ取り込む', () => {
+  assert.equal(isKnownSheet('proposals'), true);
+  assert.equal(isKnownSheet('no_such_sheet'), false);
+});
+
+test('CSVのヘッダをkeyにしてRowへ変換する', () => {
+  const rows = rowsFromTable([
+    ['proposalId', 'kind', 'label'],
+    ['seed-1', 'new_rule', 'Promotions/A'],
+    ['seed-2', 'new_rule', 'Promotions/B'],
+  ]);
+  assert.deepEqual(rows, [
+    { proposalId: 'seed-1', kind: 'new_rule', label: 'Promotions/A' },
+    { proposalId: 'seed-2', kind: 'new_rule', label: 'Promotions/B' },
+  ]);
+});
+
+test('ヘッダ行しか無ければ空になる', () => {
+  assert.deepEqual(rowsFromTable([['proposalId', 'kind']]), []);
+});
+
+test('空のヘッダ列は無視する', () => {
+  const rows = rowsFromTable([
+    ['proposalId', '', 'label'],
+    ['seed-1', 'メモ書き', 'Promotions/A'],
+  ]);
+  assert.deepEqual(rows, [{ proposalId: 'seed-1', label: 'Promotions/A' }]);
 });
