@@ -38,7 +38,7 @@ npx clasp open
 
 | # | メニュー | 内容 |
 | --- | --- | --- |
-| 1 | シートを作成 / 更新 | `labels` / `rules` / `senders` / `log` / `log_archive` / `unmatched` / `proposals` / `config` を生成 |
+| 1 | シートを作成 / 更新 | `labels` / `rules` / `senders` / `log` / `unmatched` / `proposals` / `config` を生成 |
 | 2 | 現在のラベルとフィルタを取り込む | 既存 39 ラベルと Gmail フィルタをシートへ。**手入力は不要** |
 
 ## 安全側の既定
