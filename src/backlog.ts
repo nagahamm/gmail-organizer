@@ -196,3 +196,61 @@ function writeBacklogStats(stats: Record<string, BacklogStat>): void {
 
   replaceRows(SHEET_NAMES.BACKLOG, rows);
 }
+
+/**
+ * `senders` + `rules` を突き合わせて、ルールが無い送信元を運営元
+ * (無ければドメイン) 単位で集計する。
+ *
+ * Gmail を走査しない (`docs/design.md` 2.4)。`senders` が全期間を網羅していれば、
+ * このシートの走査 (`surveyBacklog`) と同じ情報がここから分かる。
+ * `sampleSubject` は `senders` に件名が無いため、代わりに表示名を入れる。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function computeUnruledSenderStats(senderRows: Row[], ruleRows: Row[]): Record<string, BacklogStat> {
+  const rules = ruleRows
+    .map((row) => ({
+      enabled: row['enabled'] === true,
+      kind: String(row['kind'] || '') as MatchKind,
+      pattern: String(row['pattern'] || ''),
+    }))
+    .filter((rule) => rule.enabled && MATCH_KINDS.indexOf(rule.kind) >= 0);
+
+  const stats: Record<string, BacklogStat> = {};
+
+  for (const row of senderRows) {
+    if (String(row['state'] || '') !== 'active') continue;
+    const address = String(row['address'] || '').trim();
+    if (address === '') continue;
+
+    const listId = String(row['listId'] || '');
+    const hasRule = rules.some((rule) => ruleMatchesSender(rule.kind, rule.pattern, address, listId));
+    if (hasRule) continue;
+
+    const operator = String(row['operator'] || '').trim();
+    const domain = senderDomain(address) || '(不明)';
+    const key = operator !== '' ? operator : domain;
+
+    const firstSeen = row['firstSeen'] instanceof Date ? (row['firstSeen'] as Date) : new Date();
+    const lastSeen = row['lastSeen'] instanceof Date ? (row['lastSeen'] as Date) : firstSeen;
+
+    stats[key] = mergeBacklogStat(stats[key] || null, {
+      domain: key,
+      address,
+      listId,
+      count: Number(row['recentCount']) || 0,
+      firstSeen,
+      lastSeen,
+      sampleSubject: String(row['displayName'] || ''),
+    });
+  }
+
+  return stats;
+}
+
+/** senders から backlog を作り直す。Gmail を走査する surveyBacklog の代わり。 */
+function refreshBacklogFromSenders(): void {
+  const stats = computeUnruledSenderStats(readRows(SHEET_NAMES.SENDERS), readRows(SHEET_NAMES.RULES));
+  writeBacklogStats(stats);
+  console.log(`refreshBacklogFromSenders: ${Object.keys(stats).length} 件`);
+}

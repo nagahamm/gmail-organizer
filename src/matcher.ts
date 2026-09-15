@@ -103,6 +103,34 @@ function buildMatchQuery(kind: MatchKind, pattern: string): string {
 }
 
 /**
+ * ルールがこの送信元に一致するかを、Gmail 検索を使わずローカルで判定する。
+ *
+ * `buildMatchQuery()` は Gmail 検索式を作るだけで、ローカルな一致判定はできない。
+ * `senders` と `rules` を突き合わせて「ルールが無い送信元」を計算するには、
+ * Gmail を経由しないこちらが要る (`docs/design.md` 2.4)。
+ *
+ * `subject` / `query` はメッセージ本文が要るためローカル判定できず、一致しない扱いにする。
+ */
+function ruleMatchesSender(kind: MatchKind, pattern: string, address: string, listId: string): boolean {
+  const value = pattern.trim().toLowerCase();
+  if (value === '') return false;
+  const from = address.trim().toLowerCase();
+
+  switch (kind) {
+    case 'from':
+      return value.startsWith('@') ? from.endsWith(value.slice(1)) : from === value;
+    case 'from_domain': {
+      const domain = from.split('@').pop() || '';
+      return domain === value || domain.endsWith(`.${value}`);
+    }
+    case 'list_id':
+      return listId.trim().toLowerCase() === value;
+    default:
+      return false;
+  }
+}
+
+/**
  * 実際に投げる検索式。
  * 期間で絞り、既に目的のラベルが付いているものは除く (再処理を避けるため)。
  */

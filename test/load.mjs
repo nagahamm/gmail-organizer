@@ -64,6 +64,8 @@ const EXPORTED = [
   'planSenderGarbageCleanup',
   'isGmailTrackingUrl',
   'nextLogArchiveNumber',
+  'ruleMatchesSender',
+  'computeUnruledSenderStats',
 ];
 
 export function load() {

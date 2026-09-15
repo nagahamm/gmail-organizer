@@ -51,6 +51,8 @@ function runQuarterHourSteps(startedAt: number): void {
   continueRetroactive(startedAt);
   // 洗い出しは最後。遡及が残っている間は自分で降りるので、順序で priority を表す。
   continueBacklog(startedAt);
+  // sendersの全期間洗い出しも同じ理由で最後。完了していれば何もしない。
+  continueSendersFullScan(startedAt);
 }
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */
@@ -100,6 +102,7 @@ function onOpen(): void {
     .createMenu('メンテナンス・復旧用')
     .addItem('遡及の再開位置を消す', 'resetRetroactive')
     .addItem('洗い出しの再開位置を消す', 'resetBacklog')
+    .addItem('sendersの全期間洗い出しをやり直す', 'resetSendersFullScan')
     .addItem('実行の状態を見る', 'menuShowProgress')
     .addItem('親ラベルを作る', 'ensureParentLabels')
     .addItem('シートを検査する', 'menuValidateSheets')

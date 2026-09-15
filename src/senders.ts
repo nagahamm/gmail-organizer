@@ -12,6 +12,44 @@
 /** 1 ページあたりの走査数。 */
 const SENDER_PAGE_SIZE = 100;
 
+/**
+ * 初回だけ全期間を対象に洗い出したか。完了後は通常の `SENDER_SCAN_WINDOW` ローリング窓に戻る
+ * (`docs/design.md` 2.4)。全期間の再走査を毎回繰り返すとクォータを無駄に消費するため。
+ */
+const SENDERS_FULL_SCAN_DONE_PROPERTY = 'sendersFullScanDone';
+
+/** 全期間洗い出しの再開位置。`backlog.ts` の `BACKLOG_CURSOR_KEY` と同じ考え方。 */
+const SENDERS_FULL_SCAN_CURSOR_KEY = 'SENDERS_FULL_SCAN_CURSOR';
+
+/** 全期間洗い出しの対象。自分の送信・下書きは除く (`backlog.ts` の `BACKLOG_QUERY` と同じ)。 */
+const SENDERS_FULL_SCAN_QUERY = '-in:sent -in:draft -in:chats';
+
+function isSendersFullScanDone(): boolean {
+  return PropertiesService.getScriptProperties().getProperty(SENDERS_FULL_SCAN_DONE_PROPERTY) === 'true';
+}
+
+function markSendersFullScanDone(): void {
+  PropertiesService.getScriptProperties().setProperty(SENDERS_FULL_SCAN_DONE_PROPERTY, 'true');
+}
+
+/** 全期間洗い出しの再開位置と完了フラグを消して最初からやり直す。集計済みの行は消さない。 */
+function resetSendersFullScan(): void {
+  clearCursor(SENDERS_FULL_SCAN_CURSOR_KEY);
+  PropertiesService.getScriptProperties().deleteProperty(SENDERS_FULL_SCAN_DONE_PROPERTY);
+  console.log('sendersの全期間洗い出しの再開位置と完了フラグを消しました');
+}
+
+/**
+ * 全期間洗い出しの続きを 15 分ごとのジョブから流す。`continueBacklog()` と同じ考え方。
+ * 週次ダイジェストの `refreshSenders()` 呼び出しだけに任せると、1 週間に 1 日分しか
+ * 進まず完了までに何ヶ月もかかる。完了済みなら何もしない (`refreshSenders` を
+ * 毎回起動するとローリング90日の走査が15分おきに走ってしまうため)。
+ */
+function continueSendersFullScan(startedAt?: number): void {
+  if (isSendersFullScanDone()) return;
+  refreshSenders(startedAt);
+}
+
 interface SenderObservation {
   address: string;
   displayName: string;
@@ -40,9 +78,31 @@ function refreshSenders(startedAt?: number): void {
   try {
     // 呼び出し元が別のステップと予算を分け合う場合は、その開始時刻を受け取る。
     const since = budgetStart(startedAt);
-    const window = readConfig('SENDER_SCAN_WINDOW', CONFIG.SENDER_SCAN_WINDOW);
-    const scan = scanSenders(window, since);
+    const fullScan = !isSendersFullScanDone();
+
+    if (fullScan && anyRetroCursor()) {
+      console.log('refreshSenders: 中断中の遡及があります。全期間の洗い出しはそちらが終わってから流します');
+      return;
+    }
+
+    const window = fullScan ? SENDERS_FULL_SCAN_QUERY : readConfig('SENDER_SCAN_WINDOW', CONFIG.SENDER_SCAN_WINDOW);
+    const budget = fullScan
+      ? { today: todayKey(), budget: readDailyBudget(), usage: readDailyUsage() }
+      : null;
+    const start = fullScan ? readCursor(SENDERS_FULL_SCAN_CURSOR_KEY).start : 0;
+
+    const scan = scanSenders(window, since, start, budget);
     const observed = scan.observed;
+
+    if (fullScan) {
+      if (scan.complete) {
+        clearCursor(SENDERS_FULL_SCAN_CURSOR_KEY);
+        markSendersFullScanDone();
+      } else {
+        writeCursor(SENDERS_FULL_SCAN_CURSOR_KEY, { ruleIndex: 0, start: scan.nextStart });
+      }
+      if (scan.usage) writeDailyUsage(scan.usage);
+    }
 
     const rows = readRows(SHEET_NAMES.SENDERS);
     const known: Record<string, Row> = {};
@@ -63,13 +123,15 @@ function refreshSenders(startedAt?: number): void {
         added.push(buildSenderRow(seen));
         continue;
       }
-      for (const update of senderUpdates(existing, seen, scan.complete)) updates.push(update);
+      // 全期間洗い出し中は「直近90日」の意味を持たないので、既存の recentCount を
+      // 上書きしない (新規行の初期値は buildSenderRow が入れる)。
+      for (const update of senderUpdates(existing, seen, scan.complete && !fullScan)) updates.push(update);
       updated += 1;
     }
 
-    // 打ち切られた走査では「observed に無い」と「まだ見ていない」が区別できない。
-    // 見ていないものを休眠と断定しない。
-    if (scan.complete) {
+    // 打ち切られた走査、および全期間洗い出し中は「observed に無い」と「まだ見ていない」が
+    // 区別できない。見ていないものを休眠と断定しない。通常のローリング窓運用でのみ判定する。
+    if (scan.complete && !fullScan) {
       for (const update of dormantUpdates(rows, observed)) updates.push(update);
     }
 
@@ -78,25 +140,50 @@ function refreshSenders(startedAt?: number): void {
     updateCells(SHEET_NAMES.SENDERS, updates);
     appendRows(SHEET_NAMES.SENDERS, added);
 
-    const note = scan.complete ? '' : ' (時間切れで途中まで。直近90日と休眠判定は据え置き)';
+    const note = fullScan
+      ? (scan.complete ? ' (全期間の洗い出しが完了しました)' : ' (全期間の洗い出し中。続きは次回に続く)')
+      : scan.complete
+        ? ''
+        : ' (時間切れで途中まで。直近90日と休眠判定は据え置き)';
     console.log(`refreshSenders: 新規 ${added.length} 件 / 更新 ${updated} 件${note}`);
   } finally {
     lock.releaseLock();
   }
 }
 
+/** 日次予算を分け合う文脈。全期間洗い出しのときだけ渡す。通常のローリング窓では見ない。 */
+interface SenderScanBudget {
+  today: string;
+  budget: number;
+  usage: DailyUsage;
+}
+
 /** 走査の結果。`complete` が false なら観測は途中までしかない。 */
 interface SenderScan {
   observed: Record<string, SenderObservation>;
   complete: boolean;
+  /** 中断したページ位置。次回はここから再開する (全期間洗い出しのときだけ使う)。 */
+  nextStart: number;
+  /** 更新後の日次使用量 (全期間洗い出しのときだけ使う)。 */
+  usage: DailyUsage | null;
 }
 
-/** 走査して送信元ごとに集計する。6 分制限に収まるよう時間を見て打ち切る。 */
-function scanSenders(window: string, startedAt: number): SenderScan {
+/**
+ * 走査して送信元ごとに集計する。6 分制限に収まるよう時間を見て打ち切る。
+ *
+ * `budget` を渡すと日次スレッド予算も見て、他の処理 (遡及適用・洗い出し) と
+ * 同じ上限を分け合う。全期間洗い出しは何日もかかるため要るが、通常のローリング
+ * 90 日窓は 1 回で収まるので `budget` は渡さない。
+ */
+function scanSenders(window: string, startedAt: number, start: number, budget: SenderScanBudget | null): SenderScan {
   const observed: Record<string, SenderObservation> = {};
-  let start = 0;
+  let usage = budget ? budget.usage : null;
 
   for (;;) {
+    if (budget && usage && !hasDailyBudget(usage, budget.today, budget.budget)) {
+      return { observed, complete: false, nextStart: start, usage };
+    }
+
     const threads = GmailApp.search(window, start, SENDER_PAGE_SIZE);
     if (threads.length === 0) break;
 
@@ -105,7 +192,7 @@ function scanSenders(window: string, startedAt: number): SenderScan {
       // ページ単位で見ていると 1 ページぶん予算を超過する。
       if (outOfTime(startedAt)) {
         console.warn('scanSenders: 時間切れで打ち切りました');
-        return { observed, complete: false };
+        return { observed, complete: false, nextStart: start, usage };
       }
 
       const head = thread.getMessages()[0];
@@ -132,9 +219,10 @@ function scanSenders(window: string, startedAt: number): SenderScan {
     }
 
     start += threads.length;
+    if (budget && usage) usage = rollDailyUsage(usage, budget.today, threads.length);
     if (threads.length < SENDER_PAGE_SIZE) break;
   }
-  return { observed, complete: true };
+  return { observed, complete: true, nextStart: start, usage };
 }
 
 /**

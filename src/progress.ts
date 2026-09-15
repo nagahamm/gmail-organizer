@@ -20,6 +20,8 @@ interface RunProgress {
   backlog: RetroCursor | null;
   /** backlog シートがまだ無ければ null。 */
   backlogDomains: number | null;
+  sendersFullScan: RetroCursor | null;
+  sendersFullScanDone: boolean;
 }
 
 /**
@@ -45,6 +47,9 @@ function describeProgress(progress: RunProgress): string[] {
   if (progress.backlog) {
     running.push(`  過去の未分類の洗い出し: 中断中 (位置 ${progress.backlog.start})`);
   }
+  if (progress.sendersFullScan) {
+    running.push(`  sendersの全期間洗い出し: 中断中 (位置 ${progress.sendersFullScan.start})`);
+  }
 
   if (running.length === 0) {
     lines.push('  中断中の処理はありません');
@@ -57,6 +62,11 @@ function describeProgress(progress: RunProgress): string[] {
     progress.backlogDomains === null
       ? '  backlog: 未作成 (メニューの「1. シートを作成 / 更新」を実行してください)'
       : `  backlog: ${progress.backlogDomains} ドメイン`
+  );
+  lines.push(
+    progress.sendersFullScanDone
+      ? '  sendersの全期間洗い出し: 完了済み'
+      : '  sendersの全期間洗い出し: 未完了 (通常のローリング90日窓の前に、これが先に進みます)'
   );
   return lines;
 }
@@ -75,6 +85,8 @@ function readRunProgress(): RunProgress {
     relabel: readCursorIfAny(cursorKeyFor(RELABEL_CURSOR_KEY, dryRun)),
     backlog: readCursorIfAny(BACKLOG_CURSOR_KEY),
     backlogDomains: countBacklogDomains(),
+    sendersFullScan: readCursorIfAny(SENDERS_FULL_SCAN_CURSOR_KEY),
+    sendersFullScanDone: isSendersFullScanDone(),
   };
 }
 

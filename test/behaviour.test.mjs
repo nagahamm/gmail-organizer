@@ -60,6 +60,8 @@ const {
   planSenderGarbageCleanup,
   isGmailTrackingUrl,
   nextLogArchiveNumber,
+  ruleMatchesSender,
+  computeUnruledSenderStats,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -114,6 +116,92 @@ test('ラベルも拠点も無いルールは適用されない', () => {
 
 test('拠点だけのルールは適用される', () => {
   assert.equal(isRuleApplicable(rule({ label: '', location: '@AU' }), NOW, false), true);
+});
+
+// --- 機能: 送信元とルールのローカル一致判定 ----------------------------------
+
+test('fromは完全一致', () => {
+  assert.equal(ruleMatchesSender('from', 'cs@sbisec.co.jp', 'cs@sbisec.co.jp', ''), true);
+  assert.equal(ruleMatchesSender('from', 'cs@sbisec.co.jp', 'mail@sbisec.co.jp', ''), false);
+});
+
+test('fromの@始まりはドメイン部分一致', () => {
+  assert.equal(ruleMatchesSender('from', '@buyma.com', 'info@buyma.com', ''), true);
+  assert.equal(ruleMatchesSender('from', '@buyma.com', 'info@other.com', ''), false);
+});
+
+test('from_domainはサブドメインも一致する', () => {
+  assert.equal(ruleMatchesSender('from_domain', 'sonybank.jp', 'banking@ma.sonybank.jp', ''), true);
+  assert.equal(ruleMatchesSender('from_domain', 'sonybank.jp', 'banking@sonybank.jp', ''), true);
+  assert.equal(ruleMatchesSender('from_domain', 'ma.sonybank.jp', 'banking@sonybank.jp', ''), false);
+});
+
+test('list_idはlistId列と完全一致', () => {
+  assert.equal(ruleMatchesSender('list_id', 'abc.example.com', 'x@example.com', 'abc.example.com'), true);
+  assert.equal(ruleMatchesSender('list_id', 'abc.example.com', 'x@example.com', ''), false);
+});
+
+test('subjectとqueryはローカル判定できないので一致しない扱い', () => {
+  assert.equal(ruleMatchesSender('subject', 'FIGO', 'x@univapay.com', ''), false);
+  assert.equal(ruleMatchesSender('query', 'is:starred', 'x@example.com', ''), false);
+});
+
+// --- 機能: senders+rules からルールが無い送信元を集計する ---------------------
+
+function unruledSenderRow(overrides = {}) {
+  return {
+    address: 'a@example.com',
+    displayName: '',
+    operator: '',
+    listId: '',
+    recentCount: 1,
+    firstSeen: new Date('2026-01-01'),
+    lastSeen: new Date('2026-01-01'),
+    state: 'active',
+    ...overrides,
+  };
+}
+
+function unruledRuleRow(overrides = {}) {
+  return { enabled: true, kind: 'from_domain', pattern: 'example.com', ...overrides };
+}
+
+test('ルールが無い送信元だけを集計する', () => {
+  const stats = computeUnruledSenderStats(
+    [unruledSenderRow({ address: 'a@nomatch.com' })],
+    [unruledRuleRow()]
+  );
+  assert.equal(Object.keys(stats).length, 1);
+});
+
+test('ルールに一致する送信元は集計しない', () => {
+  const stats = computeUnruledSenderStats([unruledSenderRow({ address: 'a@example.com' })], [unruledRuleRow()]);
+  assert.equal(Object.keys(stats).length, 0);
+});
+
+test('休眠状態の送信元は集計しない', () => {
+  const stats = computeUnruledSenderStats(
+    [unruledSenderRow({ address: 'a@nomatch.com', state: 'dormant' })],
+    [unruledRuleRow()]
+  );
+  assert.equal(Object.keys(stats).length, 0);
+});
+
+test('運営元があればドメインの代わりに運営元でまとめる', () => {
+  const stats = computeUnruledSenderStats(
+    [
+      unruledSenderRow({ address: 'a@nomatch.com', operator: '楽天' }),
+      unruledSenderRow({ address: 'b@other.com', operator: '楽天' }),
+    ],
+    []
+  );
+  assert.equal(Object.keys(stats).length, 1);
+  assert.equal(stats['楽天'].count, 2);
+});
+
+test('運営元が無ければドメインでまとめる', () => {
+  const stats = computeUnruledSenderStats([unruledSenderRow({ address: 'a@nomatch.com' })], []);
+  assert.ok(stats['nomatch.com']);
 });
 
 // --- 機能: 過去メールへの遡及適用 (ページ送り) ------------------------------
@@ -368,6 +456,8 @@ function progress(overrides = {}) {
     relabel: null,
     backlog: null,
     backlogDomains: 0,
+    sendersFullScan: null,
+    sendersFullScanDone: true,
     ...overrides,
   };
 }
@@ -405,6 +495,18 @@ test('backlog シートがまだ無ければそう出す', () => {
   // コードを push しただけの時点ではシートが無い。ここで落とすとダイジェストごと死ぬ。
   const lines = describeProgress(progress({ backlogDomains: null }));
   assert.ok(lines.some((line) => line.indexOf('backlog: 未作成') >= 0));
+});
+
+test('sendersの全期間洗い出しが未完了なら分かる', () => {
+  const lines = describeProgress(progress({ sendersFullScanDone: false }));
+  assert.ok(lines.some((line) => line.indexOf('sendersの全期間洗い出し: 未完了') >= 0));
+});
+
+test('sendersの全期間洗い出しの中断は位置だけを出す', () => {
+  const lines = describeProgress(
+    progress({ sendersFullScanDone: false, sendersFullScan: { ruleIndex: 0, start: 500 } })
+  );
+  assert.ok(lines.some((line) => line.indexOf('sendersの全期間洗い出し: 中断中 (位置 500)') >= 0));
 });
 
 test('完了予定は出さない', () => {
