@@ -59,6 +59,7 @@ const EXPORTED = [
   'compareSenderRows',
   'extractDisplayName',
   'planSenderDedup',
+  'planDisplayNameRenormalization',
 ];
 
 export function load() {

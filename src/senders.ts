@@ -313,6 +313,68 @@ function dedupeSenders(): void {
   console.log(`dedupeSenders: ${plan.mergedCount} 件のアドレスを統合し、${plan.droppedCount} 行を削除しました`);
 }
 
+/** 表示名 1 件ぶんの再正規化計画。 */
+interface DisplayNameFix {
+  rowNumber: number;
+  before: string;
+  after: string;
+}
+
+/**
+ * 既存の表示名を、今の `normalizeDisplayName()` のルールで作り直す計画を立てる。
+ *
+ * `normalizeDisplayName()` はルールを追加・変更しても新しく観測した表示名にしか
+ * 効かない。過去に取り込んだ表示名は古いルールのまま残るので、ここで遡って
+ * 直す。変わらない行は計画に含めない。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function planDisplayNameRenormalization(rows: Row[]): DisplayNameFix[] {
+  const plan: DisplayNameFix[] = [];
+  for (const row of rows) {
+    const before = String(row['displayName'] || '');
+    if (before === '') continue;
+    const after = normalizeDisplayName(before);
+    if (after !== before) plan.push({ rowNumber: Number(row['_rowNumber']), before, after });
+  }
+  return plan;
+}
+
+/** 表示名を実際に作り直す。 */
+function renormalizeSenderDisplayNames(): void {
+  const plan = planDisplayNameRenormalization(readRows(SHEET_NAMES.SENDERS));
+  if (plan.length === 0) {
+    console.log('renormalizeSenderDisplayNames: 直す表示名はありませんでした');
+    return;
+  }
+  const updates: CellUpdate[] = plan.map((fix) => ({ rowNumber: fix.rowNumber, key: 'displayName', value: fix.after }));
+  updateCells(SHEET_NAMES.SENDERS, updates);
+  console.log(`renormalizeSenderDisplayNames: ${plan.length} 件の表示名を直しました`);
+}
+
+/** メニューからの実行。変更点のプレビューを見せてから確認する。 */
+function menuRenormalizeSenderDisplayNames(): void {
+  const ui = SpreadsheetApp.getUi();
+  const plan = planDisplayNameRenormalization(readRows(SHEET_NAMES.SENDERS));
+
+  if (plan.length === 0) {
+    ui.alert('表示名の再正規化', '直す表示名はありませんでした。', ui.ButtonSet.OK);
+    return;
+  }
+
+  const preview = plan
+    .slice(0, 10)
+    .map((fix) => `${fix.before} → ${fix.after}`)
+    .join('\n');
+  const more = plan.length > 10 ? `\n...他 ${plan.length - 10} 件` : '';
+  const message = `${plan.length} 件の表示名を今のルールで直します。\n\n${preview}${more}\n\n実行しますか?`;
+  if (ui.alert('表示名の再正規化', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;
+
+  const updates: CellUpdate[] = plan.map((fix) => ({ rowNumber: fix.rowNumber, key: 'displayName', value: fix.after }));
+  updateCells(SHEET_NAMES.SENDERS, updates);
+  ui.alert('表示名の再正規化', `${plan.length} 件を直しました。`, ui.ButtonSet.OK);
+}
+
 /** メニューからの実行。対象件数を見せてから確認する。 */
 function menuDedupeSenders(): void {
   const ui = SpreadsheetApp.getUi();

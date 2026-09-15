@@ -55,6 +55,7 @@ const {
   compareLabelRows,
   extractDisplayName,
   planSenderDedup,
+  planDisplayNameRenormalization,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -970,6 +971,35 @@ test('初回受信は最も早く、最終受信は最も遅く、直近90日は
   assert.equal(plan.merged[0].firstSeen.getTime(), new Date('2026-01-01').getTime());
   assert.equal(plan.merged[0].lastSeen.getTime(), new Date('2026-03-10').getTime());
   assert.equal(plan.merged[0].recentCount, 30);
+});
+
+// --- 機能: 表示名の再正規化 --------------------------------------------------
+
+function displayNameRow(rowNumber, displayName) {
+  return { _rowNumber: rowNumber, displayName };
+}
+
+test('今のルールで変わる表示名だけ計画に含める', () => {
+  const rows = [
+    displayNameRow(2, '株式会社ＳＢＩ証券'),
+    displayNameRow(3, 'Uber Eats'),
+  ];
+  const plan = planDisplayNameRenormalization(rows);
+  assert.equal(plan.length, 1);
+  assert.equal(plan[0].rowNumber, 2);
+  assert.equal(plan[0].before, '株式会社ＳＢＩ証券');
+  assert.equal(plan[0].after, 'SBI 証券');
+});
+
+test('空欄の表示名は計画に含めない', () => {
+  const plan = planDisplayNameRenormalization([displayNameRow(2, '')]);
+  assert.equal(plan.length, 0);
+});
+
+test('英数字と日本語の間にスペースが無い古い表示名を直す', () => {
+  const plan = planDisplayNameRenormalization([displayNameRow(2, 'yagish運営事務局')]);
+  assert.equal(plan.length, 1);
+  assert.equal(plan[0].after, 'yagish 運営事務局');
 });
 
 // --- 開発用データ投入 -------------------------------------------------------
