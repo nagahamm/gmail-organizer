@@ -169,6 +169,37 @@ Claude が Watching の傾向を学習し、似た求人を次から拾うルー
 
 ラベル体系の定義は `docs/naming.md` にあります。
 
+### 2.4 senders を全期間網羅させ、backlog を統合する (設計中・未実装)
+
+`senders` は `SENDER_SCAN_WINDOW` (既定 `newer_than:90d`) のローリング窓でしか
+走査しない。`backlog` はこれとは別に、Gmail を**全期間**走査して「ルールが無い
+送信元」をドメイン単位で集計する独立した仕組みだった。
+
+両者は粒度が違う (`senders` はアドレス単位、`backlog` はドメイン単位) が、
+`senders` さえ全期間を網羅すれば、「ルールが無い送信元」は `senders` と
+`rules` を突き合わせるだけで分かる。**新たに Gmail を走査し直す必要が無くなる**
+(`docs/constraints.md` の日次クォータ制約を、`backlog` 分だけ丸ごと免れる)。
+
+**対処方針:**
+
+- `senders` に「全期間の洗い出しを完了したか」を持つ (`config` に1項目、
+  または `senders` 側の進捗カーソル)。未完了の間は `SENDER_SCAN_WINDOW` を
+  無視して全期間 (`-in:sent -in:draft -in:chats`、`backlog.ts` の
+  `BACKLOG_QUERY` と同じ除外条件) を対象にする
+- 全期間走査は 1 回では終わらないので、`backlog` の `continueBacklog` /
+  `BACKLOG_CURSOR` と同じ「再開位置を `PropertiesService` に持つ」方式を
+  `senders` 側に移植する
+- 完了したら通常のローリング窓運用に戻す。以降の`SENDER_SCAN_WINDOW`走査で
+  取りこぼしは出ない (既に一度全期間を捉えているため)
+- 「ルールが無い送信元をドメイン単位で見る」機能は、`senders` の運営元列を
+  ドメインの代わりに使うか、送信元アドレスからドメインを都度算出して
+  集計する。Gmail 走査を伴わないので週次ダイジェストのたびに軽く再計算できる
+- `backlog` シート・`src/backlog.ts` の Gmail 走査部分は、この移行が終わったら
+  撤去する。撤去するまでは並走させ、両方の結果を突き合わせて移行を検証する
+
+詳細な振る舞いは `docs/requirements.md`「機能: senders の全期間網羅と、
+ルールが無い送信元の把握」にある。
+
 ---
 
 ## 3. アーキテクチャ
