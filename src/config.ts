@@ -61,7 +61,6 @@ const SHEET_NAMES = {
   RULES: 'rules',
   SENDERS: 'senders',
   LOG: 'log',
-  LOG_ARCHIVE: 'log_archive',
   UNMATCHED: 'unmatched',
   BACKLOG: 'backlog',
   PROPOSALS: 'proposals',

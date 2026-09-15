@@ -176,7 +176,7 @@ Claude が Watching の傾向を学習し、似た求人を次から拾うルー
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Google スプレッドシート  "Gmail Label DB"   ← 真実の源   │
-│  labels / rules / senders / log / log_archive             │
+│  labels / rules / senders / log (+ 過去分の log_N)         │
 │  unmatched / proposals / config                          │
 └───────────┬─────────────────────────────▲───────────────┘
             │ 読む                          │ 書く
@@ -217,8 +217,9 @@ Claude が Watching の傾向を学習し、似た求人を次から拾うルー
 | `labels` | ラベルマスタ。Gmail の実態を `importCurrentState()` が写す。`rules` のラベル列の入力規則の元になる。週次ダイジェストのたびに大項目→中項目→小項目のABC順へ並べ替える (`sortLabelsSheet`) |
 | `rules` | メーリングリスト ↔ ラベル。**振り分けの真実の源** |
 | `senders` | 送信元マスタ。運営元とサービスを分けて持ち、同じ会社の複数サービスをまとめて見る。週次ダイジェストのたびに運営元→サービス→送信元のABC順へ並べ替える (`sortSendersSheet`) |
-| `log` | 実行ログ。件名は先頭 60 文字まで、本文は記録しない |
-| `log_archive` | 6 か月より古い `log` 行の退避先 |
+| `log` | 実行ログ。件名は先頭 60 文字まで、本文は記録しない。行数が閾値を超えると
+  `log_N` へ丸ごと改名して退避し、新しい空の `log` に差し替わる (`rolloverLogIfNeeded`)。
+  `log_N` は `SHEET_SPECS` に登録しない、人が直接開いて見るだけの過去ログ |
 | `unmatched` | 受信トレイの未分類を Gmail のカテゴリ別に集計。**週次 AI の入力** |
 | `proposals` | AI の提案と承認。**承認列のプルダウンを変えるだけで `rules` に反映される** |
 | `config` | 実行時の設定。`DRY_RUN` など。コード側の既定より優先される |

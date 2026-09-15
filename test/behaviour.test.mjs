@@ -59,6 +59,7 @@ const {
   planDisplayNameRenormalization,
   planSenderGarbageCleanup,
   isGmailTrackingUrl,
+  nextLogArchiveNumber,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -1217,4 +1218,18 @@ test('quotaを含むメッセージも検出する', () => {
 
 test('無関係なエラーは検出しない', () => {
   assert.equal(isGmailQuotaExceeded('シート "labels" が空です。setup() を実行してください。'), false);
+});
+
+// --- 機能: logの世代管理 ------------------------------------------------------
+
+test('log_Nが無ければ1から始める', () => {
+  assert.equal(nextLogArchiveNumber(['labels', 'rules', 'log']), 1);
+});
+
+test('既存のlog_Nの次の番号を返す', () => {
+  assert.equal(nextLogArchiveNumber(['log', 'log_1', 'log_2']), 3);
+});
+
+test('番号は連番でなくても最大値の次を返す', () => {
+  assert.equal(nextLogArchiveNumber(['log', 'log_1', 'log_5']), 6);
 });

@@ -261,21 +261,6 @@ const CONFIG_DEFAULTS: string[][] = [
   ['NOTIFY_TO', '', '[文字列: メールアドレス、空可] 週次ダイジェストの送信先。空なら実行アカウント宛', 'text'],
 ];
 
-/**
- * 退避先は log と同じ列にする。列定義を二度書かないよう複製して名前だけ変える。
- */
-(function appendLogArchiveSpec(): void {
-  for (const spec of SHEET_SPECS) {
-    if (spec.name !== SHEET_NAMES.LOG) continue;
-    SHEET_SPECS.push({
-      name: SHEET_NAMES.LOG_ARCHIVE,
-      note: '6 か月より古い log 行の退避先。log シートが際限なく伸びるのを防ぐ。',
-      columns: spec.columns,
-    });
-    return;
-  }
-})();
-
 function findSheetSpec(name: string): SheetSpec {
   for (const spec of SHEET_SPECS) {
     if (spec.name === name) return spec;

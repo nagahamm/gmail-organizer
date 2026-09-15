@@ -9,8 +9,8 @@
 /** 未分類の送信元を上位いくつまで詳しく調べるか。ヘッダ読みを伴うので絞る。 */
 const DIGEST_TOP_SENDERS = 30;
 
-/** log をこの日数より古い分だけ退避する。 */
-const LOG_RETENTION_DAYS = 180;
+/** log シートがこの行数(ヘッダ含む)を超えたら、丸ごと退避して新しい log を始める。 */
+const LOG_ROLLOVER_ROWS = 20000;
 
 /** この日数マッチしていないルールを死んだルールとして報告する。 */
 const DEAD_RULE_DAYS = 90;
@@ -23,7 +23,7 @@ function runWeeklyDigest(): void {
   // 安くて確実に効かせたいものから先に済ませる。
   // 集計や提案を先に走らせると、予算を使い切って掃除と検査が毎回飛ばされる。
   sortLabelsSheet();
-  const archived = archiveOldLogs();
+  const archivedLogName = rolloverLogIfNeeded();
   const expired = archiveExpiredInbox(startedAt);
   const problems = validateSheets(startedAt);
   const deadRules = findDeadRules();
@@ -39,10 +39,10 @@ function runWeeklyDigest(): void {
   sortSendersSheet();
   proposeAppliedJobs();
 
-  sendDigestMail(unmatched, deadRules, archived, expired, problems);
+  sendDigestMail(unmatched, deadRules, archivedLogName, expired, problems);
   console.log(
     `runWeeklyDigest: 未分類 ${unmatched.rows.length} 件 / 死んだルール ${deadRules.length} 件 / ` +
-      `ログ退避 ${archived} 行 / 保持期間切れ ${expired} 件 / 型の問題 ${problems.length} 件`
+      `ログ退避 ${archivedLogName || 'なし'} / 保持期間切れ ${expired} 件 / 型の問題 ${problems.length} 件`
   );
 }
 
@@ -226,23 +226,45 @@ function findDeadRules(): DeadRule[] {
   return dead;
 }
 
-/** 古いログ行を退避シートへ移す。log が際限なく伸びるのを防ぐ。 */
-function archiveOldLogs(): number {
-  const threshold = Date.now() - LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
-  const rows = readRows(SHEET_NAMES.LOG);
+/**
+ * 既存のシート名から、次に使う `log_N` の番号を決める。
+ *
+ * GAS API に触れないので npm test で検証できる。
+ */
+function nextLogArchiveNumber(sheetNames: string[]): number {
+  let max = 0;
+  for (const name of sheetNames) {
+    const match = name.match(/^log_(\d+)$/);
+    if (match) max = Math.max(max, Number(match[1]));
+  }
+  return max + 1;
+}
 
-  const old = rows.filter((row) => row['at'] instanceof Date && (row['at'] as Date).getTime() < threshold);
-  if (old.length === 0) return 0;
+/**
+ * log シートが大きくなりすぎたら、現物ごと `log_N` へ改名し、新しい空の log に差し替える。
+ *
+ * 日付で古い行だけを抜き出す方式(旧 `archiveOldLogs`)は、遡及適用のような
+ * 短期間の大量書き込みでは効果が出るまで半年待つことになる。行数で閾値を見て、
+ * 超えたら丸ごと切り替える方が単純で確実。切り替えた過去ログは読み返す前提が
+ * 無いので、`SHEET_SPECS` には登録せず人が直接シートを開いて見る。
+ *
+ * 戻り値は新しく作った過去ログのシート名。切り替えが起きなければ null。
+ */
+function rolloverLogIfNeeded(): string | null {
+  const book = activeBook();
+  const sheet = book.getSheetByName(SHEET_NAMES.LOG);
+  if (!sheet || sheet.getLastRow() < LOG_ROLLOVER_ROWS) return null;
 
-  appendRows(SHEET_NAMES.LOG_ARCHIVE, old);
-  replaceRows(SHEET_NAMES.LOG, rows.filter((row) => old.indexOf(row) < 0));
-  return old.length;
+  const archivedName = `log_${nextLogArchiveNumber(book.getSheets().map((s) => s.getName()))}`;
+  sheet.setName(archivedName);
+  ensureSheet(book, findSheetSpec(SHEET_NAMES.LOG));
+  return archivedName;
 }
 
 function sendDigestMail(
   unmatched: UnmatchedResult,
   deadRules: DeadRule[],
-  archived: number,
+  archivedLogName: string | null,
   expired: number,
   problems: SheetProblem[]
 ): void {
@@ -250,7 +272,7 @@ function sendDigestMail(
   if (!to) return;
 
   const inbox = GmailApp.getInboxUnreadCount();
-  const lines = buildDigestLines(inbox, unmatched, deadRules, archived, expired, problems);
+  const lines = buildDigestLines(inbox, unmatched, deadRules, archivedLogName, expired, problems);
 
   GmailApp.sendEmail(
     to,
@@ -265,7 +287,7 @@ function buildDigestLines(
   inbox: number,
   unmatched: UnmatchedResult,
   deadRules: DeadRule[],
-  archived: number,
+  archivedLogName: string | null,
   expired: number,
   problems: SheetProblem[]
 ): string[] {
@@ -278,7 +300,7 @@ function buildDigestLines(
     `受信トレイの未分類スレッド: ${unmatched.scanned} 件` +
       (unmatched.truncated ? ' (時間切れで途中まで。全量ではありません)' : '')
   );
-  lines.push(`ログ退避: ${archived} 行`);
+  if (archivedLogName) lines.push(`ログが増えたため ${archivedLogName} として退避しました`);
   lines.push(`保持期間を過ぎて受信トレイから外した: ${expired} 件`);
   lines.push('');
 

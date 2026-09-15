@@ -63,6 +63,7 @@ const EXPORTED = [
   'planDisplayNameRenormalization',
   'planSenderGarbageCleanup',
   'isGmailTrackingUrl',
+  'nextLogArchiveNumber',
 ];
 
 export function load() {
