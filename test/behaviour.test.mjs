@@ -793,6 +793,34 @@ test('装飾記号が無い表示名はそのまま', () => {
   assert.equal(extractDisplayName('Team Rugby <reply@e.rugby.com.au>'), 'Team Rugby');
 });
 
+test('全角英字は半角に揃える', () => {
+  assert.equal(extractDisplayName('ＳＢＩ証券 <info@sbisec.co.jp>'), 'SBI 証券');
+});
+
+test('全角スペースは半角に揃える', () => {
+  assert.equal(extractDisplayName('野田　眞之介 <s-noda@r-agent.com>'), '野田 眞之介');
+});
+
+test('株式会社は法人格の表記ゆれとして落とす', () => {
+  assert.equal(extractDisplayName('株式会社ＳＢＩ証券 <info@sbisec.co.jp>'), 'SBI 証券');
+});
+
+test('半角英数字の直後に日本語が続く場合はスペースを入れる', () => {
+  assert.equal(extractDisplayName('povo2.0運営事務局 <info@povo.jp>'), 'povo2.0 運営事務局');
+});
+
+test('日本語の直後に英字が続く合成語はそのまま残す', () => {
+  assert.equal(
+    extractDisplayName('スタディサプリENGLISHお問い合わせ窓口(送信専用) <no-reply@example.com>'),
+    'スタディサプリENGLISH お問い合わせ窓口(送信専用)'
+  );
+});
+
+test('元から半角の会社名は変えない', () => {
+  assert.equal(extractDisplayName('Uber Eats <noreply@uber.com>'), 'Uber Eats');
+  assert.equal(extractDisplayName('freee <no-reply@freee.co.jp>'), 'freee');
+});
+
 // --- 機能: labelsの並び順 ----------------------------------------------------
 
 function labelRow(overrides = {}) {

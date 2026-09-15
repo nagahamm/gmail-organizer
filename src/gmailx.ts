@@ -73,8 +73,32 @@ function extractDisplayName(from: string): string {
   const at = from.indexOf('<');
   if (at < 0) return '';
   const name = from.slice(0, at).trim().replace(/^"|"$/g, '');
-  // 全角の＜＞や【】で装飾された表示名がそのまま残ると見づらいので剥がす。
-  return name.replace(/^[＜【]\s*/, '').replace(/\s*[＞】]$/, '');
+  return normalizeDisplayName(name);
+}
+
+/**
+ * 表示名の見た目を整える。
+ *
+ * - 全角の欧字・括弧・スペースを半角に揃える (NFKC)。`Uber Eats` や `freee` のような
+ *   元から半角の会社名は対象になる文字が無いので、これだけでは変わらない
+ * - 装飾の＜＞【】で囲われた部分はタグとして剥がす
+ * - 「株式会社」「(株)」は法人格の表記ゆれなので落とす
+ * - 半角英数字の直後に日本語が続く境界にスペースを入れる (`povo2.0運営事務局` →
+ *   `povo2.0 運営事務局`)。逆向き (日本語の直後に英字) は対象にしない。
+ *   `スタディサプリENGLISH` のような合成語をそのまま残すため
+ *
+ * 「SBI証券」を「SBI」にするような、ブランド名を短縮する判断はしない。
+ * それは `senders.運営元` / `senders.サービス` が本来担う役割 (docs/constraints.md 5b)。
+ */
+function normalizeDisplayName(name: string): string {
+  return name
+    .normalize('NFKC')
+    .replace(/^[<【]\s*/, '')
+    .replace(/\s*[>】]$/, '')
+    .replace(/株式会社|\(株\)/g, '')
+    .replace(/([a-zA-Z0-9.])([\u3040-\u30ff\u4e00-\u9fff])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** 送信元アドレスからドメインを取り出す。 */
