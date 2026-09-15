@@ -94,6 +94,7 @@ function onOpen(): void {
     .addItem('洗い出しの再開位置を消す', 'resetBacklog')
     .addItem('実行の状態を見る', 'menuShowProgress')
     .addItem('親ラベルを作る', 'ensureParentLabels')
+    .addItem('labelsを並べ替える', 'menuSortLabelsSheet')
     .addSeparator()
     .addItem('シートを検査する', 'menuValidateSheets')
     .addItem('トリガーを登録する', 'installTriggers')

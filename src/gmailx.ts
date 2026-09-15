@@ -72,7 +72,9 @@ function extractDisplayName(from: string): string {
   if (!from) return '';
   const at = from.indexOf('<');
   if (at < 0) return '';
-  return from.slice(0, at).trim().replace(/^"|"$/g, '');
+  const name = from.slice(0, at).trim().replace(/^"|"$/g, '');
+  // 全角の＜＞や【】で装飾された表示名がそのまま残ると見づらいので剥がす。
+  return name.replace(/^[＜【]\s*/, '').replace(/\s*[＞】]$/, '');
 }
 
 /** 送信元アドレスからドメインを取り出す。 */

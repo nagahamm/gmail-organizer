@@ -49,6 +49,9 @@ const EXPORTED = [
   'isDuplicateProposal',
   'hasSheetSpec',
   'rowsFromTable',
+  'compareLabelField',
+  'compareLabelRows',
+  'extractDisplayName',
 ];
 
 export function load() {

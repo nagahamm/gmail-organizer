@@ -21,6 +21,7 @@ function runWeeklyDigest(): void {
 
   // 安くて確実に効かせたいものから先に済ませる。
   // 集計や提案を先に走らせると、予算を使い切って掃除と検査が毎回飛ばされる。
+  sortLabelsSheet();
   const archived = archiveOldLogs();
   const expired = archiveExpiredInbox(startedAt);
   const problems = validateSheets(startedAt);

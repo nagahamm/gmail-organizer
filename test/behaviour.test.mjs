@@ -45,6 +45,9 @@ const {
   isDuplicateProposal,
   hasSheetSpec,
   rowsFromTable,
+  compareLabelField,
+  compareLabelRows,
+  extractDisplayName,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -776,6 +779,54 @@ test('送信元からドメインを取り出す', () => {
 
 test('List-Id から識別子だけを取り出す', () => {
   assert.equal(normalizeListId('Example News <news.example.com>'), 'news.example.com');
+});
+
+test('全角の装飾記号(＜＞)で囲まれた表示名は剥がす', () => {
+  assert.equal(extractDisplayName('＜ユニクロ＞ <no-reply@ml.store.uniqlo.com>'), 'ユニクロ');
+});
+
+test('全角の【】で囲まれた表示名も剥がす', () => {
+  assert.equal(extractDisplayName('【ヨドバシ】 <info@yodobashi.com>'), 'ヨドバシ');
+});
+
+test('装飾記号が無い表示名はそのまま', () => {
+  assert.equal(extractDisplayName('Team Rugby <reply@e.rugby.com.au>'), 'Team Rugby');
+});
+
+// --- 機能: labelsの並び順 ----------------------------------------------------
+
+function labelRow(overrides = {}) {
+  return { major: '', middle: '', minor: '', ...overrides };
+}
+
+test('大項目のABC順で比較する', () => {
+  assert.ok(compareLabelRows(labelRow({ major: 'Finance' }), labelRow({ major: 'Promotions' })) < 0);
+});
+
+test('大項目が同じなら中項目で比較する', () => {
+  assert.ok(
+    compareLabelRows(
+      labelRow({ major: 'Finance', middle: 'Accounts' }),
+      labelRow({ major: 'Finance', middle: 'Bills' })
+    ) < 0
+  );
+});
+
+test('大項目・中項目が同じなら小項目で比較する', () => {
+  assert.ok(
+    compareLabelRows(
+      labelRow({ major: 'Finance', middle: 'Cards', minor: 'Jcb' }),
+      labelRow({ major: 'Finance', middle: 'Cards', minor: 'Rakuten' })
+    ) < 0
+  );
+});
+
+test('完全に同じ組み合わせなら0を返す', () => {
+  assert.equal(compareLabelRows(labelRow({ major: 'Finance' }), labelRow({ major: 'Finance' })), 0);
+});
+
+test('空欄も文字列として比較できる', () => {
+  assert.equal(compareLabelField(undefined, ''), 0);
 });
 
 // --- 開発用データ投入 -------------------------------------------------------
