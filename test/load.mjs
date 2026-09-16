@@ -66,6 +66,7 @@ const EXPORTED = [
   'nextLogArchiveNumber',
   'ruleMatchesSender',
   'computeUnruledSenderStats',
+  'senderUpdates',
 ];
 
 export function load() {

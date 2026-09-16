@@ -255,8 +255,13 @@ function senderUpdates(existing: Row, seen: SenderObservation, complete: boolean
   const rowNumber = Number(existing['_rowNumber']);
   const updates: CellUpdate[] = [];
 
-  // 表示名は変わることがあるので観測するたびに最新へ更新する。
-  if (seen.displayName !== '') {
+  // 空欄のときだけ埋める。既に値があれば触らない。
+  // 以前は観測するたびに上書きしていたが、これだと dev-overwrite や
+  // renormalizeSenderDisplayNames() で直した表示名が、次の観測で
+  // 生の値に巻き戻ってしまっていた (`normalizeDisplayName` の一般ルールでは
+  // 表せない、都度の直値修正が特に被害を受ける)。
+  const currentDisplayName = String(existing['displayName'] || '').trim();
+  if (seen.displayName !== '' && currentDisplayName === '') {
     updates.push({ rowNumber, key: 'displayName', value: seen.displayName });
   }
   // 途中までの通数で上書きすると配信頻度の判断が狂う。前回の値を残す。

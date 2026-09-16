@@ -62,6 +62,7 @@ const {
   nextLogArchiveNumber,
   ruleMatchesSender,
   computeUnruledSenderStats,
+  senderUpdates,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -144,6 +145,42 @@ test('list_idはlistId列と完全一致', () => {
 test('subjectとqueryはローカル判定できないので一致しない扱い', () => {
   assert.equal(ruleMatchesSender('subject', 'FIGO', 'x@univapay.com', ''), false);
   assert.equal(ruleMatchesSender('query', 'is:starred', 'x@example.com', ''), false);
+});
+
+// --- 機能: senders の観測による更新指示 ---------------------------------------
+
+function existingSenderRow(overrides = {}) {
+  return {
+    _rowNumber: 2,
+    displayName: '',
+    firstSeen: new Date('2026-01-01'),
+    ...overrides,
+  };
+}
+
+function observation(overrides = {}) {
+  return {
+    address: 'a@example.com',
+    displayName: '観測された表示名',
+    count: 5,
+    firstSeen: new Date('2026-02-01'),
+    lastSeen: new Date('2026-02-01'),
+    messageId: 'msg1',
+    ...overrides,
+  };
+}
+
+test('表示名が空欄なら観測した値で埋める', () => {
+  const updates = senderUpdates(existingSenderRow({ displayName: '' }), observation(), true);
+  const displayNameUpdate = updates.find((u) => u.key === 'displayName');
+  assert.equal(displayNameUpdate.value, '観測された表示名');
+});
+
+test('表示名が既にあれば観測しても上書きしない', () => {
+  // dev-overwrite や renormalizeSenderDisplayNames() で直した値を、
+  // 次の観測で生の値に巻き戻さないことを確認する。
+  const updates = senderUpdates(existingSenderRow({ displayName: '手で直した表示名' }), observation(), true);
+  assert.equal(updates.some((u) => u.key === 'displayName'), false);
 });
 
 // --- 機能: senders+rules からルールが無い送信元を集計する ---------------------
