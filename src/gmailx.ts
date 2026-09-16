@@ -157,7 +157,9 @@ const DISPLAY_NAME_DEPARTMENT_SUFFIXES = [
  * - 全角の欧字・括弧・スペースを半角に揃える (NFKC)。`Uber Eats` や `freee` のような
  *   元から半角の会社名は対象になる文字が無いので、これだけでは変わらない
  * - 装飾の＜＞【】で囲われた部分はタグとして剥がす
- * - 「株式会社」「(株)」は法人格の表記ゆれなので落とす
+ * - 「株式会社」「(株)」「Pty Ltd」は法人格の表記ゆれなので落とす
+ * - 先頭の「The 」、末尾の「Team」は名乗りの飾りなので落とす
+ *   (`The NordVPN team` → `NordVPN`、`Unsplash Team` → `Unsplash`)
  * - 半角英数字の直後に `DISPLAY_NAME_DEPARTMENT_SUFFIXES` が続く境界にだけ
  *   スペースを入れる (`povo2.0運営事務局` → `povo2.0 運営事務局`)。
  *   それ以外の英数字+日本語の境界 (`SBI証券` など) はブランド名の一部として
@@ -171,7 +173,10 @@ function normalizeDisplayName(name: string): string {
     .normalize('NFKC')
     .replace(/^[<【]\s*/, '')
     .replace(/\s*[>】]$/, '')
-    .replace(/株式会社|\(株\)/g, '');
+    .replace(/株式会社|\(株\)/g, '')
+    .replace(/,?\s*Pty\.?\s*Ltd\.?$/i, '')
+    .replace(/^The\s+/i, '')
+    .replace(/\s+Team$/i, '');
 
   for (const suffix of DISPLAY_NAME_DEPARTMENT_SUFFIXES) {
     result = result.replace(new RegExp(`([a-zA-Z0-9.])(${suffix})`, 'g'), '$1 $2');

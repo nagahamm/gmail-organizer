@@ -965,6 +965,20 @@ test('部署・窓口を表す語尾の前にはスペースを入れる', () =>
   assert.equal(extractDisplayName('povo2.0運営事務局 <info@povo.jp>'), 'povo2.0 運営事務局');
 });
 
+test('Pty Ltdは法人格の表記ゆれとして落とす', () => {
+  assert.equal(extractDisplayName('Ezy Tax Solutions Pty Ltd <accounts@example.com>'), 'Ezy Tax Solutions');
+});
+
+test('先頭のTheと末尾のTeamは名乗りの飾りとして落とす', () => {
+  assert.equal(extractDisplayName('The Higgsfield Team <no-reply@example.com>'), 'Higgsfield');
+  assert.equal(extractDisplayName('The NordVPN team <no-reply@example.com>'), 'NordVPN');
+  assert.equal(extractDisplayName('Unsplash Team <marketing@example.com>'), 'Unsplash');
+});
+
+test('先頭以外のTeamは飾りとして扱わない', () => {
+  assert.equal(extractDisplayName('Team Rugby <reply@e.rugby.com.au>'), 'Team Rugby');
+});
+
 test('日本語の直後に英字が続く合成語はそのまま残す', () => {
   assert.equal(
     extractDisplayName('スタディサプリENGLISHお問い合わせ窓口(送信専用) <no-reply@example.com>'),
