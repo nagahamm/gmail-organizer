@@ -160,6 +160,8 @@ const DISPLAY_NAME_DEPARTMENT_SUFFIXES = [
  * - 「株式会社」「(株)」「Pty Ltd」は法人格の表記ゆれなので落とす
  * - 先頭の「The 」、末尾の「Team」は名乗りの飾りなので落とす
  *   (`The NordVPN team` → `NordVPN`、`Unsplash Team` → `Unsplash`)
+ * - 末尾の「からのお知らせ」も名乗りの飾りなので落とす
+ *   (`楽天モバイルからのお知らせ` → `楽天モバイル`)
  * - 半角英数字の直後に `DISPLAY_NAME_DEPARTMENT_SUFFIXES` が続く境界にだけ
  *   スペースを入れる (`povo2.0運営事務局` → `povo2.0 運営事務局`)。
  *   それ以外の英数字+日本語の境界 (`SBI証券` など) はブランド名の一部として
@@ -176,7 +178,8 @@ function normalizeDisplayName(name: string): string {
     .replace(/株式会社|\(株\)/g, '')
     .replace(/,?\s*Pty\.?\s*Ltd\.?$/i, '')
     .replace(/^The\s+/i, '')
-    .replace(/\s+Team$/i, '');
+    .replace(/\s+Team$/i, '')
+    .replace(/からのお知らせ$/, '');
 
   for (const suffix of DISPLAY_NAME_DEPARTMENT_SUFFIXES) {
     result = result.replace(new RegExp(`([a-zA-Z0-9.])(${suffix})`, 'g'), '$1 $2');

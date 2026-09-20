@@ -979,6 +979,11 @@ test('先頭以外のTeamは飾りとして扱わない', () => {
   assert.equal(extractDisplayName('Team Rugby <reply@e.rugby.com.au>'), 'Team Rugby');
 });
 
+test('末尾のからのお知らせは名乗りの飾りとして落とす', () => {
+  assert.equal(extractDisplayName('楽天モバイルからのお知らせ <a@example.com>'), '楽天モバイル');
+  assert.equal(extractDisplayName('楽天証券からのお知らせ <a@example.com>'), '楽天証券');
+});
+
 test('日本語の直後に英字が続く合成語はそのまま残す', () => {
   assert.equal(
     extractDisplayName('スタディサプリENGLISHお問い合わせ窓口(送信専用) <no-reply@example.com>'),
