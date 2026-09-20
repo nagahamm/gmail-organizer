@@ -324,6 +324,51 @@ function readConfig(key: string, fallback: string): string {
   return fallback;
 }
 
+/**
+ * `reorderProposalsColumns()` が一部の行を並べ替えられなかった場合の復旧用。
+ *
+ * 承認列(`未確認`/`承認`/`却下`/`保留`のいずれか)が新しい列順の位置(index 4)に
+ * 無く、旧い列順の位置(index 8)にはある行だけを、旧い列順とみなして
+ * 新しい列順へ組み直す。既に新しい順番になっている行、どちらの判定にも
+ * 当てはまらない行 (承認が空欄など) には触れない。使い切りの復旧処理なので
+ * メニューには登録しない (CLAUDE.md「守ること」)。
+ */
+function repairProposalsColumnOrder(): void {
+  const sheet = getSheet(SHEET_NAMES.PROPOSALS);
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow < 2 || lastColumn < 11) return;
+
+  const APPROVAL_VALUES = ['未確認', '承認', '却下', '保留'];
+  const OLD_ORDER = [
+    'at', 'proposalId', 'kind', 'rationale', 'summary',
+    'matchKind', 'pattern', 'label', 'approval', 'appliedAt', 'comment',
+  ];
+  const NEW_ORDER = [
+    'summary', 'rationale', 'label', 'comment', 'approval',
+    'at', 'proposalId', 'kind', 'matchKind', 'pattern', 'appliedAt',
+  ];
+
+  const range = sheet.getRange(2, 1, lastRow - 1, lastColumn);
+  const values = range.getValues();
+
+  let fixed = 0;
+  const result = values.map((row) => {
+    if (APPROVAL_VALUES.indexOf(String(row[4])) >= 0) return row;
+    if (APPROVAL_VALUES.indexOf(String(row[8])) < 0) return row;
+
+    const byKey: Record<string, unknown> = {};
+    OLD_ORDER.forEach((key, i) => {
+      byKey[key] = row[i];
+    });
+    fixed += 1;
+    return NEW_ORDER.map((key) => byKey[key]);
+  });
+
+  range.setValues(result);
+  console.log(`repairProposalsColumnOrder: ${fixed} 行を修正しました (対象外もしくは既に正しい行はそのまま)`);
+}
+
 /** 破壊的操作を止めるかどうか。config シートがコード側の既定より優先される。 */
 function isDryRun(): boolean {
   return readConfig('DRY_RUN', CONFIG.DRY_RUN ? 'TRUE' : 'FALSE').toUpperCase() !== 'FALSE';
