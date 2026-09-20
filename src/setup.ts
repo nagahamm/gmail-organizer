@@ -328,3 +328,38 @@ function readConfig(key: string, fallback: string): string {
 function isDryRun(): boolean {
   return readConfig('DRY_RUN', CONFIG.DRY_RUN ? 'TRUE' : 'FALSE').toUpperCase() !== 'FALSE';
 }
+
+/**
+ * 使い切りの移行処理。既存の proposals シートの列を、今の schema.ts の並び順
+ * (判断に要る列を左、技術的な列を右) へ物理的に並べ替える。
+ *
+ * `resolveColumns()` はヘッダ名で列を探すので、schema.ts の並び順を変えただけでは
+ * 新規作成するシートにしか反映されない。既存シートは実際にセルを移し替える必要がある。
+ * メニューには登録しない (CLAUDE.md「守ること」)。実行後は setup() を流し直し、
+ * 入力規則・条件付き書式を新しい列位置に合わせ直すこと。
+ */
+function reorderProposalsColumns(): void {
+  const sheet = getSheet(SHEET_NAMES.PROPOSALS);
+  const spec = findSheetSpec(SHEET_NAMES.PROPOSALS);
+  const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
+  if (lastRow === 0 || lastColumn === 0) return;
+
+  const values = sheet.getRange(1, 1, lastRow, lastColumn).getValues();
+  const oldHeaders = values[0].map(String);
+
+  const oldIndexByHeader: Record<string, number> = {};
+  oldHeaders.forEach((header, index) => {
+    oldIndexByHeader[header] = index;
+  });
+
+  const newHeaders = spec.columns.map((column) => column.header);
+  const missing = newHeaders.filter((header) => !(header in oldIndexByHeader));
+  if (missing.length > 0) {
+    throw new Error(`reorderProposalsColumns: シートに無い列があります: ${missing.join(', ')}`);
+  }
+
+  const reordered = values.map((row) => newHeaders.map((header) => row[oldIndexByHeader[header]]));
+  sheet.getRange(1, 1, reordered.length, newHeaders.length).setValues(reordered);
+  console.log('reorderProposalsColumns: 列順を並べ替えました。setup() を実行して入力規則を合わせ直してください');
+}

@@ -211,19 +211,21 @@ const SHEET_SPECS: SheetSpec[] = [
   },
   {
     name: SHEET_NAMES.PROPOSALS,
-    note: 'AI の提案と承認。承認列を「承認」に変えるだけで次回実行が rules へ反映する。',
+    note: 'AI の提案と承認。承認列を「承認」に変えるだけで次回実行が rules へ反映する。' +
+      '判断に要る列(提案内容・根拠・提案ラベル・AIコメント・承認)を左に、' +
+      '技術的な列(提案日・提案ID・種別・提案パターン種別・提案パターン・反映日)を右にまとめている。',
     columns: [
+      { key: 'summary', header: '提案内容', width: 320 },
+      { key: 'rationale', header: '根拠', width: 300 },
+      { key: 'label', header: '提案ラベル', validation: 'labelPath', width: 200 },
+      { key: 'comment', header: 'AIコメント', width: 320 },
+      { key: 'approval', header: '承認', validation: 'approval', width: 90 },
       { key: 'at', header: '提案日', type: 'date', width: 110 },
       { key: 'proposalId', header: '提案ID', width: 110 },
       { key: 'kind', header: '種別', width: 130, note: 'new_rule / new_label / inbox_skip / rename_label / archive_label / unsubscribe' },
-      { key: 'rationale', header: '根拠', width: 300 },
-      { key: 'summary', header: '提案内容', width: 320 },
       { key: 'matchKind', header: '提案パターン種別', validation: 'matchKind', width: 130 },
       { key: 'pattern', header: '提案パターン', width: 240 },
-      { key: 'label', header: '提案ラベル', validation: 'labelPath', width: 200 },
-      { key: 'approval', header: '承認', validation: 'approval', width: 90 },
       { key: 'appliedAt', header: '反映日', type: 'date', width: 110 },
-      { key: 'comment', header: 'AIコメント', width: 320 },
     ],
   },
   {
