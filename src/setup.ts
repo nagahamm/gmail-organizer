@@ -332,6 +332,14 @@ function readConfig(key: string, fallback: string): string {
  * 新しい列順へ組み直す。既に新しい順番になっている行、どちらの判定にも
  * 当てはまらない行 (承認が空欄など) には触れない。使い切りの復旧処理なので
  * メニューには登録しない (CLAUDE.md「守ること」)。
+ *
+ * 書き込み前に必ず `clearDataValidations()` で対象範囲の入力規則を外す。
+ * 入力規則は物理セル位置に貼り付いたままなので、並べ替え後の値がそのセルに
+ * 残っている旧い規則 (あるいは列がずれてできた無関係の規則) に違反すると
+ * `setValues()` がその場で失敗し、書き込みごと反映されない。
+ * `reorderProposalsColumns()` が一部の行しか並べ替えられなかったのも、
+ * この復旧処理が最初は失敗したのも、同じ理由。実行後は setup() を
+ * 流し直し、入力規則を新しい列位置に貼り直すこと。
  */
 function repairProposalsColumnOrder(): void {
   const sheet = getSheet(SHEET_NAMES.PROPOSALS);
@@ -350,6 +358,7 @@ function repairProposalsColumnOrder(): void {
   ];
 
   const range = sheet.getRange(2, 1, lastRow - 1, lastColumn);
+  range.clearDataValidations();
   const values = range.getValues();
 
   let fixed = 0;
