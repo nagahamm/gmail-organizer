@@ -88,54 +88,74 @@ interface UnmatchedResult {
 /**
  * どのユーザーラベルも付いていないメールを送信元ドメイン別に集計する。
  * 未読率が高いものは「読む気がない」= 受信トレイ除外の候補。
+ *
+ * Gmail 検索は新しい順に返るため、1 ページ (`CONFIG.SEARCH_PAGE_SIZE`) だけ読むと、
+ * 新しいメールの陰に隠れた古い送信元が一生数えられない (#93)。新しいスレッドが
+ * 取れなくなるまでページを送る (`backlog.ts` `surveyBacklog()` と同じ制約4のパターン)。
+ * 1 日の Gmail スレッド予算は `senders.ts` の全期間洗い出しと共有する。
  */
 function collectUnmatched(startedAt?: number): UnmatchedResult {
   const since = budgetStart(startedAt);
   const stats: Record<string, UnmatchedStat> = {};
+  const budget = readDailyBudget();
+  const today = todayKey();
+  let usage = readDailyUsage();
   let scanned = 0;
   let truncated = false;
 
-  for (const category of UNMATCHED_CATEGORIES) {
-    if (outOfTime(since)) {
-      console.warn(`collectUnmatched: 時間切れで ${category.name} 以降を見ていません`);
-      truncated = true;
-      break;
-    }
+  categoryLoop: for (const category of UNMATCHED_CATEGORIES) {
+    let start = 0;
 
-    const query = `in:inbox has:nouserlabels ${category.query}`;
-    const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
-    scanned += threads.length;
-
-    // スレッドごとに getMessages() を呼ぶと 1 スレッド 1 コールになる。
-    // まとめて取れる API があるのでそちらを使う。
-    const messages = GmailApp.getMessagesForThreads(threads);
-
-    for (let at = 0; at < threads.length; at += 1) {
-      const thread = threads[at];
-      const head = messages[at] ? messages[at][0] : null;
-      if (!head) continue;
-
-      const address = extractAddress(head.getFrom());
-      const domain = senderDomain(head.getFrom()) || '(不明)';
-      const date = new Date(head.getDate().getTime());
-
-      if (!stats[domain]) {
-        stats[domain] = {
-          domain,
-          address,
-          messageId: head.getId(),
-          category: category.name,
-          count: 0,
-          unread: 0,
-          firstSeen: date,
-          subject: truncateSubject(head.getSubject() || ''),
-        };
+    for (;;) {
+      if (outOfTime(since) || !hasDailyBudget(usage, today, budget)) {
+        console.warn(`collectUnmatched: 予算切れで ${category.name} 以降を見ていません`);
+        truncated = true;
+        break categoryLoop;
       }
-      stats[domain].count += 1;
-      if (thread.isUnread()) stats[domain].unread += 1;
-      if (date < stats[domain].firstSeen) stats[domain].firstSeen = date;
+
+      const query = `in:inbox has:nouserlabels ${category.query}`;
+      const threads = GmailApp.search(query, start, CONFIG.SEARCH_PAGE_SIZE);
+      if (threads.length === 0) break;
+
+      // スレッドごとに getMessages() を呼ぶと 1 スレッド 1 コールになる。
+      // まとめて取れる API があるのでそちらを使う。
+      const messages = GmailApp.getMessagesForThreads(threads);
+
+      for (let at = 0; at < threads.length; at += 1) {
+        const thread = threads[at];
+        const head = messages[at] ? messages[at][0] : null;
+        if (!head) continue;
+
+        const address = extractAddress(head.getFrom());
+        const domain = senderDomain(head.getFrom()) || '(不明)';
+        const date = new Date(head.getDate().getTime());
+
+        if (!stats[domain]) {
+          stats[domain] = {
+            domain,
+            address,
+            messageId: head.getId(),
+            category: category.name,
+            count: 0,
+            unread: 0,
+            firstSeen: date,
+            subject: truncateSubject(head.getSubject() || ''),
+          };
+        }
+        stats[domain].count += 1;
+        if (thread.isUnread()) stats[domain].unread += 1;
+        if (date < stats[domain].firstSeen) stats[domain].firstSeen = date;
+      }
+
+      scanned += threads.length;
+      start += threads.length;
+      usage = rollDailyUsage(usage, today, threads.length);
+
+      if (threads.length < CONFIG.SEARCH_PAGE_SIZE) break;
     }
   }
+
+  writeDailyUsage(usage);
 
   const ranked = Object.keys(stats)
     .map((domain) => stats[domain])
