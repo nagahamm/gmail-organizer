@@ -63,6 +63,7 @@ const {
   ruleMatchesSender,
   computeUnruledSenderStats,
   senderUpdates,
+  carriesOtherTypeLabel,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -1390,4 +1391,51 @@ test('既存のlog_Nの次の番号を返す', () => {
 
 test('番号は連番でなくても最大値の次を返す', () => {
   assert.equal(nextLogArchiveNumber(['log', 'log_1', 'log_5']), 6);
+});
+
+// --- 機能: 受信トレイから外すのは販促と、名指しした定型通知だけ -----------------
+
+/** 判定に効く列だけを持つルール。 */
+function ruleFor(label, location = '') {
+  return { label, location };
+}
+
+test('取引メールが販促のルールで消されない', () => {
+  assert.equal(
+    carriesOtherTypeLabel(['Orders/Amazon'], ruleFor('Promotions/Stores')),
+    true
+  );
+});
+
+test('拠点ラベルは分類済みとみなさない', () => {
+  assert.equal(carriesOtherTypeLabel(['@AU'], ruleFor('Promotions/Stores')), false);
+});
+
+test('同じ大項目の中では分類済みとみなさない', () => {
+  assert.equal(
+    carriesOtherTypeLabel(['Promotions/Beauty'], ruleFor('Promotions/Fashion')),
+    false
+  );
+});
+
+test('保持期間の掃除も分類済みのスレッドには触れない', () => {
+  // Promotions の保持期間ルールが、Security/Alerts を併せ持つスレッドを拾った状況。
+  assert.equal(
+    carriesOtherTypeLabel(['Promotions', 'Security/Alerts'], ruleFor('Promotions')),
+    true
+  );
+});
+
+test('自分の行き先と拠点だけなら分類済みではない', () => {
+  assert.equal(
+    carriesOtherTypeLabel(['Promotions/Stores', '@AU'], ruleFor('Promotions/Stores', '@AU')),
+    false
+  );
+});
+
+test('大項目が同じなら階層の深さが違っても分類済みではない', () => {
+  assert.equal(
+    carriesOtherTypeLabel(['Promotions'], ruleFor('Promotions/Jobs/Alerts')),
+    false
+  );
 });

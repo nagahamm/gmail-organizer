@@ -144,6 +144,29 @@ function buildRuleQuery(rule: Rule, windowQuery: string): string {
   return parts.join(' ');
 }
 
+/**
+ * 付いているラベル名の一覧に、このルールの行き先とは別の種別のラベルがあるか。
+ *
+ * 種別は**大項目**で決まる (schema.ts: 大項目 = メールの種別)。フルパスで比べると
+ * `Promotions/Fashion` と `Promotions/Beauty` が別の種別になり、販促同士で
+ * 受信トレイ除外が止まって受信トレイに残り続ける。
+ *
+ * 拠点ラベル (`@` 始まり) は数えない。1 通に `Promotions/Stores` と `@AU` の
+ * 両方が付くのは正しい挙動なので、並行付与を壊さないようにする。
+ *
+ * 受信トレイから外す / 既読にする判断の手前で必ず通す。ルールの適用も
+ * 保持期間の掃除も同じ線引きを使う (docs/requirements.md 受信トレイから外すのは…)。
+ */
+function carriesOtherTypeLabel(labelNames: string[], rule: Rule): boolean {
+  const own = splitLabelPath(rule.label).major;
+
+  return labelNames.some((name) => {
+    if (name.charAt(0) === '@') return false;
+    if (name === rule.location) return false;
+    return splitLabelPath(name).major !== own;
+  });
+}
+
 /** Promotions 配下が保持期間を設定していないときの既定日数 (docs/constraints.md 設計上の制約 8)。 */
 const PROMOTIONS_DEFAULT_RETENTION_DAYS = 90;
 

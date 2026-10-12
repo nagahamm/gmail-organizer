@@ -67,6 +67,7 @@ const EXPORTED = [
   'ruleMatchesSender',
   'computeUnruledSenderStats',
   'senderUpdates',
+  'carriesOtherTypeLabel',
 ];
 
 export function load() {

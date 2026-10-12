@@ -305,7 +305,16 @@ function archiveExpiredInbox(startedAt?: number): number {
     if (query === '') continue;
 
     const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
-    for (const thread of threads) entries.push(archiveExpiredThread(thread, rule, dryRun));
+    for (const thread of threads) {
+      // 安全網が 1 スレッドごとに getLabels() を呼ぶため、ルール単位の判定では
+      // 1 ルールぶん予算を超過する。ここで見る。
+      if (outOfTime(since)) {
+        console.warn('archiveExpiredInbox: 時間切れのため残りのスレッドを飛ばしました');
+        writeLog(runId, entries);
+        return entries.length;
+      }
+      entries.push(archiveExpiredThread(thread, rule, dryRun));
+    }
   }
 
   writeLog(runId, entries);
@@ -330,6 +339,14 @@ function archiveExpiredThread(
     action: `受信トレイ除外 (保持 ${rule.inboxDays} 日を経過)`,
     result: dryRun ? 'dry_run' : 'applied',
   };
+
+  // ルールの適用と同じ安全網を通す。ここを通さないと
+  // 「受信トレイから外すのは販促だけ」の線引きが掃除の経路から破れる。
+  // Promotions と Security/Alerts を併せ持つスレッドが実際に外れていた (Issue #94)。
+  if (hasOtherTypeLabel(thread, rule)) {
+    entry.result = 'skipped: 既に分類済み';
+    return entry;
+  }
 
   if (dryRun) return entry;
 
@@ -426,18 +443,16 @@ function applyToThread(
 /**
  * そのスレッドが既に別の種別ラベルを持っているか。
  *
- * 拠点ラベル (`@` で始まるもの) と、そのルール自身の付与先は数えない。
- * 1 通に `Promotions/Stores` と `@AU` の両方が付くのは正しい挙動なので、
- * 並行付与を壊さないようにする。
+ * 判定そのものは `carriesOtherTypeLabel()` (matcher.ts) に置いてある。
+ * ここは Gmail からラベル名を取ってくるだけ。
  *
- * `thread.getLabels()` は 1 スレッド 1 コールなので、破壊的なルールに限って呼ぶ。
+ * `thread.getLabels()` は 1 スレッド 1 コールなので、破壊的な操作に限って呼ぶ。
  */
 function hasOtherTypeLabel(thread: GoogleAppsScript.Gmail.GmailThread, rule: Rule): boolean {
-  return thread.getLabels().some((label) => {
-    const name = label.getName();
-    if (name === rule.label || name === rule.location) return false;
-    return name.charAt(0) !== '@';
-  });
+  return carriesOtherTypeLabel(
+    thread.getLabels().map((label) => label.getName()),
+    rule
+  );
 }
 
 /** ラベルのキャッシュ。1 回の実行内で同じラベルを何度も引かないため。 */
