@@ -176,6 +176,36 @@ function isPromotionsLabel(label: string): boolean {
 }
 
 /**
+ * 自動承認してよい提案の種別。
+ *
+ * ルールを増やすものだけ。`rename_label` / `archive_label` はラベルの木を
+ * 作り替えるので、メールを受信トレイへ戻すだけでは復旧しない。
+ * `unsubscribe` は人の意思表示なので機械で決めない。
+ */
+const AUTO_APPROVE_KINDS = ['new_rule', 'inbox_skip'];
+
+/**
+ * 人を通さずに承認してよい提案か。
+ *
+ * 承認そのものが「登録が面倒」の再来になっていたため、**間違えても害が小さい
+ * 範囲に限って**人の操作を省く。行き先が `Promotions` 配下なら、外れても
+ * 販促がアーカイブされるだけで、受信トレイへ戻せば復旧する。
+ *
+ * `Work` / `Finance` / `Security` は対象にしない。求人や口座の判断は機械に
+ * 向かず、実際に人が却下している提案が多い領域 (docs/requirements.md 承認による学習)。
+ *
+ * 既存の線引き「除外して既読にしてよいのは Promotions だけ」と同じ境界を使う。
+ */
+function isAutoApprovable(kind: string, label: string): boolean {
+  if (AUTO_APPROVE_KINDS.indexOf(String(kind).trim()) < 0) return false;
+
+  const target = String(label).trim();
+  if (target === '') return false;
+
+  return isPromotionsLabel(target);
+}
+
+/**
  * 保持期間を過ぎたスレッドを引く検索式。設定が無ければ空文字。
  *
  * 既読にして受信トレイに残したメールが、いつまでも溜まらないようにする。

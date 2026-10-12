@@ -20,16 +20,31 @@ function applyApprovedProposals(startedAt?: number): void {
   const labelPaths = knownLabelPaths();
   const unmatched = readRows(SHEET_NAMES.UNMATCHED);
 
+  const autoApprove = isAutoApproveEnabled();
+
   const added: { pattern: string; label: string }[] = [];
   const newLabels: Row[] = [];
   const proposalUpdates: CellUpdate[] = [];
   const unmatchedUpdates: CellUpdate[] = [];
   let approved = 0;
   let rejected = 0;
+  let autoApproved = 0;
 
   for (const row of rows) {
     if (String(row['appliedAt'] || '') !== '') continue;
-    const approval = String(row['approval'] || '').trim();
+    let approval = String(row['approval'] || '').trim();
+
+    // 未確認のうち、間違えても害が小さいものだけ人を通さず承認する。
+    // 承認列へ書き戻すので、何が自動承認されたかは後から追える。
+    if (
+      autoApprove &&
+      approval === '未確認' &&
+      isAutoApprovable(String(row['kind'] || ''), String(row['label'] || ''))
+    ) {
+      proposalUpdates.push({ rowNumber: Number(row['_rowNumber']), key: 'approval', value: '承認' });
+      approval = '承認';
+      autoApproved += 1;
+    }
 
     if (approval === '却下') {
       collectProposed(unmatched, String(row['pattern'] || ''), unmatchedUpdates);
@@ -63,7 +78,10 @@ function applyApprovedProposals(startedAt?: number): void {
   updateCells(SHEET_NAMES.PROPOSALS, proposalUpdates);
 
   if (added.length > 0) applyNewRulesRetroactively(added, since);
-  console.log(`applyApprovedProposals: 承認 ${approved} 件 / 却下 ${rejected} 件 / ルール追加 ${added.length} 件`);
+  const autoNote = autoApproved > 0 ? ` (うち自動承認 ${autoApproved} 件)` : '';
+  console.log(
+    `applyApprovedProposals: 承認 ${approved} 件${autoNote} / 却下 ${rejected} 件 / ルール追加 ${added.length} 件`
+  );
 }
 
 /** 提案 1 行から rules の行を作る。受信トレイ除外の提案は既読化もセットで入れる。 */

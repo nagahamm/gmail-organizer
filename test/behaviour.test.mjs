@@ -64,6 +64,7 @@ const {
   computeUnruledSenderStats,
   senderUpdates,
   carriesOtherTypeLabel,
+  isAutoApprovable,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -1438,4 +1439,41 @@ test('大項目が同じなら階層の深さが違っても分類済みでは�
     carriesOtherTypeLabel(['Promotions'], ruleFor('Promotions/Jobs/Alerts')),
     false
   );
+});
+
+// --- 機能: 承認による学習 (Promotions 配下だけは自動で承認する) -----------------
+
+test('Promotions 配下の提案は自動で承認される', () => {
+  assert.equal(isAutoApprovable('new_rule', 'Promotions/Food'), true);
+  assert.equal(isAutoApprovable('inbox_skip', 'Promotions/Stores'), true);
+  // 大項目そのものを指す提案も Promotions なら対象
+  assert.equal(isAutoApprovable('new_rule', 'Promotions'), true);
+});
+
+test('Promotions 以外は自動では承認されない', () => {
+  assert.equal(isAutoApprovable('new_rule', 'Work/Applications'), false);
+  assert.equal(isAutoApprovable('new_rule', 'Finance/Accounts'), false);
+  assert.equal(isAutoApprovable('inbox_skip', 'Security/Alerts'), false);
+});
+
+test('ラベルの改名と凍結は自動では承認されない', () => {
+  assert.equal(isAutoApprovable('rename_label', 'Promotions/Food'), false);
+  assert.equal(isAutoApprovable('archive_label', 'Promotions/Food'), false);
+  assert.equal(isAutoApprovable('unsubscribe', 'Promotions/Food'), false);
+  assert.equal(isAutoApprovable('new_label', 'Promotions/Food'), false);
+});
+
+test('行き先が空の提案は自動承認しない', () => {
+  assert.equal(isAutoApprovable('new_rule', ''), false);
+  assert.equal(isAutoApprovable('new_rule', '   '), false);
+});
+
+test('Promotions で始まるだけの別ラベルは対象にしない', () => {
+  // `Promotions` の前方一致ではなく、大項目として一致するかで見る
+  assert.equal(isAutoApprovable('new_rule', 'PromotionsArchive'), false);
+  assert.equal(isAutoApprovable('new_rule', 'PromotionsArchive/Old'), false);
+});
+
+test('種別とラベルの前後の空白は吸収する', () => {
+  assert.equal(isAutoApprovable(' new_rule ', ' Promotions/Food '), true);
 });

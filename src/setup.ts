@@ -328,3 +328,12 @@ function readConfig(key: string, fallback: string): string {
 function isDryRun(): boolean {
   return readConfig('DRY_RUN', CONFIG.DRY_RUN ? 'TRUE' : 'FALSE').toUpperCase() !== 'FALSE';
 }
+
+/**
+ * Promotions 配下の提案を自動承認するかどうか。
+ *
+ * 安全側の境界を緩める設定なので、デプロイせずに止められるようにしておく。
+ */
+function isAutoApproveEnabled(): boolean {
+  return readConfig('AUTO_APPROVE_PROMOTIONS', 'TRUE').toUpperCase() !== 'FALSE';
+}

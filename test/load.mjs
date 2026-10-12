@@ -68,6 +68,7 @@ const EXPORTED = [
   'computeUnruledSenderStats',
   'senderUpdates',
   'carriesOtherTypeLabel',
+  'isAutoApprovable',
 ];
 
 export function load() {

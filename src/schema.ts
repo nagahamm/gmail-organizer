@@ -261,6 +261,12 @@ const CONFIG_DEFAULTS: string[][] = [
     'number',
   ],
   ['NOTIFY_TO', '', '[文字列: メールアドレス、空可] 週次ダイジェストの送信先。空なら実行アカウント宛', 'text'],
+  [
+    'AUTO_APPROVE_PROMOTIONS',
+    'TRUE',
+    '[TRUE/FALSE] TRUE の間は Promotions 配下の提案を人を通さず承認する。それ以外の大項目は常に人が判断する',
+    'boolean',
+  ],
 ];
 
 function findSheetSpec(name: string): SheetSpec {
