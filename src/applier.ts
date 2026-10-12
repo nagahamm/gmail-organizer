@@ -321,6 +321,83 @@ function archiveExpiredInbox(startedAt?: number): number {
   return entries.length;
 }
 
+/**
+ * 削除日数を過ぎた販促をゴミ箱へ入れる。
+ *
+ * **完全削除はしない。** `moveToTrash()` までで止めれば 30 日の猶予が残る
+ * (docs/constraints.md 設計上の制約 10)。対象は `Promotions` 配下だけで、
+ * その判定は `buildDeleteQuery()` が持つ。
+ *
+ * 週次で回す。15 分ごとの経路には入れない。ログを見る間隔より短くすると
+ * 気づく前に消える量が増える。
+ */
+function trashExpiredPromotions(startedAt?: number): number {
+  const since = budgetStart(startedAt);
+  const runId = newRunId();
+  const dryRun = isDryRun();
+  const entries: LogEntry[] = [];
+
+  for (const rule of loadRules()) {
+    if (outOfTime(since)) {
+      console.warn('trashExpiredPromotions: 時間切れのため残りのルールを飛ばしました');
+      break;
+    }
+
+    const query = buildDeleteQuery(rule);
+    if (query === '') continue;
+
+    const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
+    for (const thread of threads) {
+      // 安全網が 1 スレッドごとに getLabels() を呼ぶのでスレッド単位で見る。
+      if (outOfTime(since)) {
+        console.warn('trashExpiredPromotions: 時間切れのため残りのスレッドを飛ばしました');
+        writeLog(runId, entries);
+        return entries.length;
+      }
+      entries.push(trashThread(thread, rule, dryRun));
+    }
+  }
+
+  writeLog(runId, entries);
+  return entries.length;
+}
+
+/** 1 スレッドをゴミ箱へ入れ、ログ 1 行分を返す。完全削除はしない。 */
+function trashThread(
+  thread: GoogleAppsScript.Gmail.GmailThread,
+  rule: Rule,
+  dryRun: boolean
+): LogEntry {
+  const head = thread.getMessages()[0];
+
+  const entry: LogEntry = {
+    messageId: head ? head.getId() : thread.getId(),
+    from: head ? extractAddress(head.getFrom()) : '',
+    listId: '',
+    subject: head ? head.getSubject() : thread.getFirstMessageSubject(),
+    ruleId: rule.ruleId || String(rule.rowNumber),
+    appliedLabel: rule.label,
+    action: `ゴミ箱へ移動 (削除 ${rule.deleteDays} 日を経過)`,
+    result: dryRun ? 'dry_run' : 'applied',
+  };
+
+  // 受信トレイ除外と同じ安全網。Promotions と Security/Alerts を
+  // 併せ持つスレッドを消さない (Issue #94)。
+  if (hasOtherTypeLabel(thread, rule)) {
+    entry.result = 'skipped: 既に分類済み';
+    return entry;
+  }
+
+  if (dryRun) return entry;
+
+  try {
+    thread.moveToTrash();
+  } catch (error) {
+    entry.result = `error: ${error instanceof Error ? error.message : String(error)}`;
+  }
+  return entry;
+}
+
 /** 1 スレッドを受信トレイから外し、ログ 1 行分を返す。削除はしない。 */
 function archiveExpiredThread(
   thread: GoogleAppsScript.Gmail.GmailThread,

@@ -69,6 +69,7 @@ const EXPORTED = [
   'senderUpdates',
   'carriesOtherTypeLabel',
   'isAutoApprovable',
+  'buildDeleteQuery',
 ];
 
 export function load() {

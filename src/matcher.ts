@@ -26,6 +26,8 @@ interface Rule {
   frozenAt: Date | null;
   /** 既読にして受信トレイに残したメールを外すまでの日数。0 なら外さない。 */
   inboxDays: number;
+  /** 販促をゴミ箱へ入れるまでの日数。0 なら捨てない。 */
+  deleteDays: number;
   /** 行き先を変えた行の印。張り替えの実行だけが読む。 */
   relabel: boolean;
   matchCount: number;
@@ -58,6 +60,7 @@ function relaxProtection(rule: Rule): Rule {
     neverSpam: rule.neverSpam,
     frozenAt: rule.frozenAt,
     inboxDays: rule.inboxDays,
+    deleteDays: rule.deleteDays,
     relabel: rule.relabel,
     matchCount: rule.matchCount,
   };
@@ -228,6 +231,41 @@ function buildRetentionQuery(rule: Rule): string {
 }
 
 /**
+ * `削除日数` の下限。これより短い設定は下限まで引き上げる。
+ *
+ * `1` と打ち間違えたときに直近の販促がまとめて消えるのを防ぐ
+ * (docs/constraints.md 設計上の制約 10)。
+ */
+const DELETE_MIN_AGE_DAYS = 180;
+
+/**
+ * ゴミ箱へ入れる対象を引く検索式。対象外なら空文字。
+ *
+ * **`Promotions` 配下のラベルだけ。** 他の大項目に `削除日数` を書いても無視する。
+ * 消えて困るものが設定ミスで入る余地を作らないため、列の値ではなくラベルで弾く。
+ *
+ * スター付きは除く。人が印を付けたものは残す。
+ * 完全削除はしないので、ここで引いたものはゴミ箱に 30 日残る。
+ */
+function buildDeleteQuery(rule: Rule): string {
+  if (!rule.enabled) return '';
+
+  const label = sanitizeQueryValue(rule.label);
+  if (label === '') return '';
+
+  // 境界は受信トレイ除外と自動承認に揃える。
+  if (!isPromotionsLabel(rule.label)) return '';
+
+  // 数値でない値が来たら対象にしない。NaN を素通りさせると
+  // older_than:NaNd という検索式を組んでしまう。
+  const requested = Math.floor(Number(rule.deleteDays));
+  if (!Number.isFinite(requested) || requested <= 0) return '';
+
+  const days = Math.max(requested, DELETE_MIN_AGE_DAYS);
+  return `label:"${label}" older_than:${days}d -is:starred`;
+}
+
+/**
  * このルールを今回の実行で使ってよいか。
  *
  * `有効 = FALSE` は完全な停止。`凍結日` は「過去メールへの遡及は許すが
@@ -264,6 +302,7 @@ function loadRules(): Rule[] {
       neverSpam: row['neverSpam'] === true,
       frozenAt: row['frozenAt'] instanceof Date ? (row['frozenAt'] as Date) : null,
       inboxDays: Number(row['inboxDays']) || 0,
+      deleteDays: Number(row['deleteDays']) || 0,
       relabel: row['relabel'] === true,
       matchCount: Number(row['matchCount']) || 0,
     });

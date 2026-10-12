@@ -65,6 +65,7 @@ const {
   senderUpdates,
   carriesOtherTypeLabel,
   isAutoApprovable,
+  buildDeleteQuery,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -1476,4 +1477,58 @@ test('Promotions で始まるだけの別ラベルは対象にしない', () => 
 
 test('種別とラベルの前後の空白は吸収する', () => {
   assert.equal(isAutoApprovable(' new_rule ', ' Promotions/Food '), true);
+});
+
+// --- 機能: 古い販促をゴミ箱へ入れる -------------------------------------------
+
+/** 削除の判定に効く列だけを持つルール。 */
+function deleteRule(label, deleteDays, overrides = {}) {
+  return { enabled: true, label, deleteDays, ...overrides };
+}
+
+test('削除日数を設定していなければ何も消えない', () => {
+  assert.equal(buildDeleteQuery(deleteRule('Promotions/Fashion', 0)), '');
+  assert.equal(buildDeleteQuery(deleteRule('Promotions/Fashion', NaN)), '');
+});
+
+test('削除日数を過ぎた販促はゴミ箱へ入る', () => {
+  assert.equal(
+    buildDeleteQuery(deleteRule('Promotions/Fashion', 365)),
+    'label:"Promotions/Fashion" older_than:365d -is:starred'
+  );
+});
+
+test('Promotions 配下でなければ削除日数を書いても無視する', () => {
+  assert.equal(buildDeleteQuery(deleteRule('Finance/Bills', 365)), '');
+  assert.equal(buildDeleteQuery(deleteRule('Security/Alerts', 365)), '');
+  assert.equal(buildDeleteQuery(deleteRule('Work/Applications', 365)), '');
+  assert.equal(buildDeleteQuery(deleteRule('Official/Tax', 365)), '');
+});
+
+test('短すぎる削除日数は下限まで引き上げる', () => {
+  assert.equal(
+    buildDeleteQuery(deleteRule('Promotions/Stores', 1)),
+    'label:"Promotions/Stores" older_than:180d -is:starred'
+  );
+  // ちょうど下限なら据え置き
+  assert.equal(
+    buildDeleteQuery(deleteRule('Promotions/Stores', 180)),
+    'label:"Promotions/Stores" older_than:180d -is:starred'
+  );
+});
+
+test('スター付きを除く条件が必ず入る', () => {
+  assert.match(buildDeleteQuery(deleteRule('Promotions', 365)), /-is:starred/);
+});
+
+test('無効なルールは削除の対象にしない', () => {
+  assert.equal(buildDeleteQuery(deleteRule('Promotions/Fashion', 365, { enabled: false })), '');
+});
+
+test('ラベルが空なら削除の対象にしない', () => {
+  assert.equal(buildDeleteQuery(deleteRule('', 365)), '');
+});
+
+test('Promotions で始まるだけの別ラベルは削除の対象にしない', () => {
+  assert.equal(buildDeleteQuery(deleteRule('PromotionsArchive', 365)), '');
 });

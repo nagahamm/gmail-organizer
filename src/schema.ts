@@ -102,6 +102,13 @@ const SHEET_SPECS: SheetSpec[] = [
         note: '既読にして残したメールを、この日数を過ぎたら受信トレイから外す。空なら外さない。Security には設定しない。',
       },
       {
+        key: 'deleteDays',
+        header: '削除日数',
+        type: 'number',
+        width: 100,
+        note: 'この日数を過ぎた販促をゴミ箱へ入れる。空なら捨てない。Promotions 配下のラベルだけ有効で、他の大項目に書いても無視する。下限 180 日。完全削除はしない。',
+      },
+      {
         key: 'relabel',
         header: '張り替え',
         type: 'checkbox',

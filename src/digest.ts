@@ -25,6 +25,7 @@ function runWeeklyDigest(): void {
   sortLabelsSheet();
   const archivedLogName = rolloverLogIfNeeded();
   const expired = archiveExpiredInbox(startedAt);
+  const trashed = trashExpiredPromotions(startedAt);
   const problems = validateSheets(startedAt);
   const deadRules = findDeadRules();
 
@@ -39,10 +40,11 @@ function runWeeklyDigest(): void {
   sortSendersSheet();
   proposeAppliedJobs();
 
-  sendDigestMail(unmatched, deadRules, archivedLogName, expired, problems);
+  sendDigestMail(unmatched, deadRules, archivedLogName, expired, trashed, problems);
   console.log(
     `runWeeklyDigest: 未分類 ${unmatched.rows.length} 件 / 死んだルール ${deadRules.length} 件 / ` +
-      `ログ退避 ${archivedLogName || 'なし'} / 保持期間切れ ${expired} 件 / 型の問題 ${problems.length} 件`
+      `ログ退避 ${archivedLogName || 'なし'} / 保持期間切れ ${expired} 件 / ` +
+      `ゴミ箱へ移動 ${trashed} 件 / 型の問題 ${problems.length} 件`
   );
 }
 
@@ -286,13 +288,22 @@ function sendDigestMail(
   deadRules: DeadRule[],
   archivedLogName: string | null,
   expired: number,
+  trashed: number,
   problems: SheetProblem[]
 ): void {
   const to = readConfig('NOTIFY_TO', '') || Session.getActiveUser().getEmail();
   if (!to) return;
 
   const inbox = GmailApp.getInboxUnreadCount();
-  const lines = buildDigestLines(inbox, unmatched, deadRules, archivedLogName, expired, problems);
+  const lines = buildDigestLines(
+    inbox,
+    unmatched,
+    deadRules,
+    archivedLogName,
+    expired,
+    trashed,
+    problems
+  );
 
   GmailApp.sendEmail(
     to,
@@ -309,6 +320,7 @@ function buildDigestLines(
   deadRules: DeadRule[],
   archivedLogName: string | null,
   expired: number,
+  trashed: number,
   problems: SheetProblem[]
 ): string[] {
   const lines: string[] = [];
@@ -322,6 +334,8 @@ function buildDigestLines(
   );
   if (archivedLogName) lines.push(`ログが増えたため ${archivedLogName} として退避しました`);
   lines.push(`保持期間を過ぎて受信トレイから外した: ${expired} 件`);
+  // 削除は目に入る所に出す。ゴミ箱の 30 日のうちに気づけるようにするため。
+  if (trashed > 0) lines.push(`削除日数を過ぎてゴミ箱へ移動した: ${trashed} 件 (30 日以内なら戻せます)`);
   lines.push('');
 
   // 型崩れは他の集計を狂わせるので先頭に出す。
