@@ -28,7 +28,7 @@ function setup(): void {
  *
  * `setup()` から切り出してあるのは、自動実行が列不足で落ちたときに
  * ここだけを呼んで追いつかせるため。実行中のトリガーを消して作り直すと
- * 15 分の時計が動いてしまう。
+ * 毎時の時計が動いてしまう。
  */
 function ensureSheets(): void {
   const book = activeBook();

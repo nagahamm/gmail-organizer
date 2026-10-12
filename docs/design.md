@@ -158,7 +158,7 @@ Work/AWX                  勤務先            ┘
 
 ```
 Promotions/Jobs/* のメールにスターを付ける
-        ↓ 次の GAS 実行 (15分以内)
+        ↓ 次の GAS 実行 (1時間以内)
 Work/Shortlist に昇格 + 受信トレイに戻す + スターは外す
         ↓ 週次
 Claude が Watching の傾向を学習し、似た求人を次から拾うルールを提案
@@ -207,7 +207,7 @@ Claude が Watching の傾向を学習し、似た求人を次から拾うルー
 ```mermaid
 flowchart TB
     Sheet["Google スプレッドシート 'Gmail Label DB' ← 真実の源\nlabels / rules / senders / log (+ 過去分の log_N)\nunmatched / proposals / config"]
-    GAS["Google Apps Script\n・15分ごと: 新着に適用\n・週次: 集計 → unmatched\n・月次: 遡及の取りこぼし回収"]
+    GAS["Google Apps Script\n・1時間ごと: 新着に適用\n・週次: 集計 → unmatched\n・月次: 遡及の取りこぼし回収"]
     Gmail["Gmail"]
     Routine["Claude 週次 Routine\nunmatched を読む\n→ proposals に提案を書く"]
     Human["人間が承認列をプルダウンで変更"]
@@ -349,7 +349,7 @@ Gmail のカテゴリ (`promotions` / `social` / `updates`) は既に分類さ�
 | 制約 | 対処 |
 | --- | --- |
 | 実行 6 分 / 回 | 遡及適用は `PropertiesService` にカーソルを保存する「続きから」方式で分割実行 |
-| `GmailApp` 日次クォータ (読み取り系 20,000 操作 / 日 程度) | `assertGmailQuotaAvailable()` が関数の先頭で安価な呼び出しを1回試し、既に超過していれば早期に失敗させる。超過を検知した日付は記録し、`everyQuarterHour` は同日中の再試行を打ち切ってスキップする (`src/gmailx.ts`)。実行中に超過する場合までは検知できない |
+| `GmailApp` 日次クォータ (読み取り系 20,000 操作 / 日 程度) | `assertGmailQuotaAvailable()` が関数の先頭で安価な呼び出しを1回試し、既に超過していれば早期に失敗させる。超過を検知した日付は記録し、`everyHour` は同日中の再試行を打ち切ってスキップする (`src/gmailx.ts`)。実行中に超過する場合までは検知できない |
 | `GmailApp.search()` の 1 回あたり件数 | 遡及は 100 件ずつ (`APPLY_PAGE_SIZE`)、新着は 500 件 (`SEARCH_PAGE_SIZE`) |
 
 ### 5.3 Claude Routine の未検証点 (正直に記載)
@@ -543,7 +543,7 @@ Claude はスプレッドシートのセルを直接書けない (5.3)。開発�
 | 5 | **`importCurrentState()` 実行** — 既存 39 ラベルと Gmail フィルタをシートへ取り込む | **初期登録コストがここでゼロになる** |
 | 6 | ラベル体系を新体系へ移行 | **完了済み。専用の仕組みは撤去した** |
 | 7 | `DRY_RUN = true` で実行 → `log` を確認 | **誤爆の確認はここだけ** |
-| 8 | 本適用 (新着のみ) を 15 分トリガーで開始 | |
+| 8 | 本適用 (新着のみ) を毎時トリガーで開始 | |
 | 9 | 遡及バッチ (直近 1 年) を分割実行 | 以降は月次トリガーが取りこぼしを回収 |
 | 10 | 週次 Claude Routine を設定 | |
 | 11 | ログで一致を確認できた既存 Gmail フィルタから順に削除 | 段階移行 |

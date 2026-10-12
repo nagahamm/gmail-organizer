@@ -59,7 +59,7 @@ function mergeBacklogStat(current: BacklogStat | null, incoming: BacklogStat): B
  * 過去の未分類を洗い出す。
  *
  * 6 分と日次予算のどちらかに当たったら再開位置を残して抜ける。
- * 続きは 15 分ジョブの `continueBacklog()` が拾う。
+ * 続きは毎時のジョブの `continueBacklog()` が拾う。
  */
 function surveyBacklog(startedAt?: number): void {
   const since = budgetStart(startedAt);
@@ -135,7 +135,7 @@ function surveyBacklog(startedAt?: number): void {
 }
 
 /**
- * 中断した洗い出しの続きを流す。15 分ごとのジョブから呼ぶ。
+ * 中断した洗い出しの続きを流す。毎時のジョブから呼ぶ。
  *
  * 再開位置が残っているときだけ動く。遡及と同じ歯止め。
  */

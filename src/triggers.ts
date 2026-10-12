@@ -4,20 +4,20 @@
  * 時間主導トリガーは PC の電源に依存せず動く。これが GAS を選んだ理由の 1 つ。
  */
 
-/** 15 分おきに呼ばれる本体。トリガー数とクォータを節約するため 1 本にまとめる。 */
-function everyQuarterHour(): void {
+/** 1 時間おきに呼ばれる本体。トリガー数とクォータを節約するため 1 本にまとめる。 */
+function everyHour(): void {
   // 今日すでに Gmail の日次上限に達したと分かっているなら、API を叩かずに
   // 即座に諦める。上限は 1 日中変わらないので、リセットされるまで毎回
   // 同じ例外を出し続けても無駄なだけ (docs/design.md)。
   if (isGmailQuotaKnownExhaustedToday()) {
-    console.log('everyQuarterHour: 本日は Gmail の日次上限に達しているため、実行をスキップします');
+    console.log('everyHour: 本日は Gmail の日次上限に達しているため、実行をスキップします');
     return;
   }
 
   try {
     assertGmailQuotaAvailable();
     try {
-      runQuarterHourSteps(Date.now());
+      runHourlySteps(Date.now());
       return;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -25,11 +25,11 @@ function everyQuarterHour(): void {
       // 無人で回る経路なので、ここだけは自分で追いつかせて一度だけ試し直す。
       // それ以外の失敗は黙って回復させない。本当に壊れているときに気づけなくなる。
       if (!isMissingColumnError(message)) throw error;
-      console.warn(`everyQuarterHour: ${message} シートを合わせて再試行します`);
+      console.warn(`everyHour: ${message} シートを合わせて再試行します`);
     }
 
     ensureSheets();
-    runQuarterHourSteps(Date.now());
+    runHourlySteps(Date.now());
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     // 上限超過が assertGmailQuotaAvailable の外、実行の途中で判明した場合も
@@ -40,8 +40,8 @@ function everyQuarterHour(): void {
   }
 }
 
-/** 15 分ごとの中身。3 つのステップで 1 つの予算を分け合う。 */
-function runQuarterHourSteps(startedAt: number): void {
+/** 毎時の中身。3 つのステップで 1 つの予算を分け合う。 */
+function runHourlySteps(startedAt: number): void {
   // ステップごとに数え直すと 6 分制限を超え、writeLog() に到達せずログにも何も残らない。
   applyApprovedProposals(startedAt);
   applyToNewMail(startedAt);
@@ -57,16 +57,25 @@ function runQuarterHourSteps(startedAt: number): void {
 
 /** トリガーを登録する。既存の同名トリガーは消してから作り直す。 */
 function installTriggers(): void {
-  const managed = ['everyQuarterHour', 'applyRetroactive', 'runWeeklyDigest', 'proposeFromReplyMail'];
+  // everyQuarterHour は 15 分間隔だった頃の名前。既に登録されている古いトリガーを
+  // 消すために残す。ここから外すと、存在しない関数を指したトリガーが生き残って
+  // 15 分ごとに静かに失敗し続ける。
+  const managed = [
+    'everyHour',
+    'everyQuarterHour',
+    'applyRetroactive',
+    'runWeeklyDigest',
+    'proposeFromReplyMail',
+  ];
 
   for (const trigger of ScriptApp.getProjectTriggers()) {
     if (managed.indexOf(trigger.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(trigger);
   }
 
-  // GAS の時間主導トリガーは実行時刻を指定できない。`everyMinutes(15)` は
-  // **この関数を実行した時刻を起点**に 15 分間隔で回る。:00 / :15 / :30 / :45 に
-  // 揃えたい場合は、毎時 :00 ちょうどにこの関数を実行し直す。
-  ScriptApp.newTrigger('everyQuarterHour').timeBased().everyMinutes(15).create();
+  // GAS の時間主導トリガーは実行時刻を指定できない。`everyHours(1)` は
+  // **この関数を実行した時刻を起点**に 1 時間間隔で回る。:00 に揃えたい場合は、
+  // 毎時 :00 ちょうどにこの関数を実行し直す。
+  ScriptApp.newTrigger('everyHour').timeBased().everyHours(1).create();
   // 月次の取りこぼし回収。applyToNewMail() の対象は newer_than:2d なので、
   // それより長く止まった分やルールを後から足した分はこちらでしか拾えない。
   // applyRetroactive() は引数を取らないので、トリガーのイベントオブジェクトを
@@ -80,7 +89,7 @@ function installTriggers(): void {
 
   // シートから実行したときにも登録されたことが見えるようにする。console はシートから見えない。
   const message =
-    `トリガーを登録しました: everyQuarterHour (15 分間隔。起点は今の時刻 ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm')}) / ` +
+    `トリガーを登録しました: everyHour (1 時間間隔。起点は今の時刻 ${Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'HH:mm')}) / ` +
     'applyRetroactive (毎月 1 日 0 時) / runWeeklyDigest (日曜 7 時) / proposeFromReplyMail (月曜 8 時)';
   console.log(message);
   activeBook().toast(message, 'gmail-organizer', 10);
@@ -127,14 +136,14 @@ const MENU_SPEC: MenuGroup[] = [
     ],
   },
   {
-    // トリガーの束と 1 対 1。中身は runQuarterHourSteps / runWeeklyDigest が持つ。
+    // トリガーの束と 1 対 1。中身は runHourlySteps / runWeeklyDigest が持つ。
     entries: [
-      { label: '今すぐ回す (15 分ぶん)', handler: 'menuRunQuarterHour' },
+      { label: '今すぐ回す (毎時ぶん)', handler: 'menuRunHourly' },
       { label: '今すぐ回す (週次ぶん)', handler: 'runWeeklyDigest' },
     ],
   },
   {
-    // 最初の一押しが人の仕事で、続きは 15 分ごとのトリガーが拾うもの。
+    // 最初の一押しが人の仕事で、続きは毎時のトリガーが拾うもの。
     entries: [
       { label: '過去メールへ遡及適用する', handler: 'menuApplyRetroactive' },
       { label: '印を付けた行を張り替える', handler: 'menuApplyRelabel' },
@@ -198,9 +207,9 @@ function onOpen(): void {
   menu.addToUi();
 }
 
-/** 15 分ごとの束を手で回す。中身はトリガーと同じ。 */
-function menuRunQuarterHour(): void {
-  runQuarterHourSteps(Date.now());
+/** 毎時の束を手で回す。中身はトリガーと同じ。 */
+function menuRunHourly(): void {
+  runHourlySteps(Date.now());
 }
 
 /** 遡及適用は対象が広いので、メニューからは確認を挟む。 */
@@ -210,7 +219,7 @@ function menuApplyRetroactive(): void {
   const window = readConfig('RETRO_QUERY_WINDOW', CONFIG.RETRO_QUERY_WINDOW);
 
   const tail =
-    '\n\n1 日の上限に達したら中断し、15 分ごとの自動実行が翌日以降も続きを流します。\n' +
+    '\n\n1 日の上限に達したら中断し、毎時の自動実行が翌日以降も続きを流します。\n' +
     '再開位置は DRY_RUN の有無で別に持つので、切り替えても混ざりません。';
   const message = dryRun
     ? `DRY_RUN が有効です。ラベルは変更せず log に記録するだけです。\n対象期間: ${describeQueryWindow(window)}${tail}\n\n実行しますか?`
@@ -269,7 +278,7 @@ function menuSurveyBacklog(): void {
     'ラベルの付いていない過去メールを、送信元ドメイン別に backlog シートへ集計します。\n' +
     'ラベルは変更しません。読み取りだけです。\n\n' +
     '⚠️ 遡及適用を先に流し切ってください。ラベルが付くたびに検索結果が縮み、走査が取りこぼします。\n' +
-    '1 日の上限に達したら中断し、15 分ごとの自動実行が翌日以降も続きを流します。\n\n' +
+    '1 日の上限に達したら中断し、毎時の自動実行が翌日以降も続きを流します。\n\n' +
     '開始しますか?';
 
   if (ui.alert('過去の未分類を洗い出す', message, ui.ButtonSet.OK_CANCEL) !== ui.Button.OK) return;

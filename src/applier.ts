@@ -97,7 +97,7 @@ function planNextPage(start: number, pageLength: number, fresh: number): PageSte
   return { done: pageLength < APPLY_PAGE_SIZE, start: start + pageLength };
 }
 
-/** 新着メールへの適用。時間主導トリガーから 15 分おきに呼ぶ。 */
+/** 新着メールへの適用。時間主導トリガーから 1 時間おきに呼ぶ。 */
 function applyToNewMail(startedAt?: number): void {
   const processed = applyRules('newer_than:2d', false, budgetStart(startedAt));
   console.log(`applyToNewMail: ${processed} スレッドを処理しました`);
@@ -208,10 +208,10 @@ function runRetroactive(rules: Rule[], cursorKey: string, name: string, since?: 
 }
 
 /**
- * 中断した遡及・張り替えの続きを流す。15 分ごとのジョブから呼ぶ。
+ * 中断した遡及・張り替えの続きを流す。毎時のジョブから呼ぶ。
  *
  * **再開位置が残っているときだけ動く。** 無ければ何もしない。
- * これを守らないと、15 分ごとに全期間の遡及が起動して日次クォータを一息で使い切る。
+ * これを守らないと、毎時の実行ごとに全期間の遡及が起動して日次クォータを一息で使い切る。
  *
  * ドライランはカーソルを保存しないので、ここには乗らない。ドライランは人が結果を
  * 見るための実行であって、無人で進めるものではない。
@@ -286,7 +286,7 @@ function applyRules(windowQuery: string, retroactive: boolean, startedAt?: numbe
  * 「記録は残したいが毎回開く必要はない」ものを既読にして残す運用にすると、
  * そのままでは受信トレイが埋まっていく。日数を設定したルールだけ掃除する。
  *
- * 週次で回す。`older_than` の粒度が日なので、15 分ごとに引く意味がない。
+ * 週次で回す。`older_than` の粒度が日なので、毎時引く意味がない。
  * ログの退避と同じ「週次のお掃除」に並べる。
  */
 function archiveExpiredInbox(startedAt?: number): number {
@@ -328,7 +328,7 @@ function archiveExpiredInbox(startedAt?: number): number {
  * (docs/constraints.md 設計上の制約 10)。対象は `Promotions` 配下だけで、
  * その判定は `buildDeleteQuery()` が持つ。
  *
- * 週次で回す。15 分ごとの経路には入れない。ログを見る間隔より短くすると
+ * 週次で回す。毎時の経路には入れない。ログを見る間隔より短くすると
  * 気づく前に消える量が増える。
  */
 function trashExpiredPromotions(startedAt?: number): number {

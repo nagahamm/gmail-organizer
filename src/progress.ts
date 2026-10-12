@@ -55,7 +55,7 @@ function describeProgress(progress: RunProgress): string[] {
     lines.push('  中断中の処理はありません');
   } else {
     for (const line of running) lines.push(line);
-    lines.push('  続きは 15 分ごとの自動実行が流します。');
+    lines.push('  続きは毎時の自動実行が流します。');
   }
 
   lines.push(

@@ -40,10 +40,10 @@ function resetSendersFullScan(): void {
 }
 
 /**
- * 全期間洗い出しの続きを 15 分ごとのジョブから流す。`continueBacklog()` と同じ考え方。
+ * 全期間洗い出しの続きを毎時のジョブから流す。`continueBacklog()` と同じ考え方。
  * 週次ダイジェストの `refreshSenders()` 呼び出しだけに任せると、1 週間に 1 日分しか
  * 進まず完了までに何ヶ月もかかる。完了済みなら何もしない (`refreshSenders` を
- * 毎回起動するとローリング90日の走査が15分おきに走ってしまうため)。
+ * 毎回起動するとローリング90日の走査が毎時走ってしまうため)。
  */
 function continueSendersFullScan(startedAt?: number): void {
   if (isSendersFullScanDone()) return;
