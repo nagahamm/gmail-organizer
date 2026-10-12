@@ -71,6 +71,8 @@ const EXPORTED = [
   'isAutoApprovable',
   'buildDeleteQuery',
   'hasOwnReply',
+  'MENU_SPEC',
+  'menuHandlerNames',
 ];
 
 export function load() {

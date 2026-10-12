@@ -93,52 +93,114 @@ function uninstallTriggers(): void {
 }
 
 /** スプレッドシートを開いたときのメニュー。 */
+/** メニュー 1 項目。`handler` はグローバルに実在する関数名でなければならない。 */
+interface MenuEntry {
+  label: string;
+  handler: string;
+}
+
+/** メニュー 1 階層。`title` があればサブメニューに畳む。 */
+interface MenuGroup {
+  title?: string;
+  entries: MenuEntry[];
+}
+
+/**
+ * メニューの定義。
+ *
+ * **メニューはスケジュールを映す。** 項目はトリガーの束に対応させ、関数には
+ * 対応させない。関数ごとに項目を足していた結果 26 項目まで育ったので、
+ * 「今すぐ回す」は束ごとに 1 つだけ置く (Issue #99)。
+ *
+ * 個別の関数を回したいときは「個別に回す」に畳んである。
+ * 開発用のデータ投入はここに置かない。使い切りの操作はメニューに載せず、
+ * Apps Script エディタの「関数を選択して実行」から呼ぶ (CLAUDE.md)。
+ *
+ * データとして持つのは `npm test` で不変条件を見るため。GAS は存在しない
+ * 関数名を指した項目をクリックしても静かに失敗する。
+ */
+const MENU_SPEC: MenuGroup[] = [
+  {
+    entries: [
+      { label: '1. シートを作成 / 更新', handler: 'setup' },
+      { label: '2. 現在のラベルとフィルタを取り込む', handler: 'importCurrentState' },
+    ],
+  },
+  {
+    // トリガーの束と 1 対 1。中身は runQuarterHourSteps / runWeeklyDigest が持つ。
+    entries: [
+      { label: '今すぐ回す (15 分ぶん)', handler: 'menuRunQuarterHour' },
+      { label: '今すぐ回す (週次ぶん)', handler: 'runWeeklyDigest' },
+    ],
+  },
+  {
+    // 最初の一押しが人の仕事で、続きは 15 分ごとのトリガーが拾うもの。
+    entries: [
+      { label: '過去メールへ遡及適用する', handler: 'menuApplyRetroactive' },
+      { label: '印を付けた行を張り替える', handler: 'menuApplyRelabel' },
+      { label: '過去の未分類を洗い出す', handler: 'menuSurveyBacklog' },
+    ],
+  },
+  {
+    title: '個別に回す',
+    entries: [
+      { label: '新着に適用する', handler: 'applyToNewMail' },
+      { label: '承認済みの提案を反映する', handler: 'applyApprovedProposals' },
+      { label: 'スター付き求人を昇格する', handler: 'promoteStarredJobs' },
+      { label: '送信元マスタを更新する', handler: 'refreshSenders' },
+      { label: '返信メールの提案を取り込む', handler: 'proposeFromReplyMail' },
+      { label: '応募済みスレッドを提案する', handler: 'proposeAppliedJobs' },
+      { label: 'labelsを並べ替える', handler: 'menuSortLabelsSheet' },
+      { label: 'sendersを並べ替える', handler: 'menuSortSendersSheet' },
+    ],
+  },
+  {
+    title: 'メンテナンス・復旧用',
+    entries: [
+      { label: '実行の状態を見る', handler: 'menuShowProgress' },
+      { label: 'シートを検査する', handler: 'menuValidateSheets' },
+      { label: '親ラベルを作る', handler: 'ensureParentLabels' },
+      { label: '遡及の再開位置を消す', handler: 'resetRetroactive' },
+      { label: '洗い出しの再開位置を消す', handler: 'resetBacklog' },
+      { label: 'sendersの全期間洗い出しをやり直す', handler: 'resetSendersFullScan' },
+      { label: 'トリガーを登録する', handler: 'installTriggers' },
+      { label: 'トリガーを全て外す', handler: 'uninstallTriggers' },
+    ],
+  },
+];
+
+/** `MENU_SPEC` に出てくる関数名。重複の検査に使う。 */
+function menuHandlerNames(spec: MenuGroup[]): string[] {
+  const names: string[] = [];
+  for (const group of spec) {
+    for (const entry of group.entries) names.push(entry.handler);
+  }
+  return names;
+}
+
 function onOpen(): void {
   const ui = SpreadsheetApp.getUi();
+  const menu = ui.createMenu('gmail-organizer');
 
-  // 滅多に使わない (復旧・診断・開発用) はサブメニューに畳んで、
-  // 日常的に使う項目だけをトップレベルで見渡せるようにする。
-  const maintenance = ui
-    .createMenu('メンテナンス・復旧用')
-    .addItem('遡及の再開位置を消す', 'resetRetroactive')
-    .addItem('洗い出しの再開位置を消す', 'resetBacklog')
-    .addItem('sendersの全期間洗い出しをやり直す', 'resetSendersFullScan')
-    .addItem('実行の状態を見る', 'menuShowProgress')
-    .addItem('親ラベルを作る', 'ensureParentLabels')
-    .addItem('シートを検査する', 'menuValidateSheets')
-    .addItem('トリガーを登録する', 'installTriggers')
-    .addItem('トリガーを全て外す', 'uninstallTriggers')
-    .addSeparator()
-    .addItem('[開発用] Driveのseedデータを取り込む', 'menuImportDevSeed')
-    .addItem('[開発用] Driveの更新データで空セルを埋める', 'menuImportDevUpdate')
-    .addItem('[開発用] メールのデータを取り込む (Drive権限が無くても使える)', 'menuImportDevMail');
+  let first = true;
+  for (const group of MENU_SPEC) {
+    if (group.title) {
+      const sub = ui.createMenu(group.title);
+      for (const entry of group.entries) sub.addItem(entry.label, entry.handler);
+      menu.addSeparator().addSubMenu(sub);
+      continue;
+    }
+    if (!first) menu.addSeparator();
+    for (const entry of group.entries) menu.addItem(entry.label, entry.handler);
+    first = false;
+  }
 
-  ui.createMenu('gmail-organizer')
-    .addItem('1. シートを作成 / 更新', 'setup')
-    .addItem('2. 現在のラベルとフィルタを取り込む', 'importCurrentState')
-    .addSeparator()
-    // すぐに効果を確認したいとき
-    .addItem('新着に適用する', 'applyToNewMail')
-    .addItem('承認済みの提案を反映する', 'applyApprovedProposals')
-    .addItem('印を付けた行を張り替える', 'menuApplyRelabel')
-    .addSeparator()
-    // 週次でまとめて回すとき
-    .addItem('週次ダイジェストを作る', 'runWeeklyDigest')
-    .addItem('送信元マスタを更新する', 'refreshSenders')
-    .addItem('返信メールの提案を取り込む', 'proposeFromReplyMail')
-    .addItem('応募済みスレッドを提案する', 'proposeAppliedJobs')
-    .addItem('スター付き求人を昇格する', 'promoteStarredJobs')
-    .addSeparator()
-    // 過去メール全体への一括操作
-    .addItem('過去メールへ遡及適用する', 'menuApplyRetroactive')
-    .addItem('過去の未分類を洗い出す', 'menuSurveyBacklog')
-    .addSeparator()
-    // 見た目の整理
-    .addItem('labelsを並べ替える', 'menuSortLabelsSheet')
-    .addItem('sendersを並べ替える', 'menuSortSendersSheet')
-    .addSeparator()
-    .addSubMenu(maintenance)
-    .addToUi();
+  menu.addToUi();
+}
+
+/** 15 分ごとの束を手で回す。中身はトリガーと同じ。 */
+function menuRunQuarterHour(): void {
+  runQuarterHourSteps(Date.now());
 }
 
 /** 遡及適用は対象が広いので、メニューからは確認を挟む。 */
