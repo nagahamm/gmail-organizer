@@ -295,9 +295,18 @@ function archiveExpiredInbox(startedAt?: number): number {
   const dryRun = isDryRun();
   const entries: LogEntry[] = [];
 
+  // 消費はルール数に比例して伸びる。Gmail の日次上限に当たる前に自分で止まる。
+  const today = todayKey();
+  const budget = readDailyBudget();
+  let usage = readDailyUsage();
+
   for (const rule of loadRules()) {
     if (outOfTime(since)) {
       console.warn('archiveExpiredInbox: 時間切れのため残りのルールを飛ばしました');
+      break;
+    }
+    if (!hasDailyBudget(usage, today, budget)) {
+      console.warn('archiveExpiredInbox: 1 日の上限に達したため残りのルールを飛ばしました');
       break;
     }
 
@@ -305,11 +314,15 @@ function archiveExpiredInbox(startedAt?: number): number {
     if (query === '') continue;
 
     const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
+    // 検索で取れた分は読む前に計上する。途中で止めても消費した事実は残る。
+    usage = rollDailyUsage(usage, today, threads.length);
+
     for (const thread of threads) {
       // 安全網が 1 スレッドごとに getLabels() を呼ぶため、ルール単位の判定では
       // 1 ルールぶん予算を超過する。ここで見る。
       if (outOfTime(since)) {
         console.warn('archiveExpiredInbox: 時間切れのため残りのスレッドを飛ばしました');
+        writeDailyUsage(usage);
         writeLog(runId, entries);
         return entries.length;
       }
@@ -317,6 +330,7 @@ function archiveExpiredInbox(startedAt?: number): number {
     }
   }
 
+  writeDailyUsage(usage);
   writeLog(runId, entries);
   return entries.length;
 }
@@ -339,9 +353,19 @@ function trashExpiredPromotions(startedAt?: number): number {
   const me = Session.getActiveUser().getEmail().toLowerCase();
   const entries: LogEntry[] = [];
 
+  // 既定日数を設定すると Promotions のルール全行が対象になる。
+  // ルール数 × 最大 500 スレッド × 2 操作 まで伸びるので、自分で止まる。
+  const today = todayKey();
+  const budget = readDailyBudget();
+  let usage = readDailyUsage();
+
   for (const rule of loadRules()) {
     if (outOfTime(since)) {
       console.warn('trashExpiredPromotions: 時間切れのため残りのルールを飛ばしました');
+      break;
+    }
+    if (!hasDailyBudget(usage, today, budget)) {
+      console.warn('trashExpiredPromotions: 1 日の上限に達したため残りのルールを飛ばしました');
       break;
     }
 
@@ -349,10 +373,13 @@ function trashExpiredPromotions(startedAt?: number): number {
     if (query === '') continue;
 
     const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
+    usage = rollDailyUsage(usage, today, threads.length);
+
     for (const thread of threads) {
       // 安全網が 1 スレッドごとに getLabels() を呼ぶのでスレッド単位で見る。
       if (outOfTime(since)) {
         console.warn('trashExpiredPromotions: 時間切れのため残りのスレッドを飛ばしました');
+        writeDailyUsage(usage);
         writeLog(runId, entries);
         return entries.length;
       }
@@ -360,6 +387,7 @@ function trashExpiredPromotions(startedAt?: number): number {
     }
   }
 
+  writeDailyUsage(usage);
   writeLog(runId, entries);
   return entries.length;
 }
