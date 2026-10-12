@@ -40,6 +40,16 @@ function runWeeklyDigest(): void {
   sortSendersSheet();
   proposeAppliedJobs();
 
+  // 書き出しは最後。集計と提案が終わった後の姿を残したい。
+  // Drive の認可が通らない環境では落ちるので、週次全体を巻き込まないよう捕まえる。
+  try {
+    exportSheetsToDrive(startedAt);
+  } catch (error) {
+    console.warn(
+      `runWeeklyDigest: CSV の書き出しに失敗しました (${error instanceof Error ? error.message : String(error)})`
+    );
+  }
+
   sendDigestMail(unmatched, deadRules, archivedLogName, expired, trashed, problems);
   console.log(
     `runWeeklyDigest: 未分類 ${unmatched.rows.length} 件 / 死んだルール ${deadRules.length} 件 / ` +

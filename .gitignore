@@ -3,3 +3,8 @@ node_modules/
 build/
 *.log
 .DS_Store
+
+# Drive へ書き出したシートの CSV (Google ドライブのデスクトップアプリで同期する分)。
+# senders に実在のメールアドレスが 1,256 件、件名も入るのでコミットしない。
+gmail-organizer-export/
+*.csv

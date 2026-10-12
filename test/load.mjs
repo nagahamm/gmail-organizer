@@ -73,6 +73,9 @@ const EXPORTED = [
   'hasOwnReply',
   'MENU_SPEC',
   'menuHandlerNames',
+  'csvCell',
+  'toCsv',
+  'isExportableSheet',
 ];
 
 export function load() {
