@@ -66,6 +66,7 @@ const {
   carriesOtherTypeLabel,
   isAutoApprovable,
   buildDeleteQuery,
+  hasOwnReply,
 } = load();
 
 const NOW = new Date('2026-09-01T00:00:00Z');
@@ -1494,7 +1495,7 @@ test('削除日数を設定していなければ何も消えない', () => {
 test('削除日数を過ぎた販促はゴミ箱へ入る', () => {
   assert.equal(
     buildDeleteQuery(deleteRule('Promotions/Fashion', 365)),
-    'label:"Promotions/Fashion" older_than:365d -is:starred'
+    'label:"Promotions/Fashion" older_than:365d -is:starred -is:important -has:attachment'
   );
 });
 
@@ -1508,12 +1509,12 @@ test('Promotions 配下でなければ削除日数を書いても無視する', 
 test('短すぎる削除日数は下限まで引き上げる', () => {
   assert.equal(
     buildDeleteQuery(deleteRule('Promotions/Stores', 1)),
-    'label:"Promotions/Stores" older_than:180d -is:starred'
+    'label:"Promotions/Stores" older_than:180d -is:starred -is:important -has:attachment'
   );
   // ちょうど下限なら据え置き
   assert.equal(
     buildDeleteQuery(deleteRule('Promotions/Stores', 180)),
-    'label:"Promotions/Stores" older_than:180d -is:starred'
+    'label:"Promotions/Stores" older_than:180d -is:starred -is:important -has:attachment'
   );
 });
 
@@ -1531,4 +1532,50 @@ test('ラベルが空なら削除の対象にしない', () => {
 
 test('Promotions で始まるだけの別ラベルは削除の対象にしない', () => {
   assert.equal(buildDeleteQuery(deleteRule('PromotionsArchive', 365)), '');
+});
+
+test('気になった跡がある販促は検索式で除く', () => {
+  const query = buildDeleteQuery(deleteRule('Promotions/Fashion', 365));
+  assert.match(query, /-is:starred/);
+  assert.match(query, /-is:important/);
+  assert.match(query, /-has:attachment/);
+});
+
+test('config の既定日数で Promotions 配下すべてが対象になる', () => {
+  // 行に 削除日数 が無くても、既定が入っていれば対象
+  assert.equal(
+    buildDeleteQuery(deleteRule('Promotions/Beauty', 0), 365),
+    'label:"Promotions/Beauty" older_than:365d -is:starred -is:important -has:attachment'
+  );
+});
+
+test('行の削除日数は config の既定より優先する', () => {
+  assert.match(buildDeleteQuery(deleteRule('Promotions/Beauty', 400), 365), /older_than:400d/);
+});
+
+test('既定日数があっても Promotions 以外は対象にしない', () => {
+  assert.equal(buildDeleteQuery(deleteRule('Finance/Bills', 0), 365), '');
+  assert.equal(buildDeleteQuery(deleteRule('Official/Tax', 0), 365), '');
+});
+
+test('既定日数も下限まで引き上げる', () => {
+  assert.match(buildDeleteQuery(deleteRule('Promotions', 0), 30), /older_than:180d/);
+});
+
+test('既定日数が 0 なら何も消えない', () => {
+  assert.equal(buildDeleteQuery(deleteRule('Promotions/Fashion', 0), 0), '');
+});
+
+test('自分が返信したスレッドは残す', () => {
+  const me = 'hurwa8@gmail.com';
+  assert.equal(hasOwnReply(['Shop <news@shop.example>', 'Me <hurwa8@gmail.com>'], me), true);
+  assert.equal(hasOwnReply(['Shop <news@shop.example>'], me), false);
+});
+
+test('自分の判定は大文字小文字を無視する', () => {
+  assert.equal(hasOwnReply(['Me <HURWA8@Gmail.com>'], 'hurwa8@gmail.com'), true);
+});
+
+test('自分のアドレスが取れなければ返信判定はしない', () => {
+  assert.equal(hasOwnReply(['Me <hurwa8@gmail.com>'], ''), false);
 });

@@ -239,15 +239,29 @@ function buildRetentionQuery(rule: Rule): string {
 const DELETE_MIN_AGE_DAYS = 180;
 
 /**
+ * 「気になった跡」として検索式で除ける印。
+ *
+ * スターは人が自分で付けたもの。`is:important` は Gmail の重要マーク。
+ * 添付があるものは、販促の体裁でもバウチャーやチケットの実体を持つことがある。
+ *
+ * 実データでの広さを確認済み (`Promotions/Fashion` 4,421 通のうち
+ * 重要マーク 21 通 / 添付 1 通)。消したいものをほとんど削らずに、
+ * 残したい稀な例だけを拾える。
+ */
+const DELETE_KEEP_FLAGS = '-is:starred -is:important -has:attachment';
+
+/**
  * ゴミ箱へ入れる対象を引く検索式。対象外なら空文字。
  *
  * **`Promotions` 配下のラベルだけ。** 他の大項目に `削除日数` を書いても無視する。
  * 消えて困るものが設定ミスで入る余地を作らないため、列の値ではなくラベルで弾く。
  *
- * スター付きは除く。人が印を付けたものは残す。
+ * 日数は行の `削除日数` が優先で、無ければ `defaultDays` (config の
+ * `PROMOTIONS_DELETE_DAYS`) を使う。どちらも無ければ何も消さない。
+ *
  * 完全削除はしないので、ここで引いたものはゴミ箱に 30 日残る。
  */
-function buildDeleteQuery(rule: Rule): string {
+function buildDeleteQuery(rule: Rule, defaultDays: number = 0): string {
   if (!rule.enabled) return '';
 
   const label = sanitizeQueryValue(rule.label);
@@ -256,13 +270,37 @@ function buildDeleteQuery(rule: Rule): string {
   // 境界は受信トレイ除外と自動承認に揃える。
   if (!isPromotionsLabel(rule.label)) return '';
 
-  // 数値でない値が来たら対象にしない。NaN を素通りさせると
-  // older_than:NaNd という検索式を組んでしまう。
-  const requested = Math.floor(Number(rule.deleteDays));
-  if (!Number.isFinite(requested) || requested <= 0) return '';
+  const requested = positiveDays(rule.deleteDays) || positiveDays(defaultDays);
+  if (requested <= 0) return '';
 
   const days = Math.max(requested, DELETE_MIN_AGE_DAYS);
-  return `label:"${label}" older_than:${days}d -is:starred`;
+  return `label:"${label}" older_than:${days}d ${DELETE_KEEP_FLAGS}`;
+}
+
+/**
+ * 正の整数の日数として読めれば返す。読めなければ 0。
+ *
+ * NaN を素通りさせると older_than:NaNd という検索式を組んでしまう。
+ */
+function positiveDays(value: unknown): number {
+  const days = Math.floor(Number(value));
+  return Number.isFinite(days) && days > 0 ? days : 0;
+}
+
+/**
+ * スレッドに自分の送信が含まれるか。含まれれば「気になったもの」として残す。
+ *
+ * これは Gmail の検索式では表現できない。検索条件はメッセージ単位で
+ * 評価されるため `from:me AND label:Promotions` では意図した絞り込みにならない
+ * (docs/constraints.md Gmail 側の制約 3)。だからスレッドごとにコードで見る。
+ *
+ * 返信したということは、その販促に反応したということ。消さない。
+ */
+function hasOwnReply(senders: string[], me: string): boolean {
+  const own = String(me || '').trim().toLowerCase();
+  if (own === '') return false;
+
+  return senders.some((from) => extractAddress(from) === own);
 }
 
 /**

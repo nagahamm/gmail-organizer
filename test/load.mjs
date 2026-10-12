@@ -70,6 +70,7 @@ const EXPORTED = [
   'carriesOtherTypeLabel',
   'isAutoApprovable',
   'buildDeleteQuery',
+  'hasOwnReply',
 ];
 
 export function load() {

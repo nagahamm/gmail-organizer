@@ -335,6 +335,8 @@ function trashExpiredPromotions(startedAt?: number): number {
   const since = budgetStart(startedAt);
   const runId = newRunId();
   const dryRun = isDryRun();
+  const defaultDays = promotionsDeleteDays();
+  const me = Session.getActiveUser().getEmail().toLowerCase();
   const entries: LogEntry[] = [];
 
   for (const rule of loadRules()) {
@@ -343,7 +345,7 @@ function trashExpiredPromotions(startedAt?: number): number {
       break;
     }
 
-    const query = buildDeleteQuery(rule);
+    const query = buildDeleteQuery(rule, defaultDays);
     if (query === '') continue;
 
     const threads = GmailApp.search(query, 0, CONFIG.SEARCH_PAGE_SIZE);
@@ -354,7 +356,7 @@ function trashExpiredPromotions(startedAt?: number): number {
         writeLog(runId, entries);
         return entries.length;
       }
-      entries.push(trashThread(thread, rule, dryRun));
+      entries.push(trashThread(thread, rule, dryRun, me));
     }
   }
 
@@ -366,9 +368,11 @@ function trashExpiredPromotions(startedAt?: number): number {
 function trashThread(
   thread: GoogleAppsScript.Gmail.GmailThread,
   rule: Rule,
-  dryRun: boolean
+  dryRun: boolean,
+  me: string
 ): LogEntry {
-  const head = thread.getMessages()[0];
+  const messages = thread.getMessages();
+  const head = messages[0];
 
   const entry: LogEntry = {
     messageId: head ? head.getId() : thread.getId(),
@@ -385,6 +389,13 @@ function trashThread(
   // 併せ持つスレッドを消さない (Issue #94)。
   if (hasOtherTypeLabel(thread, rule)) {
     entry.result = 'skipped: 既に分類済み';
+    return entry;
+  }
+
+  // 返信したということは、その販促に反応したということ。消さない。
+  // 検索式では表現できないのでここで見る (docs/constraints.md Gmail 側の制約 3)。
+  if (hasOwnReply(messages.map((message) => message.getFrom()), me)) {
+    entry.result = 'skipped: 自分が返信している';
     return entry;
   }
 

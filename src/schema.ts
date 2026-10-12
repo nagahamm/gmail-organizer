@@ -269,6 +269,12 @@ const CONFIG_DEFAULTS: string[][] = [
   ],
   ['NOTIFY_TO', '', '[文字列: メールアドレス、空可] 週次ダイジェストの送信先。空なら実行アカウント宛', 'text'],
   [
+    'PROMOTIONS_DELETE_DAYS',
+    '0',
+    '[整数] 0 なら販促を消さない。1 以上にすると Promotions 配下すべてがその日数でゴミ箱へ入る (下限 180 日)。rules の 削除日数 を書いた行はそちらが優先。完全削除はしない',
+    'number',
+  ],
+  [
     'AUTO_APPROVE_PROMOTIONS',
     'TRUE',
     '[TRUE/FALSE] TRUE の間は Promotions 配下の提案を人を通さず承認する。それ以外の大項目は常に人が判断する',

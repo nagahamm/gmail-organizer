@@ -330,6 +330,17 @@ function isDryRun(): boolean {
 }
 
 /**
+ * 販促をゴミ箱へ入れるまでの既定日数。0 なら消さない。
+ *
+ * 「基本的に切れた販促は消したい」を 1 箇所の設定で表せるようにする。
+ * ラベルごとに `削除日数` を書かなくても Promotions 配下すべてに効く。
+ * 既定は 0 で、設定するまで何も消えない。
+ */
+function promotionsDeleteDays(): number {
+  return Math.floor(Number(readConfig('PROMOTIONS_DELETE_DAYS', '0'))) || 0;
+}
+
+/**
  * Promotions 配下の提案を自動承認するかどうか。
  *
  * 安全側の境界を緩める設定なので、デプロイせずに止められるようにしておく。
