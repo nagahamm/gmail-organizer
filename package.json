@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/**/*.test.mjs\"",
     "push": "clasp push",
-    "open": "clasp open"
+    "open": "clasp open",
+    "worklog": "node tools/worklog.mjs"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2",

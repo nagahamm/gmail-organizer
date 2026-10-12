@@ -53,7 +53,17 @@ npx clasp open
 npm run typecheck   # tsc --noEmit
 npm test            # 振る舞いの検証
 npm run push        # clasp push
+npm run worklog     # 開発時間をコミット履歴から算出
 ```
 
 `npm test` は `docs/requirements.md` のシナリオのうち、GAS API に触れずに
 検証できるものを Node で回す。仕組みは `docs/design.md` 5.4 にある。
+
+`npm run worklog` はコミットの時刻から作業セッションを組み立てて時間を出す。
+**実測 (コミット間) と推定 (先頭コミット前を加算) を分けて表示する。**
+先頭コミットより前の作業はコミットに現れないので実測は必ず過少になる。
+区切りと加算は `--gap=90` `--lead=30` で変えられる。
+
+クラウドのセッションは既定で直近 50 コミットしか取得しないため、
+浅いクローンでは期間が切れる。その場合はレポートの先頭に警告が出るので、
+`git fetch --unshallow` してから出し直す。
