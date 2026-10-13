@@ -1450,8 +1450,15 @@ test('大項目が同じなら階層の深さが違っても分類済みでは�
 test('Promotions 配下の提案は自動で承認される', () => {
   assert.equal(isAutoApprovable('new_rule', 'Promotions/Food'), true);
   assert.equal(isAutoApprovable('inbox_skip', 'Promotions/Stores'), true);
-  // 大項目そのものを指す提案も Promotions なら対象
-  assert.equal(isAutoApprovable('new_rule', 'Promotions'), true);
+  assert.equal(isAutoApprovable('new_rule', 'Promotions/Jobs/Alerts'), true);
+});
+
+test('裸の Promotions は自動では承認しない', () => {
+  // proposer.ts は「ジャンルは人が決める」前提でわざと大項目に留めて提案する。
+  // ここを通すとジャンルが決まらないまま保持期間と削除の対象になる
+  assert.equal(isAutoApprovable('inbox_skip', 'Promotions'), false);
+  assert.equal(isAutoApprovable('new_rule', 'Promotions'), false);
+  assert.equal(isAutoApprovable('inbox_skip', '  Promotions  '), false);
 });
 
 test('Promotions 以外は自動では承認されない', () => {

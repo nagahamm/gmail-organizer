@@ -233,6 +233,11 @@ function isAutoApprovable(kind: string, label: string): boolean {
   const target = String(label).trim();
   if (target === '') return false;
 
+  // 裸の `Promotions` は除く。proposer.ts は「ジャンルは人が決める」前提で
+  // わざと大項目に留めて提案している。ここで通すとその前提が破れ、
+  // ジャンルが決まらないまま保持期間と削除の対象になる (Issue #106)。
+  if (isBarePromotionsLabel(target)) return false;
+
   return isPromotionsLabel(target);
 }
 
