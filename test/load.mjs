@@ -78,6 +78,9 @@ const EXPORTED = [
   'csvCell',
   'toCsv',
   'isExportableSheet',
+  'anchorBlocks',
+  'writableBlocks',
+  'findSheetSpec',
 ];
 
 export function load() {

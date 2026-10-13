@@ -79,7 +79,9 @@ function exportSheetsToDrive(startedAt?: number): number {
     const name = sheet.getName();
     if (!isExportableSheet(name)) continue;
 
-    const lastRow = sheet.getLastRow();
+    // getLastRow() を直に使うと、labels は full_path の ARRAYFORMULA が
+    // 列末尾までスピルするぶんだけ空行が付いてくる。grep する用途が壊れる。
+    const lastRow = dataLastRow(sheet);
     const lastColumn = sheet.getLastColumn();
     if (lastRow === 0 || lastColumn === 0) continue;
 

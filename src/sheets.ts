@@ -159,6 +159,30 @@ function lastDataRow(
   return last;
 }
 
+/**
+ * そのシートの実データの最終行。ヘッダ行しか無ければ 1。
+ *
+ * `getLastRow()` は使えない。ARRAYFORMULA が空文字をシート末尾まで出力し、
+ * それが content として数えられる (#20 と同じ理由)。`labels` は `full_path` が
+ * この形なので、実データ 80 行でも 2,000 行を返す。
+ *
+ * 定義の無いシート (`log_N` など) は突き合わせる spec が無いので `getLastRow()` のまま。
+ * あちらは追記専用で数式列もチェックボックス列も持たない。
+ */
+function dataLastRow(sheet: GoogleAppsScript.Spreadsheet.Sheet): number {
+  const name = sheet.getName();
+  if (!hasSheetSpec(name)) return sheet.getLastRow();
+
+  const width = sheet.getLastColumn();
+  if (width === 0) return sheet.getLastRow();
+
+  const spec = findSheetSpec(name);
+  const index = resolveColumns(sheet, spec);
+  // appendTopRow() と同じ anchorBlocks を使う。数式列に加えてチェックボックス列も
+  // 除くので、空行に残った FALSE でも行数が膨らまない。
+  return lastDataRow(sheet, anchorBlocks(spec, index, width), sheet.getLastRow());
+}
+
 /** 追記を始める行番号。 */
 function appendTopRow(
   sheet: GoogleAppsScript.Spreadsheet.Sheet,
