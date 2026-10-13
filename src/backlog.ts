@@ -250,6 +250,18 @@ function computeUnruledSenderStats(senderRows: Row[], ruleRows: Row[]): Record<s
 
 /** senders から backlog を作り直す。Gmail を走査する surveyBacklog の代わり。 */
 function refreshBacklogFromSenders(): void {
+  // 洗い出しが未完了なら senders はローリング 90 日ぶんしか無い。そこから出した
+  // 一覧を書くと、部分的な結果が完全な一覧として並ぶ。
+  // 「senders に無い」は「そんな送信元は居ない」ではない (#21 と同じ構図)。
+  // 古い内容は残るが 更新日 が古いままなので、見れば分かる。
+  if (!isSendersFullScanDone()) {
+    console.warn(
+      'refreshBacklogFromSenders: sendersの全期間洗い出しが未完了のため書き込みを見送りました。' +
+        'メニューの「実行の状態を見る」で進み具合を確認できます'
+    );
+    return;
+  }
+
   const stats = computeUnruledSenderStats(readRows(SHEET_NAMES.SENDERS), readRows(SHEET_NAMES.RULES));
   writeBacklogStats(stats);
   console.log(`refreshBacklogFromSenders: ${Object.keys(stats).length} 件`);

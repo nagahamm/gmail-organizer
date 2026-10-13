@@ -209,7 +209,16 @@ const SHEET_SPECS: SheetSpec[] = [
       { key: 'domain', header: '送信元ドメイン', width: 220 },
       { key: 'address', header: '代表アドレス', width: 240 },
       { key: 'listId', header: 'list_id', width: 200 },
-      { key: 'count', header: '件数', type: 'number', width: 80, note: '目安。走査中にラベルが付くと検索結果が動くため、厳密な数ではない。' },
+      {
+        key: 'count',
+        header: '件数',
+        type: 'number',
+        width: 80,
+        note:
+          '目安。旧実装 (Gmail の全期間走査) では走査中にラベルが付くと検索結果が動くため厳密ではなかった。' +
+          'senders との統合後は senders の 直近90日 をそのまま持つ (Issue #105)。' +
+          'ルールを作るかどうかの判断には直近の通数の方が効く。',
+      },
       { key: 'firstSeen', header: '最古の受信日', type: 'date', width: 120 },
       { key: 'lastSeen', header: '最新の受信日', type: 'date', width: 120 },
       { key: 'sampleSubject', header: '代表件名', width: 320 },
