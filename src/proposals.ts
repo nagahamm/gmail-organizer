@@ -22,16 +22,29 @@ function applyApprovedProposals(startedAt?: number): void {
 
   const autoApprove = isAutoApproveEnabled();
 
+  // 既にルールがあるパターン。途中で止まって再実行されても二重に追加しないため、
+  // ループの前に 1 回だけ読む (Issue #103)。
+  const ruledPatterns = existingKeys(SHEET_NAMES.RULES, 'pattern');
+
   const added: { pattern: string; label: string }[] = [];
   const newLabels: Row[] = [];
+  const newRules: Row[] = [];
   const proposalUpdates: CellUpdate[] = [];
   const unmatchedUpdates: CellUpdate[] = [];
   let approved = 0;
   let rejected = 0;
   let autoApproved = 0;
+  let deferred = 0;
 
   for (const row of rows) {
     if (String(row['appliedAt'] || '') !== '') continue;
+
+    // 打ち切ったらそこまでの分を flush して次の実行に残す。
+    // ここを無制限に回すと、6 分で死んで反映日が付かず再実行で二重になる。
+    if (outOfTime(since)) {
+      deferred += 1;
+      continue;
+    }
     let approval = String(row['approval'] || '').trim();
 
     // 未確認のうち、間違えても害が小さいものだけ人を通さず承認する。
@@ -64,8 +77,14 @@ function applyApprovedProposals(startedAt?: number): void {
     }
 
     if (LABEL_ONLY_KINDS.indexOf(kind) < 0 && pattern !== '' && label !== '') {
-      appendRuleFromProposal(row, now);
-      added.push({ pattern, label });
+      // 既に同じパターンのルールがあれば足さない。反映日だけ付けて畳む。
+      if (ruleExistsForPattern(ruledPatterns, pattern)) {
+        console.log(`applyApprovedProposals: ${pattern} は既にルールがあるため追加しません`);
+      } else {
+        ruledPatterns[pattern] = true;
+        newRules.push(buildRuleFromProposal(row, now));
+        added.push({ pattern, label });
+      }
     }
 
     collectProposed(unmatched, pattern, unmatchedUpdates);
@@ -73,24 +92,27 @@ function applyApprovedProposals(startedAt?: number): void {
     approved += 1;
   }
 
+  // ルールを先に入れてから反映日を付ける。逆にすると、追記に失敗したときに
+  // 承認したのに何も起きていない提案が「反映済み」になって埋もれる。
   appendRows(SHEET_NAMES.LABELS, newLabels);
+  appendRows(SHEET_NAMES.RULES, newRules);
   updateCells(SHEET_NAMES.UNMATCHED, unmatchedUpdates);
   updateCells(SHEET_NAMES.PROPOSALS, proposalUpdates);
 
   if (added.length > 0) applyNewRulesRetroactively(added, since);
   const autoNote = autoApproved > 0 ? ` (うち自動承認 ${autoApproved} 件)` : '';
+  const deferNote = deferred > 0 ? ` / 時間切れで持ち越し ${deferred} 件` : '';
   console.log(
-    `applyApprovedProposals: 承認 ${approved} 件${autoNote} / 却下 ${rejected} 件 / ルール追加 ${added.length} 件`
+    `applyApprovedProposals: 承認 ${approved} 件${autoNote} / 却下 ${rejected} 件 / ルール追加 ${added.length} 件${deferNote}`
   );
 }
 
 /** 提案 1 行から rules の行を作る。受信トレイ除外の提案は既読化もセットで入れる。 */
-function appendRuleFromProposal(row: Row, now: Date): void {
+function buildRuleFromProposal(row: Row, now: Date): Row {
   const kind = String(row['kind'] || '').trim();
   const skipInbox = kind === 'inbox_skip';
 
-  appendRows(SHEET_NAMES.RULES, [
-    {
+  return {
       ruleId: String(row['proposalId'] || ''),
       enabled: true,
       priority: 500,
@@ -104,11 +126,10 @@ function appendRuleFromProposal(row: Row, now: Date): void {
       neverSpam: false,
       frozenAt: '',
       memo: `提案 ${row['proposalId']} から承認: ${row['rationale']}`,
-      createdAt: now,
-      lastMatchedAt: '',
-      matchCount: 0,
-    },
-  ]);
+    createdAt: now,
+    lastMatchedAt: '',
+    matchCount: 0,
+  };
 }
 
 /**

@@ -65,6 +65,7 @@ const {
   senderUpdates,
   carriesOtherTypeLabel,
   isAutoApprovable,
+  ruleExistsForPattern,
   buildDeleteQuery,
   hasOwnReply,
 } = load();
@@ -1578,4 +1579,21 @@ test('自分の判定は大文字小文字を無視する', () => {
 
 test('自分のアドレスが取れなければ返信判定はしない', () => {
   assert.equal(hasOwnReply(['Me <hurwa8@gmail.com>'], ''), false);
+});
+
+test('既にルールがあるパターンは二重に追加しない', () => {
+  // 承認の反映は 6 分で途中で止まりうる。再実行しても安全でなければならない
+  const existing = { 'news@shop.example': true, shein: true };
+  assert.equal(ruleExistsForPattern(existing, 'news@shop.example'), true);
+  assert.equal(ruleExistsForPattern(existing, 'shein'), true);
+  assert.equal(ruleExistsForPattern(existing, 'other@shop.example'), false);
+});
+
+test('パターンの前後の空白は吸収する', () => {
+  assert.equal(ruleExistsForPattern({ shein: true }, '  shein  '), true);
+});
+
+test('空のパターンは既存とみなさない', () => {
+  assert.equal(ruleExistsForPattern({ '': true }, ''), false);
+  assert.equal(ruleExistsForPattern({}, ''), false);
 });

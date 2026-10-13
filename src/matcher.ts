@@ -188,6 +188,19 @@ function isPromotionsLabel(label: string): boolean {
 const AUTO_APPROVE_KINDS = ['new_rule', 'inbox_skip'];
 
 /**
+ * そのパターンのルールが既にあるか。
+ *
+ * 承認の反映は途中で止まりうる (6 分制限)。ルールの追記と `反映日` の記入が
+ * 同じ瞬間には終わらないので、**再実行しても安全**でなければならない。
+ * 順序を入れ替えても解決しない。`反映日` を先に書けば、ルール追加に失敗した
+ * ときに提案が黙って消える。だから「既にあるなら足さない」で冪等にする。
+ */
+function ruleExistsForPattern(existing: Record<string, boolean>, pattern: string): boolean {
+  const key = String(pattern || '').trim();
+  return key !== '' && existing[key] === true;
+}
+
+/**
  * 人を通さずに承認してよい提案か。
  *
  * 承認そのものが「登録が面倒」の再来になっていたため、**間違えても害が小さい

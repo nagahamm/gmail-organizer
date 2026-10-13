@@ -71,6 +71,7 @@ const EXPORTED = [
   'senderUpdates',
   'carriesOtherTypeLabel',
   'isAutoApprovable',
+  'ruleExistsForPattern',
   'buildDeleteQuery',
   'hasOwnReply',
   'MENU_SPEC',
