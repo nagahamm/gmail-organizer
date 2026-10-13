@@ -66,6 +66,7 @@ const {
   carriesOtherTypeLabel,
   isAutoApprovable,
   ruleExistsForPattern,
+  isBarePromotionsLabel,
   buildDeleteQuery,
   hasOwnReply,
 } = load();
@@ -1596,4 +1597,32 @@ test('パターンの前後の空白は吸収する', () => {
 test('空のパターンは既存とみなさない', () => {
   assert.equal(ruleExistsForPattern({ '': true }, ''), false);
   assert.equal(ruleExistsForPattern({}, ''), false);
+});
+
+// --- 機能: シートの検査 (行き先が裸の Promotions) ------------------------------
+
+test('裸の Promotions を指すルールを見つける', () => {
+  assert.equal(isBarePromotionsLabel('Promotions'), true);
+  assert.equal(isBarePromotionsLabel('  Promotions  '), true);
+});
+
+test('中項目まで決まっていれば報告しない', () => {
+  assert.equal(isBarePromotionsLabel('Promotions/Events'), false);
+  assert.equal(isBarePromotionsLabel('Promotions/Jobs/Alerts'), false);
+});
+
+test('裸でも Promotions 以外の大項目は報告しない', () => {
+  // これらは裸の大項目で実際に使っている
+  assert.equal(isBarePromotionsLabel('Subscriptions'), false);
+  assert.equal(isBarePromotionsLabel('Support'), false);
+  assert.equal(isBarePromotionsLabel('Official'), false);
+});
+
+test('Promotions で始まるだけの別ラベルは報告しない', () => {
+  assert.equal(isBarePromotionsLabel('PromotionsArchive'), false);
+});
+
+test('空のラベルは報告しない', () => {
+  assert.equal(isBarePromotionsLabel(''), false);
+  assert.equal(isBarePromotionsLabel('   '), false);
 });

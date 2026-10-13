@@ -39,8 +39,34 @@ function validateSheets(startedAt?: number): SheetProblem[] {
     }
     collectSheetProblems(spec, problems);
     collectDanglingLabels(spec, problems);
+    collectBarePromotions(spec, problems);
   }
   return problems;
+}
+
+/**
+ * 行き先が裸の `Promotions` になっているルールを報告する。
+ *
+ * ジャンルが未決のまま保持期間と削除の対象に入るため、消える前に気づけるようにする
+ * (Issue #104)。エラーにはしない。中項目を決めるのは人の判断。
+ */
+function collectBarePromotions(spec: SheetSpec, problems: SheetProblem[]): void {
+  if (spec.name !== SHEET_NAMES.RULES) return;
+
+  for (const row of readRows(spec.name)) {
+    if (problems.length >= VALIDATE_MAX_PROBLEMS) return;
+    if (row['enabled'] !== true) continue;
+    if (!isBarePromotionsLabel(String(row['label'] || ''))) continue;
+
+    problems.push({
+      cell: `${spec.name}!${String(row['_rowNumber'])}`,
+      header: 'ラベル',
+      detail:
+        `行き先が裸の Promotions です (パターン: ${preview(row['pattern'])})。` +
+        '中項目を決めてください。このままだと保持期間 90 日と削除の対象になり、' +
+        'ジャンルが決まらないまま消えます',
+    });
+  }
 }
 
 /** labels シートに実在するラベル名。1 回の検査で何度も読み直さないため覚えておく。 */

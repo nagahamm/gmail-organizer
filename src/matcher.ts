@@ -188,6 +188,21 @@ function isPromotionsLabel(label: string): boolean {
 const AUTO_APPROVE_KINDS = ['new_rule', 'inbox_skip'];
 
 /**
+ * 行き先が裸の `Promotions` になっているか。
+ *
+ * `Promotions` 配下はジャンルで分けるのが前提で、裸の大項目に溜めると
+ * 中項目を開いても見えない (`label:親` は子を含まない)。しかも
+ * 保持期間の既定 90 日と削除の対象に入るので、**ジャンルを一度も決められないまま
+ * 消える**。週次の検査で報告して、人が中項目を決められるようにする。
+ *
+ * `Subscriptions` / `Support` / `Official` は裸の大項目で実際に使っているので
+ * 対象にしない。`Promotions` だけが受信トレイ除外・既読化・削除の対象になる。
+ */
+function isBarePromotionsLabel(label: string): boolean {
+  return String(label || '').trim() === 'Promotions';
+}
+
+/**
  * そのパターンのルールが既にあるか。
  *
  * 承認の反映は途中で止まりうる (6 分制限)。ルールの追記と `反映日` の記入が

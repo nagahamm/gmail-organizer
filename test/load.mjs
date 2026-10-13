@@ -72,6 +72,7 @@ const EXPORTED = [
   'carriesOtherTypeLabel',
   'isAutoApprovable',
   'ruleExistsForPattern',
+  'isBarePromotionsLabel',
   'buildDeleteQuery',
   'hasOwnReply',
   'MENU_SPEC',
